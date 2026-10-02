@@ -29,6 +29,8 @@ def render_detail(p,tags,deck=''):
     body+=f'<p class="role">{E(d.get("table_note","Source: original project materials linked below."))}</p>'
  if deck:body+=deck
  body+='<section class="source-section"><h2>'+('Sources and scope' if 'source_note' in d else 'Explore the work')+'</h2><p>'+E(d.get('source_note','The original materials retain the calculations, assumptions, and supporting discussion behind this overview.'))+'</p><div class="actions">'+actions+'</div>'
+ for label,url in d.get('source_links',[]):
+  body+=f'<p><a href="{E(url)}">{E(label)}</a></p>'
  if slug in ['bayesian-housing','social-networks','multilevel-scores','movie-preferences']:
   body+='<p class="role">The readable analysis preserves existing notebook content with code and long output collapsed. Models were not rerun for this presentation; interpretation notes appear at the top of each preview.</p>'
  body+='</section></article>'
