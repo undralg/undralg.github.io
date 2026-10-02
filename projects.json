@@ -229,6 +229,40 @@
     "chart": null
   },
   {
+    "slug": "forum",
+    "title": "Forum AI Notetaker",
+    "category": [
+      "Software & AI"
+    ],
+    "tags": [
+      "Python",
+      "Flask",
+      "SQL",
+      "SQLite",
+      "React",
+      "Transcription",
+      "Testing"
+    ],
+    "question": "How can class recordings become searchable transcripts and useful notes?",
+    "method": "Worked on a team-built course platform that connects recording uploads, FFmpeg audio extraction, Whisper transcription and AI-generated summaries, topics and action items. The application uses Flask, React and SQLite, with course membership controlling access.",
+    "finding": "The platform brings recordings, transcripts and notes into one searchable workflow. My contribution focused on the relational database and data-integrity testing. The project includes session-processing states and preserves transcripts when note generation fails.",
+    "limit": "Team course project, not a claim of sole authorship. The public repository documents the implementation and setup; the linked video demonstrates the application.",
+    "links": [
+      [
+        "View repository",
+        "https://github.com/islamborghini/forum-ai-notetaker"
+      ],
+      [
+        "Watch demo",
+        "https://drive.google.com/file/d/11JSakbIamDS8JBap28sZX6Nz741hunM5/view"
+      ]
+    ],
+    "metric": "",
+    "label": "",
+    "role": "Team software project",
+    "chart": null
+  },
+  {
     "slug": "wrigley",
     "title": "Wrigley: the price of leverage",
     "category": [
