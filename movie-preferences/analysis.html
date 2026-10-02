@@ -1,0 +1,2018 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Movie Preferences · Full analysis</title><style>body{max-width:1000px;margin:auto;padding:28px;font:18px/1.65 system-ui;color:#172b33}h1,h2{font-family:Georgia}a{color:#087d89}img{max-width:100%;height:auto;display:block;margin:25px auto}pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px;max-height:450px;overflow:auto;background:#f2f5f6;padding:16px}details{margin:12px 0;border:1px solid #dbe3e6;padding:12px}summary{cursor:pointer}.note{background:#edf5f6;padding:20px;border-left:4px solid #087d89}table{display:block;overflow:auto;border-collapse:collapse}td,th{padding:8px;border-bottom:1px solid #ddd}</style></head><body><a href="./">← Project overview</a><h1>Movie Preferences: full analysis</h1><aside class="note">This is the sanitized, output-free public notebook. The revised fold-local evaluation has not been rerun; historical classifier scores are not validated performance estimates.</aside><h1 id="multimodal-movie-preference-modeling">Multimodal Movie
+Preference Modeling</h1>
+<p>This is a sanitized portfolio copy of a course project. Saved
+outputs, private movie-level data, local paths, and credentials have
+been removed. The original predictive estimates are discussed in the
+project README only as historical, exploratory results because
+preprocessing preceded the original train/test split. The evaluation
+code below now fits preprocessing inside each validation fold, but it
+must be rerun with the private source data before reporting new
+performance estimates.</p>
+<h2 id="data-description">Data description</h2>
+<p>I have kept track of over six hundred films and television shows that
+I have rated on IMDb over the past several years. Since these ratings
+reflect my own taste at the moment I watched each work, I wanted to
+study whether there are underlying patterns in the types of content I
+consistently enjoy and how my taste may have changed over time. The
+dataset includes my personal rating on a ten point scale, the date I
+rated the film, the IMDb rating and vote count, runtime, genre
+information, and more.</p>
+<p>To enrich this data, I used the TMDb API to pull structured metadata
+for each title. This includes TMDb genres, release dates, popularity
+scores, cast and crew information, and runtime. TMDb provides a more
+consistent taxonomy of genres than IMDb, so I preferred it for my
+feature engineering. After merging the IMDb and TMDb information, the
+dataset became a compact record of what I have watched and how I felt
+about it, along with a set of detailed, structured attributes that
+enable machine learning analysis.</p>
+<details><summary>Show code · cell 3</summary><pre><code>from pathlib import Path
+import os
+
+import matplotlib.pyplot as plt
+import pandas as pd
+import seaborn as sns
+from dotenv import load_dotenv
+
+%matplotlib inline
+
+load_dotenv()
+RANDOM_STATE = 42
+PROJECT_ROOT = Path.cwd()
+DATA_RAW_DIR = PROJECT_ROOT / &quot;data&quot; / &quot;raw&quot;
+DATA_INTERIM_DIR = PROJECT_ROOT / &quot;data&quot; / &quot;interim&quot;
+ARTIFACTS_CACHE_DIR = PROJECT_ROOT / &quot;artifacts&quot; / &quot;cache&quot;
+POSTER_CACHE_ROOT = ARTIFACTS_CACHE_DIR / &quot;posters&quot;
+EMBEDDING_CACHE_DIR = ARTIFACTS_CACHE_DIR / &quot;embeddings&quot;
+MODEL_CACHE_DIR = ARTIFACTS_CACHE_DIR / &quot;models&quot;
+
+for directory in [DATA_RAW_DIR, DATA_INTERIM_DIR, POSTER_CACHE_ROOT, EMBEDDING_CACHE_DIR, MODEL_CACHE_DIR]:
+    directory.mkdir(parents=True, exist_ok=True)
+
+csv_path = DATA_RAW_DIR / &quot;imdb_ratings.csv&quot;
+if not csv_path.exists():
+    raise FileNotFoundError(
+        f&quot;Missing private input: {csv_path}. See data/README.md for the expected schema.&quot;
+    )
+
+df = pd.read_csv(csv_path)
+print(f&quot;Shape: {df.shape}&quot;)
+df.head()
+</code></pre></details><details><summary>Show code · cell 4</summary><pre><code># Expensive network/model steps are cached locally and ignored by Git.
+FORCE_REPULL_TMDB = False
+FORCE_REFRESH_POSTER_CSV = False
+FORCE_REEMBED_POSTERS = False
+FORCE_REEMBED_TEXT = False
+
+# Choose explicitly: &quot;tfidf_svd&quot; uses the default requirements; &quot;sbert&quot;
+# additionally requires requirements-sbert.txt and a model download.
+TEXT_METHOD = &quot;tfidf_svd&quot;
+</code></pre></details><details><summary>Show code · cell 5</summary><pre><code>rating_col = &#x27;Your Rating&#x27;
+rating = df[rating_col].dropna()
+
+mode_vals = rating.mode()
+mode_val = mode_vals.iloc[0] if not mode_vals.empty else None
+
+print(&#x27;Descriptive stats for my rating:&#x27;)
+print(rating.describe())
+print(f&quot;Mode: {mode_val}&quot;)
+print(&#x27;\nQuantiles:&#x27;)
+for q, v in rating.quantile([0.1, 0.25, 0.5, 0.75, 0.9]).items():
+    print(f&quot;  {q:.2f}: {v}&quot;)</code></pre></details><details><summary>Show code · cell 6</summary><pre><code>fig, axes = plt.subplots(1, 2, figsize=(12, 4))
+sns.histplot(rating, bins=20, kde=True, ax=axes[0], color=&#x27;steelblue&#x27;)
+axes[0].set_title(&#x27;My Rating distribution&#x27;)
+axes[0].set_xlabel(&#x27;My Rating&#x27;)
+axes[0].set_ylabel(&#x27;Count&#x27;)
+
+sns.boxplot(x=rating, ax=axes[1], color=&#x27;orange&#x27;)
+axes[1].set_title(&#x27;My Rating boxplot&#x27;)
+axes[1].set_xlabel(&#x27;My Rating&#x27;)
+plt.tight_layout()
+plt.show()
+</code></pre></details><h2 id="feature-engineering">Feature Engineering</h2>
+<details><summary>Show code · cell 8</summary><pre><code>import os
+import time
+import requests
+import pandas as pd
+
+# CONFIG
+TMDB_BEARER_TOKEN = os.environ.get(&quot;TMDB_BEARER_TOKEN&quot;)
+if not TMDB_BEARER_TOKEN:
+    raise ValueError(&quot;TMDB_BEARER_TOKEN is not set&quot;)
+
+BASE_URL = &quot;https://api.themoviedb.org/3&quot;
+
+
+def tmdb_get(path: str, params: dict | None = None, sleep: float = 0.1) -&gt; dict:
+    &quot;&quot;&quot;
+    Small helper for calling the TMDb API.
+    Adds api_key automatically, handles JSON parsing, and sleeps briefly to respect rate limits.
+    &quot;&quot;&quot;
+    if params is None:
+        params = {}
+    params = dict(params)
+
+    url = f&quot;{BASE_URL}{path}&quot;
+    resp = requests.get(
+        url,
+        params=params,
+        headers={&quot;Authorization&quot;: f&quot;Bearer {TMDB_BEARER_TOKEN}&quot;},
+        timeout=30,
+    )
+    resp.raise_for_status()
+    data = resp.json()
+
+    # Be reasonably gentle with the API so it doesn&#x27;t get stuck with rate limiting
+    time.sleep(sleep)
+    return data
+</code></pre></details><details><summary>Show code · cell 9</summary><pre><code>def fetch_full_tmdb_record(imdb_id: str) -&gt; dict | None:
+    &quot;&quot;&quot;
+    Given an IMDb ID like &#x27;tt0111161&#x27;, fetch a rich TMDb record:
+    basic movie or TV info (via /find), detailed metadata (via /movie or /tv), and credits (director and main cast).
+    Returns a flat dict of features, or None if no match is found.
+    &quot;&quot;&quot;
+    # 1. Find TMDb ID and basic info from IMDb ID
+    find_data = tmdb_get(
+        path=f&quot;/find/{imdb_id}&quot;,
+        params={&quot;external_source&quot;: &quot;imdb_id&quot;},
+        sleep=0.05,
+    )
+
+    if find_data.get(&quot;movie_results&quot;):
+        base = find_data[&quot;movie_results&quot;][0]
+        media_type = &quot;movie&quot;
+    elif find_data.get(&quot;tv_results&quot;):
+        base = find_data[&quot;tv_results&quot;][0]
+        media_type = &quot;tv&quot;
+    else:
+        # No match (e.g., some episodes, very obscure titles)
+        return None
+
+    tmdb_id = base[&quot;id&quot;]
+
+    # 2. Detailed metadata (/movie/{id} or /tv/{id})
+    details = tmdb_get(
+        path=f&quot;/{media_type}/{tmdb_id}&quot;,
+        params={},
+        sleep=0.05,
+    )
+
+    # 3. Credits: director and main cast (/credits)
+    credits = tmdb_get(
+        path=f&quot;/{media_type}/{tmdb_id}/credits&quot;,
+        params={},
+        sleep=0.05,
+    )
+
+    # Extract director info
+    director_name = director_id = None
+    director_gender = None
+
+    crew = credits.get(&quot;crew&quot;, [])
+    directors = [c for c in crew if c.get(&quot;job&quot;) == &quot;Director&quot;]
+    if directors:
+        d0 = directors[0]
+        director_name = d0.get(&quot;name&quot;)
+        director_id = d0.get(&quot;id&quot;)
+        director_gender = d0.get(&quot;gender&quot;)  # 1 = female, 2 = male, 0/None = unknown
+
+    # Extract main cast (top-billed)
+    main_cast_name = main_cast_id = None
+    main_cast_gender = None
+
+    cast = credits.get(&quot;cast&quot;, [])
+    if cast:
+        cast_sorted = sorted(cast, key=lambda a: a.get(&quot;order&quot;, 9999))
+        main = cast_sorted[0]
+        main_cast_name = main.get(&quot;name&quot;)
+        main_cast_id = main.get(&quot;id&quot;)
+        main_cast_gender = main.get(&quot;gender&quot;)  # 1 = female, 2 = male, 0/None = unknown
+
+    # Genres (ids + names)
+    genre_ids = [g[&quot;id&quot;] for g in details.get(&quot;genres&quot;, [])]
+    genre_names = [g[&quot;name&quot;] for g in details.get(&quot;genres&quot;, [])]
+
+    # Spoken languages and production countries
+    spoken_languages = [lang.get(&quot;iso_639_1&quot;) for lang in details.get(&quot;spoken_languages&quot;, [])]
+    production_countries = [c.get(&quot;iso_3166_1&quot;) for c in details.get(&quot;production_countries&quot;, [])]
+
+    # Runtime
+    runtime = details.get(&quot;runtime&quot;)
+    if runtime is None and media_type == &quot;tv&quot;:
+        episode_run_time = details.get(&quot;episode_run_time&quot;) or []
+        runtime = episode_run_time[0] if episode_run_time else None
+
+    return {
+        &quot;tmdb_id&quot;: tmdb_id,
+        &quot;tmdb_media_type&quot;: media_type,
+        &quot;tmdb_title&quot;: details.get(&quot;title&quot;) or details.get(&quot;name&quot;),
+        &quot;tmdb_original_title&quot;: details.get(&quot;original_title&quot;) or details.get(&quot;original_name&quot;),
+        &quot;tmdb_release_date&quot;: details.get(&quot;release_date&quot;) or details.get(&quot;first_air_date&quot;),
+        &quot;tmdb_original_language&quot;: details.get(&quot;original_language&quot;),
+        &quot;tmdb_vote_average&quot;: details.get(&quot;vote_average&quot;),
+        &quot;tmdb_vote_count&quot;: details.get(&quot;vote_count&quot;),
+        &quot;tmdb_popularity&quot;: details.get(&quot;popularity&quot;),
+
+        &quot;tmdb_genre_ids&quot;: genre_ids,
+        &quot;tmdb_genre_names&quot;: genre_names,
+        &quot;runtime&quot;: runtime,
+        &quot;status&quot;: details.get(&quot;status&quot;),
+        &quot;adult&quot;: details.get(&quot;adult&quot;),
+        &quot;overview&quot;: details.get(&quot;overview&quot;),
+        &quot;spoken_languages&quot;: spoken_languages,
+        &quot;production_countries&quot;: production_countries,
+
+        &quot;director_id&quot;: director_id,
+        &quot;director_name&quot;: director_name,
+        &quot;director_gender&quot;: director_gender,
+
+        &quot;main_cast_id&quot;: main_cast_id,
+        &quot;main_cast_name&quot;: main_cast_name,
+        &quot;main_cast_gender&quot;: main_cast_gender,
+    }
+</code></pre></details><details><summary>Show code · cell 10</summary><pre><code>from pathlib import Path
+
+if &quot;FORCE_REPULL_TMDB&quot; not in globals():
+    FORCE_REPULL_TMDB = False
+output_path = DATA_INTERIM_DIR / &quot;tmdb_metadata.csv&quot;
+if Path(output_path).exists() and not FORCE_REPULL_TMDB:
+    tmdb_full_df = pd.read_csv(output_path)
+    print(&quot;Loaded cached TMDb metadata:&quot;, output_path, tmdb_full_df.shape)
+else:
+    imdb_id_col = &quot;Const&quot;
+
+    records = []
+
+    for idx, row in df.iterrows():
+        imdb_id = row[imdb_id_col]
+
+        # skip weird or missing IDs
+        if not isinstance(imdb_id, str) or not imdb_id.startswith(&quot;tt&quot;):
+            print(f&quot;Skipping invalid IMDb ID at row {idx}: {imdb_id}&quot;)
+            continue
+
+        try:
+            tmdb_meta = fetch_full_tmdb_record(imdb_id)
+            if tmdb_meta is None:
+                print(f&quot;No TMDb match for {imdb_id} ({row[&#x27;Title&#x27;]})&quot;)
+                continue
+
+            # Base record from IMDb data
+            record = {
+                &quot;imdb_id&quot;: imdb_id,
+                &quot;title&quot;: row[&quot;Title&quot;],
+                &quot;original_title_imdb&quot;: row[&quot;Original Title&quot;],
+                &quot;title_type&quot;: row[&quot;Title Type&quot;],
+                &quot;my_rating&quot;: row[&quot;Your Rating&quot;],
+                &quot;date_rated&quot;: row[&quot;Date Rated&quot;],
+                &quot;imdb_rating&quot;: row[&quot;IMDb Rating&quot;],
+                &quot;imdb_year&quot;: row[&quot;Year&quot;],
+                &quot;imdb_genres&quot;: row[&quot;Genres&quot;],
+                &quot;imdb_num_votes&quot;: row[&quot;Num Votes&quot;],
+            }
+
+            # Add all TMDb features in one go
+            record.update(tmdb_meta)
+            records.append(record)
+
+        except Exception as e:
+            print(f&quot;Error for {imdb_id} ({row[&#x27;Title&#x27;]}): {e}&quot;)
+
+    tmdb_full_df = pd.DataFrame(records)
+    tmdb_full_df.head(), tmdb_full_df.shape
+</code></pre></details><details><summary>Show code · cell 11</summary><pre><code>output_path = DATA_INTERIM_DIR / &quot;tmdb_metadata.csv&quot;
+tmdb_full_df.to_csv(output_path, index=False)
+print(f&quot;Saved enriched TMDb metadata to: {output_path}&quot;)</code></pre></details><details><summary>Show code · cell 12</summary><pre><code>import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+import ast
+
+df = pd.read_csv(output_path)
+
+print(df.shape)
+df.head()
+</code></pre></details><details><summary>Show code · cell 13</summary><pre><code># Parse dates
+df[&quot;date_rated&quot;] = pd.to_datetime(df[&quot;date_rated&quot;], errors=&quot;coerce&quot;)
+df[&quot;tmdb_release_date&quot;] = pd.to_datetime(df[&quot;tmdb_release_date&quot;], errors=&quot;coerce&quot;)
+
+# Extract release year
+df[&quot;release_year&quot;] = df[&quot;tmdb_release_date&quot;].dt.year.fillna(df[&quot;imdb_year&quot;])
+
+# Helper to safely parse list-like strings
+def parse_maybe_list(x):
+    if isinstance(x, list):
+        return x
+    if isinstance(x, str):
+        x = x.strip()
+        if x.startswith(&quot;[&quot;) and x.endswith(&quot;]&quot;):
+            try:
+                return ast.literal_eval(x)
+            except Exception:
+                return []
+        elif x:  # non-empty plain string
+            # for things like &quot;Drama, Comedy&quot; in imdb_genres if you want later
+            return [s.strip() for s in x.split(&quot;,&quot;)]
+    return []
+
+# Apply to TMDb list columns
+list_cols = [&quot;tmdb_genre_ids&quot;, &quot;tmdb_genre_names&quot;, &quot;spoken_languages&quot;, &quot;production_countries&quot;]
+for col in list_cols:
+    if col in df.columns:
+        df[col] = df[col].apply(parse_maybe_list)
+
+df[list_cols].head()
+</code></pre></details><details><summary>Show code · cell 14</summary><pre><code># Main cast gender
+df[&quot;main_char_female&quot;] = (df[&quot;main_cast_gender&quot;] == 1).astype(int)
+df[&quot;main_char_male&quot;]   = (df[&quot;main_cast_gender&quot;] == 2).astype(int)
+df[&quot;main_char_unknown&quot;] = ((df[&quot;main_cast_gender&quot;] == 0) | df[&quot;main_cast_gender&quot;].isna()).astype(int)
+
+# Director gender
+df[&quot;female_director&quot;] = (df[&quot;director_gender&quot;] == 1).astype(int)
+df[&quot;male_director&quot;]   = (df[&quot;director_gender&quot;] == 2).astype(int)
+df[&quot;unknown_director_gender&quot;] = ((df[&quot;director_gender&quot;] == 0) | df[&quot;director_gender&quot;].isna()).astype(int)
+</code></pre></details><details><summary>Show code · cell 15</summary><pre><code># Get the set of all genres
+all_genres = sorted({g for genres in df[&quot;tmdb_genre_names&quot;] for g in genres})
+
+print(&quot;Number of unique genres:&quot;, len(all_genres))
+print(all_genres)
+
+# Multi-hot encode
+for g in all_genres:
+    col_name = f&quot;genre_{g.replace(&#x27; &#x27;, &#x27;_&#x27;)}&quot;
+    df[col_name] = df[&quot;tmdb_genre_names&quot;].apply(lambda gs: int(g in gs))
+</code></pre></details><h2 id="principal-component-analysis">Principal Component Analysis</h2>
+<details><summary>Show code · cell 17</summary><pre><code>numeric_features = [
+    &quot;runtime&quot;,
+    &quot;tmdb_vote_average&quot;,
+    &quot;tmdb_vote_count&quot;,
+    &quot;tmdb_popularity&quot;,
+    &quot;imdb_rating&quot;,
+    &quot;imdb_num_votes&quot;,
+    &quot;release_year&quot;,
+]
+
+gender_features = [
+    &quot;main_char_female&quot;,
+    &quot;main_char_male&quot;,
+    &quot;main_char_unknown&quot;,
+    &quot;female_director&quot;,
+    &quot;male_director&quot;,
+    &quot;unknown_director_gender&quot;,
+]
+
+genre_features = [col for col in df.columns if col.startswith(&quot;genre_&quot;)]
+
+feature_cols = numeric_features + gender_features + genre_features
+len(feature_cols), feature_cols[:10]
+</code></pre></details><details><summary>Show code · cell 18</summary><pre><code># Drop rows missing any of the core numeric features
+df_pca = df.dropna(subset=numeric_features).copy()
+
+X = df_pca[feature_cols].fillna(0).values
+feature_names = feature_cols
+X.shape
+</code></pre></details><h3 id="dimensions">2 dimensions</h3>
+<details><summary>Show code · cell 20</summary><pre><code>from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+# Let&#x27;s start with 2D PCA for visualization
+pca = PCA(n_components=2)
+Z = pca.fit_transform(X_scaled)
+
+print(&quot;Explained variance ratio:&quot;, pca.explained_variance_ratio_)
+print(&quot;Total variance explained by PC1+PC2:&quot;, pca.explained_variance_ratio_.sum())
+</code></pre></details><details><summary>Show code · cell 21</summary><pre><code>df_pca[&quot;PC1&quot;] = Z[:, 0]
+df_pca[&quot;PC2&quot;] = Z[:, 1]
+</code></pre></details><details><summary>Show code · cell 22</summary><pre><code>loadings = pd.DataFrame(
+    pca.components_.T,
+    columns=[&quot;PC1&quot;, &quot;PC2&quot;],
+    index=feature_names
+)
+
+# Top 10 positive / negative contributors to PC1
+print(&quot;Top positive loadings for PC1:&quot;)
+print(loadings[&quot;PC1&quot;].sort_values(ascending=False).head(10))
+
+print(&quot;\nTop negative loadings for PC1:&quot;)
+print(loadings[&quot;PC1&quot;].sort_values(ascending=True).head(10))
+
+print(&quot;\nTop positive loadings for PC2:&quot;)
+print(loadings[&quot;PC2&quot;].sort_values(ascending=False).head(10))
+
+print(&quot;\nTop negative loadings for PC2:&quot;)
+print(loadings[&quot;PC2&quot;].sort_values(ascending=True).head(10))
+</code></pre></details><p>PC1 separates mainstream, high popularity, male led action and
+adventure films from more intimate, female led works that may have been
+more associated with romance and comedy. Positive values on PC1
+correspond to films with high vote counts, male leads, genres like
+action or science fiction, and better user IMDb ratings. Negative values
+place films with female leads or female directors together with romance
+and comedy titles. I interpret PC1 as a gendered blockbuster to more
+intimate, romance axis.</p>
+<p>PC2 describes a tonal contrast. High PC2 values indicate family
+oriented films, animation, fantasy, and light adventure. Negative PC2
+values are associated with drama, mystery, crime, and thrillers as well
+as higher average ratings. I interpret PC2 as a lighthearted to serious
+axis.</p>
+<details><summary>Show code · cell 24</summary><pre><code>plt.figure(figsize=(8, 6))
+scatter = plt.scatter(
+    df_pca[&quot;PC1&quot;],
+    df_pca[&quot;PC2&quot;],
+    c=df_pca[&quot;my_rating&quot;],
+    cmap=&quot;viridis&quot;,
+    alpha=0.7
+)
+plt.colorbar(scatter, label=&quot;My Rating&quot;)
+plt.axhline(0, color=&quot;gray&quot;, linewidth=0.5)
+plt.axvline(0, color=&quot;gray&quot;, linewidth=0.5)
+plt.xlabel(&quot;PC1 - Romance to Action Mainstream Blockbuster&quot;)
+plt.ylabel(&quot;PC2 - Serious to Lighthearted&quot;)
+plt.title(&quot;PCA of My Movie Taste (colored by my rating)&quot;)
+plt.tight_layout()
+plt.show()
+</code></pre></details><p>As expected, higher rated films tend to be in the lower right
+quadrant. PC1 had higher IMDb ratings as a positive loading while PC2
+had it as a negative loading. My own ratings are moderately correlated
+with IMDb ratings.</p>
+<details><summary>Show code · cell 26</summary><pre><code>corr_value = df_pca[[&quot;my_rating&quot;, &quot;imdb_rating&quot;]].corr().iloc[0,1]
+print(&quot;Correlation between my rating and IMDb rating:&quot;, corr_value)</code></pre></details><details><summary>Show code · cell 27</summary><pre><code>plt.figure(figsize=(8, 6))
+sns.scatterplot(
+    x=&quot;PC1&quot;, y=&quot;PC2&quot;,
+    data=df_pca,
+    hue=&quot;main_char_female&quot;,
+    palette=&quot;coolwarm&quot;,
+    alpha=0.7
+)
+plt.axhline(0, color=&quot;gray&quot;, linewidth=0.5)
+plt.axvline(0, color=&quot;gray&quot;, linewidth=0.5)
+plt.title(&quot;PCA of My Movie Taste (colored by female lead)&quot;)
+plt.tight_layout()
+plt.show()
+</code></pre></details><p>Although it is disappointing that higher rated films tended to have
+male leads whilst lower rated ones had more female leads (lower right
+quadrant vs upper left quadrant). Probably not only a characterization
+of my taste, but rather the movie industry.</p>
+<h3 id="dimensions">3 dimensions</h3>
+<details><summary>Show code · cell 30</summary><pre><code>from sklearn.decomposition import PCA
+
+pca3 = PCA(n_components=3)
+Z3 = pca3.fit_transform(X_scaled)
+
+df_pca[&quot;PC1&quot;] = Z3[:, 0]
+df_pca[&quot;PC2&quot;] = Z3[:, 1]
+df_pca[&quot;PC3&quot;] = Z3[:, 2]
+
+print(&quot;Explained variance by PC1-PC3:&quot;, pca3.explained_variance_ratio_)
+print(&quot;Total:&quot;, pca3.explained_variance_ratio_.sum())
+</code></pre></details><details><summary>Show code · cell 31</summary><pre><code>loadings3 = pd.DataFrame(
+    pca3.components_.T,
+    columns=[&quot;PC1&quot;, &quot;PC2&quot;, &quot;PC3&quot;],
+    index=feature_names
+)
+for pc in [&quot;PC1&quot;, &quot;PC2&quot;, &quot;PC3&quot;]:
+    print(f&quot;\n=== {pc}: Top Positive Loadings ===&quot;)
+    print(loadings3[pc].sort_values(ascending=False).head(10))
+    
+    print(f&quot;\n=== {pc}: Top Negative Loadings ===&quot;)
+    print(loadings3[pc].sort_values(ascending=True).head(10))</code></pre></details><details><summary>Show code · cell 32</summary><pre><code>from sklearn.decomposition import PCA
+
+# 10-PC representation for clustering/classification downstream
+pca10 = PCA(n_components=10)
+Z10 = pca10.fit_transform(X_scaled)
+
+print(&#x27;Variance explained by first 10 PCs:&#x27;, pca10.explained_variance_ratio_.round(3))
+print(&#x27;Cumulative variance (10 PCs):&#x27;, pca10.explained_variance_ratio_.sum())</code></pre></details><details><summary>Show code · cell 33</summary><pre><code>import pandas as pd
+import numpy as np
+
+# --- 1. Ensure PCA components are in df_pca ---
+# (PC1/PC2 should already exist from the PCA section above.)
+if (&quot;PC1&quot; not in df_pca.columns) or (&quot;PC2&quot; not in df_pca.columns):
+    raise NameError(&quot;PC1/PC2 not found in df_pca; run the PCA section above first.&quot;)
+
+
+
+# --- 2. Select numeric columns only ---
+numeric_cols = df_pca.select_dtypes(include=[np.number]).columns
+
+# --- 3. Compute correlation matrix ---
+corr = df_pca[numeric_cols].corr()
+
+# Extract correlations with PC1 and PC2
+corr_PC1 = corr[&quot;PC1&quot;].sort_values(ascending=False)
+corr_PC2 = corr[&quot;PC2&quot;].sort_values(ascending=False)
+
+# --- 4. Print results ---
+print(&quot;=== Top positive correlations with PC1 ===&quot;)
+print(corr_PC1.head(15))
+print(&quot;\n=== Top negative correlations with PC1 ===&quot;)
+print(corr_PC1.tail(15))
+
+print(&quot;\n=== Top positive correlations with PC2 ===&quot;)
+print(corr_PC2.head(15))
+print(&quot;\n=== Top negative correlations with PC2 ===&quot;)
+print(corr_PC2.tail(15))
+</code></pre></details><p>PC3 captures a maturity dimension. Higher PC3 values correspond to
+animation, family films, fantasy, and kids content, often with shorter
+runtimes and higher popularity. Unknown director gender is significant
+here, that would indicate non-western media (animes, k-dramas, etc).</p>
+<p>Lower PC3 values correspond to longer films and darker genres such as
+thriller, horror, drama, and history. I interpret PC3 as a youth
+oriented fantasy axis versus a mature and darker content axis.</p>
+<details><summary>Show code · cell 35</summary><pre><code>from mpl_toolkits.mplot3d import Axes3D  # registers 3D projection
+import matplotlib.pyplot as plt
+import numpy as np
+
+fig = plt.figure(figsize=(10, 8))
+ax = fig.add_subplot(111, projection=&quot;3d&quot;)
+
+p = ax.scatter(
+    df_pca[&quot;PC1&quot;],
+    df_pca[&quot;PC2&quot;],
+    df_pca[&quot;PC3&quot;],
+    c=df_pca[&quot;my_rating&quot;],       # Color by my rating
+    cmap=&quot;viridis&quot;,
+    alpha=0.7,
+    s=30
+)
+
+ax.set_xlabel(&quot;PC1 - Romance to Action Mainstream Blockbuster&quot;)
+ax.set_ylabel(&quot;PC2 - Serious to Lighthearted&quot;)
+ax.set_zlabel(&quot;PC3 - Thriller to Fantasy/Animation&quot;)
+ax.set_title(&quot;3D PCA of My Movie Taste (PC1 vs PC2 vs PC3)&quot;)
+
+fig.colorbar(p, ax=ax, orientation=&quot;horizontal&quot;, pad=0.08, fraction=0.05, label=&quot;My Rating&quot;)
+
+plt.show()
+</code></pre></details><h3 id="choosing-the-number-of-components">Choosing the Number of
+Components</h3>
+<details><summary>Show code · cell 37</summary><pre><code>import numpy as np
+
+pca_full = PCA(n_components=20)
+Z_full = pca_full.fit_transform(X_scaled)
+
+# Explained variance per PC
+evr = pca_full.explained_variance_ratio_
+
+# Cumulative variance from the 20-component PCA
+cum_evr = np.cumsum(evr)
+plt.figure(figsize=(8, 5))
+plt.plot(range(1, len(evr) + 1), cum_evr, marker=&#x27;o&#x27;)
+plt.axhline(0.6, color=&#x27;red&#x27;, linestyle=&#x27;--&#x27;, label=&#x27;60%&#x27;)
+plt.axhline(0.8, color=&#x27;green&#x27;, linestyle=&#x27;--&#x27;, label=&#x27;80%&#x27;)
+plt.xlabel(&#x27;Principal Component&#x27;)
+plt.ylabel(&#x27;Cumulative Variance Explained&#x27;)
+plt.title(&#x27;Cumulative Variance Explained by PCA Components&#x27;)
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+plt.show()
+
+</code></pre></details><p>I computed PCA with up to twenty components and examined the
+cumulative explained variance. The first three components explain about
+thirty percent of the variance. By ten components the cumulative
+explained variance reached about sixty percent. I chose ten components
+for clustering and classification since higher dimensional PCA
+representations might perform better for downstream modeling.</p>
+<h2 id="clustering-on-ten-principal-components">Clustering on Ten
+Principal Components</h2>
+<details><summary>Show code · cell 40</summary><pre><code>from sklearn.cluster import KMeans
+
+# Refit k-means on the 10-PC representation (Z10) for clarity
+kmeans = KMeans(n_clusters=4, random_state=RANDOM_STATE, n_init=&#x27;auto&#x27;)
+df_pca[&#x27;cluster&#x27;] = kmeans.fit_predict(Z10)
+
+
+plt.figure(figsize=(8, 6))
+sns.scatterplot(
+    x=&#x27;PC1&#x27;, y=&#x27;PC2&#x27;,
+    hue=&#x27;cluster&#x27;,
+    palette=&#x27;tab10&#x27;,
+    data=df_pca,
+    alpha=0.7
+)
+plt.axhline(0, color=&#x27;gray&#x27;, linewidth=0.5)
+plt.axvline(0, color=&#x27;gray&#x27;, linewidth=0.5)
+plt.title(&#x27;PC1 vs PC2 colored by cluster (k=4 on 10 PCs)&#x27;)
+plt.tight_layout()
+plt.show()</code></pre></details><details><summary>Show code · cell 41</summary><pre><code>from mpl_toolkits.mplot3d import Axes3D
+import matplotlib.pyplot as plt
+
+fig = plt.figure(figsize=(11,11)) # make it bigger so that labels are readable
+ax = fig.add_subplot(111, projection=&#x27;3d&#x27;)
+
+scatter = ax.scatter(
+    df_pca[&quot;PC1&quot;],
+    df_pca[&quot;PC2&quot;],
+    df_pca[&quot;PC3&quot;],
+    c=df_pca[&quot;cluster&quot;],
+    cmap=&quot;tab10&quot;,
+    alpha=0.7,
+    s=40
+)
+
+ax.set_xlabel(&quot;PC1 - Romance to Action Mainstream Blockbuster&quot;)
+ax.set_ylabel(&quot;PC2 - Serious to Lighthearted&quot;)
+ax.set_zlabel(&quot;PC3 - Thriller to Fantasy/Animation&quot;)
+ax.set_title(&quot;3D PCA Plot Colored by Clusters (k=4)&quot;)
+
+
+plt.legend(*scatter.legend_elements(), title=&quot;Cluster&quot;)
+plt.tight_layout()
+plt.show()
+</code></pre></details><details><summary>Show code · cell 42</summary><pre><code>cluster_summary = df_pca.groupby(&quot;cluster&quot;).agg(
+    n_movies=(&quot;imdb_id&quot;, &quot;count&quot;),
+    avg_my_rating=(&quot;my_rating&quot;, &quot;mean&quot;),
+    avg_imdb_rating=(&quot;imdb_rating&quot;, &quot;mean&quot;),
+    frac_female_lead=(&quot;main_char_female&quot;, &quot;mean&quot;),
+    frac_female_director=(&quot;female_director&quot;, &quot;mean&quot;),
+    avg_year=(&quot;release_year&quot;, &quot;mean&quot;),
+    mean_PC1=(&quot;PC1&quot;, &quot;mean&quot;),
+    mean_PC2=(&quot;PC2&quot;, &quot;mean&quot;),
+    mean_PC3=(&quot;PC3&quot;, &quot;mean&quot;)
+).round(3)
+
+cluster_summary
+</code></pre></details><details><summary>Show code · cell 43</summary><pre><code># Genre profile per cluster (mean of multi-hot genre indicators)
+genre_profiles = df_pca.groupby(&#x27;cluster&#x27;)[genre_features].mean().T
+genre_profiles.head(15)</code></pre></details><details><summary>Show code · cell 44</summary><pre><code>from sklearn.metrics import silhouette_score
+
+sil_score = silhouette_score(Z10, df_pca[&quot;cluster&quot;])
+print(&quot;Silhouette Score for k=4:&quot;, sil_score)
+</code></pre></details><h2 id="taste-evolution-over-time-pc1pc2-trajectories">Taste evolution
+over time (PC1/PC2 trajectories)</h2>
+<details><summary>Show code · cell 46</summary><pre><code># Sort by rating date and track movement through PCA space
+df_time = df_pca.dropna(subset=[&#x27;date_rated&#x27;]).sort_values(&#x27;date_rated&#x27;).copy()
+
+plt.figure(figsize=(10, 4))
+plt.plot(df_time[&#x27;date_rated&#x27;], df_time[&#x27;PC1&#x27;], marker=&#x27;o&#x27;, linestyle=&#x27;-&#x27;, alpha=0.7)
+plt.xlabel(&#x27;Date Rated&#x27;)
+plt.ylabel(&#x27;PC1&#x27;)
+plt.title(&#x27;PC1 over time&#x27;)
+plt.xticks(rotation=45)
+plt.tight_layout()
+plt.show()
+
+plt.figure(figsize=(10, 4))
+plt.plot(df_time[&#x27;date_rated&#x27;], df_time[&#x27;PC2&#x27;], marker=&#x27;o&#x27;, linestyle=&#x27;-&#x27;, alpha=0.7)
+plt.xlabel(&#x27;Date Rated&#x27;)
+plt.ylabel(&#x27;PC2&#x27;)
+plt.title(&#x27;PC2 over time&#x27;)
+plt.xticks(rotation=45)
+plt.tight_layout()
+plt.show()
+
+plt.figure(figsize=(8, 6))
+points = plt.scatter(
+    df_time[&#x27;PC1&#x27;],
+    df_time[&#x27;PC2&#x27;],
+    c=df_time[&#x27;date_rated&#x27;].map(lambda x: x.toordinal()),
+    cmap=&#x27;viridis&#x27;,
+    alpha=0.8
+)
+plt.colorbar(points, label=&#x27;Date (earlier -&gt; later)&#x27;)
+plt.axhline(0, color=&#x27;gray&#x27;, linewidth=0.5)
+plt.axvline(0, color=&#x27;gray&#x27;, linewidth=0.5)
+plt.xlabel(&#x27;PC1&#x27;)
+plt.ylabel(&#x27;PC2&#x27;)
+plt.title(&#x27;Taste trajectory in PCA space over time&#x27;)
+plt.tight_layout()
+plt.show()
+</code></pre></details><p>Before 2015, my PC1 values were consistently lower and my PC2 values
+were mostly positive, which means that the films I gravitated toward as
+a child leaned more toward the romance and comedy side of PC1 and the
+lighthearted, family oriented side of PC2. This aligns with the fact
+that I was still quite young at the time and tended to watch animation,
+fantasy and other content aimed at children. After 2016, the year I
+turned thirteen, my trajectory becomes noticeably more complex. Both PC1
+and PC2 begin to fluctuate much more, and the 2D taste trajectory plot
+shows that I started exploring a wider portion of the PCA space rather
+than staying anchored in a single region. I move across all four
+quadrants of the PC1–PC2 plane, with stretches where I watched more
+serious dramas and thrillers (negative PC2), periods where I leaned
+toward bigger, action oriented blockbusters (positive PC1), and other
+stretches that returned to lighter genres. There is no simple monotonic
+trend after adolescence. This reflects that, as I got older, I began
+sampling many different tonal and thematic areas, suggesting that the
+most important shift in my taste was not toward a particular genre, but
+toward greater variety and openness to different types of films.</p>
+<details><summary>Show code · cell 48</summary><pre><code>df_time[&#x27;year_rated&#x27;] = df_time[&#x27;date_rated&#x27;].dt.year
+
+yearly = df_time.groupby(&#x27;year_rated&#x27;).agg(
+    mean_PC1=(&#x27;PC1&#x27;, &#x27;mean&#x27;),
+    mean_PC2=(&#x27;PC2&#x27;, &#x27;mean&#x27;),
+    count=(&#x27;PC1&#x27;, &#x27;count&#x27;)
+).reset_index()
+
+plt.figure(figsize=(10, 4))
+plt.plot(yearly[&#x27;year_rated&#x27;], yearly[&#x27;mean_PC1&#x27;], marker=&#x27;o&#x27;)
+plt.xlabel(&#x27;Year Rated&#x27;)
+plt.ylabel(&#x27;Average PC1&#x27;)
+plt.title(&#x27;Average PC1 per year&#x27;)
+plt.grid(alpha=0.3)
+plt.tight_layout()
+plt.show()
+
+plt.figure(figsize=(10, 4))
+plt.plot(yearly[&#x27;year_rated&#x27;], yearly[&#x27;mean_PC2&#x27;], marker=&#x27;o&#x27;)
+plt.xlabel(&#x27;Year Rated&#x27;)
+plt.ylabel(&#x27;Average PC2&#x27;)
+plt.title(&#x27;Average PC2 per year&#x27;)
+plt.grid(alpha=0.3)
+plt.tight_layout()
+plt.show()
+
+yearly
+</code></pre></details><h2 id="leakage-safe-high-rating-prediction">Leakage-safe high-rating
+prediction</h2>
+<details><summary>Show code · cell 50</summary><pre><code># Predictive preprocessing is intentionally deferred to the pipelines below.
+# This prevents the scaler and PCA from learning from validation observations.
+</code></pre></details><details><summary>Show code · cell 51</summary><pre><code>from sklearn.decomposition import PCA
+from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import RepeatedStratifiedKFold, cross_validate
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.svm import SVC
+
+df_pca[&quot;high_rating&quot;] = (df_pca[&quot;my_rating&quot;] &gt;= 8).astype(int)
+X_clf = df_pca[feature_cols].fillna(0).to_numpy()
+y_clf = df_pca[&quot;high_rating&quot;].to_numpy()
+
+def metadata_pipeline(model):
+    return Pipeline(
+        steps=[
+            (&quot;scale&quot;, StandardScaler()),
+            (&quot;pca&quot;, PCA(n_components=20, svd_solver=&quot;full&quot;)),
+            (&quot;model&quot;, model),
+        ]
+    )
+
+models = {
+    &quot;Logistic regression&quot;: metadata_pipeline(
+        LogisticRegression(max_iter=2000, class_weight=&quot;balanced&quot;)
+    ),
+    &quot;RBF SVC&quot;: metadata_pipeline(
+        SVC(kernel=&quot;rbf&quot;, class_weight=&quot;balanced&quot;)
+    ),
+    &quot;Gradient boosting&quot;: metadata_pipeline(
+        GradientBoostingClassifier(random_state=RANDOM_STATE)
+    ),
+}
+
+cv = RepeatedStratifiedKFold(
+    n_splits=5,
+    n_repeats=5,
+    random_state=RANDOM_STATE,
+)
+
+rows = []
+for name, pipeline in models.items():
+    scores = cross_validate(
+        pipeline,
+        X_clf,
+        y_clf,
+        cv=cv,
+        scoring={&quot;roc_auc&quot;: &quot;roc_auc&quot;, &quot;f1&quot;: &quot;f1&quot;},
+        n_jobs=-1,
+    )
+    rows.append(
+        {
+            &quot;model&quot;: name,
+            &quot;roc_auc_mean&quot;: scores[&quot;test_roc_auc&quot;].mean(),
+            &quot;roc_auc_std&quot;: scores[&quot;test_roc_auc&quot;].std(ddof=1),
+            &quot;f1_mean&quot;: scores[&quot;test_f1&quot;].mean(),
+            &quot;f1_std&quot;: scores[&quot;test_f1&quot;].std(ddof=1),
+        }
+    )
+
+cv_results = pd.DataFrame(rows).sort_values(&quot;roc_auc_mean&quot;, ascending=False)
+display(cv_results)
+</code></pre></details><h2 id="extension---nonlinear-embedding-with-t-sne">Extension -
+Nonlinear Embedding with t-SNE</h2>
+<details><summary>Show code · cell 53</summary><pre><code>from sklearn.manifold import TSNE
+
+# t-SNE on the standardized feature space
+tsne = TSNE(
+    n_components=2,
+    perplexity=30,
+    learning_rate=200,
+    max_iter=1000,
+    init=&quot;pca&quot;,
+    random_state=RANDOM_STATE
+)
+Z_tsne = tsne.fit_transform(X_scaled)
+
+
+df_tsne = df_pca.copy()
+df_tsne[&quot;tsne1&quot;] = Z_tsne[:, 0]
+df_tsne[&quot;tsne2&quot;] = Z_tsne[:, 1]
+</code></pre></details><details><summary>Show code · cell 54</summary><pre><code>plt.figure(figsize=(7, 6))
+sns.scatterplot(
+    data=df_tsne,
+    x=&quot;tsne1&quot;, y=&quot;tsne2&quot;,
+    hue=&quot;cluster&quot;,
+    palette=&quot;tab10&quot;,
+    alpha=0.8
+)
+plt.title(&quot;t-SNE embedding colored by k-means clusters&quot;)
+plt.xlabel(&quot;t-SNE 1&quot;)
+plt.ylabel(&quot;t-SNE 2&quot;)
+plt.legend(title=&quot;Cluster&quot;)
+plt.tight_layout()
+plt.show()
+</code></pre></details><details><summary>Show code · cell 55</summary><pre><code>plt.figure(figsize=(7, 6))
+scatter = plt.scatter(
+    df_tsne[&quot;tsne1&quot;],
+    df_tsne[&quot;tsne2&quot;],
+    c=df_tsne[&quot;my_rating&quot;],
+    cmap=&quot;viridis&quot;,
+    alpha=0.8
+)
+plt.colorbar(scatter, label=&quot;My Rating&quot;)
+plt.title(&quot;t-SNE embedding colored by my rating&quot;)
+plt.xlabel(&quot;t-SNE 1&quot;)
+plt.ylabel(&quot;t-SNE 2&quot;)
+plt.tight_layout()
+plt.show()
+</code></pre></details><h2 id="multimodal-extension-posters-text">Multimodal Extension (Posters
++ Text)</h2>
+<p>Everything in this section is <strong>cached</strong> so rerunning
+the notebook is practical. The flow is: download posters (if missing) →
+embed with a pretrained CNN → embed overviews → compare metadata vs
+posters vs joint.</p>
+<h2 id="poster-data-tmdb">Poster Data (TMDb)</h2>
+<p>In the next cell I:</p>
+<ul>
+<li>look up <code>poster_path</code> (and <code>backdrop_path</code>)
+for each <code>tmdb_id</code></li>
+<li>build a <code>poster_url</code></li>
+<li>download posters locally so I can run a CNN on them later</li>
+</ul>
+<p>Note: this requires TMDb API access when you run it.</p>
+<details><summary>Show code · cell 58</summary><pre><code>import pandas as pd
+from pathlib import Path
+
+poster_csv_path = DATA_INTERIM_DIR / &quot;tmdb_metadata_with_posters.csv&quot;
+if &quot;FORCE_REFRESH_POSTER_CSV&quot; not in globals():
+    FORCE_REFRESH_POSTER_CSV = False
+
+if Path(poster_csv_path).exists() and not FORCE_REFRESH_POSTER_CSV:
+    df = pd.read_csv(poster_csv_path)
+    print(&quot;Loaded cached poster-augmented CSV:&quot;, poster_csv_path, df.shape)
+else:
+    import os
+    import time
+    from pathlib import Path
+
+    import pandas as pd
+    import requests
+
+    TMDB_BEARER_TOKEN = os.environ.get(&quot;TMDB_BEARER_TOKEN&quot;)
+    if not TMDB_BEARER_TOKEN:
+        raise ValueError(&quot;TMDB_BEARER_TOKEN is not set&quot;)
+
+    BASE_URL = &quot;https://api.themoviedb.org/3&quot;
+    IMG_BASE = &quot;https://image.tmdb.org/t/p&quot;
+
+
+    def tmdb_get(path: str, params: dict | None = None, sleep: float = 0.05) -&gt; dict:
+        if params is None:
+            params = {}
+        params = dict(params)
+
+        resp = requests.get(
+            f&quot;{BASE_URL}{path}&quot;,
+            params=params,
+            headers={&quot;Authorization&quot;: f&quot;Bearer {TMDB_BEARER_TOKEN}&quot;},
+            timeout=30,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        time.sleep(sleep)
+        return data
+
+
+    def fetch_poster_paths(tmdb_id: int, media_type: str) -&gt; tuple[str | None, str | None]:
+        details = tmdb_get(f&quot;/{media_type}/{int(tmdb_id)}&quot;)
+        return details.get(&quot;poster_path&quot;), details.get(&quot;backdrop_path&quot;)
+
+
+    # 1) Fetch poster_path/backdrop_path for each title (only if missing) 
+    if &quot;poster_path&quot; not in df.columns:
+        df[&quot;poster_path&quot;] = pd.NA
+    if &quot;backdrop_path&quot; not in df.columns:
+        df[&quot;backdrop_path&quot;] = pd.NA
+
+    missing_mask = df[&quot;poster_path&quot;].isna() &amp; df[&quot;tmdb_id&quot;].notna() &amp; df[&quot;tmdb_media_type&quot;].notna()
+    print(&quot;Rows missing poster_path:&quot;, int(missing_mask.sum()))
+
+    for idx, row in df.loc[missing_mask, [&quot;tmdb_id&quot;, &quot;tmdb_media_type&quot;]].iterrows():
+        poster_path, backdrop_path = fetch_poster_paths(row[&quot;tmdb_id&quot;], row[&quot;tmdb_media_type&quot;])
+        df.at[idx, &quot;poster_path&quot;] = poster_path
+        df.at[idx, &quot;backdrop_path&quot;] = backdrop_path
+
+    # 2) Build poster_url + download locally
+    # Use a reasonably small size for now (good enough for embeddings; faster to download).
+    POSTER_SIZE = &quot;w342&quot;
+
+    def build_poster_url(poster_path: str | None) -&gt; str | None:
+        if not isinstance(poster_path, str) or not poster_path.startswith(&quot;/&quot;):
+            return None
+        return f&quot;{IMG_BASE}/{POSTER_SIZE}{poster_path}&quot;
+
+
+    df[&quot;poster_url&quot;] = df[&quot;poster_path&quot;].apply(build_poster_url)
+
+    poster_dir = POSTER_CACHE_ROOT / POSTER_SIZE
+    poster_dir.mkdir(parents=True, exist_ok=True)
+
+    if &quot;poster_file&quot; not in df.columns:
+        df[&quot;poster_file&quot;] = pd.NA
+
+    download_count = 0
+    skip_count = 0
+    fail_count = 0
+
+    for idx, row in df[df[&quot;poster_url&quot;].notna()].iterrows():
+        tmdb_id = int(row[&quot;tmdb_id&quot;])
+        url = row[&quot;poster_url&quot;]
+        dest = poster_dir / f&quot;{tmdb_id}.jpg&quot;
+
+        if dest.exists():
+            df.at[idx, &quot;poster_file&quot;] = str(dest)
+            skip_count += 1
+            continue
+
+        try:
+            r = requests.get(url, timeout=30)
+            r.raise_for_status()
+            dest.write_bytes(r.content)
+            df.at[idx, &quot;poster_file&quot;] = str(dest)
+            download_count += 1
+            time.sleep(0.05)
+        except Exception as e:
+            fail_count += 1
+            # keep going; some posters will be missing
+            # print(f&quot;Failed {tmdb_id}: {e}&quot;)
+
+    print(f&quot;Downloaded: {download_count}, skipped (already present): {skip_count}, failed: {fail_count}&quot;)
+
+    # 3) Save an augmented CSV so the rest of the notebook can stay reproducible ---
+    poster_csv_path = DATA_INTERIM_DIR / &quot;tmdb_metadata_with_posters.csv&quot;
+    df.to_csv(poster_csv_path, index=False)
+    print(&quot;Saved:&quot;, poster_csv_path)
+</code></pre></details><h2 id="poster-embeddings-cnn">Poster Embeddings (CNN)</h2>
+<p>Now that I have posters downloaded locally, the next step is to turn
+each poster into a numeric vector that I can use like any other
+feature.</p>
+<p>The idea is to run each image through a pretrained CNN (ResNet-50)
+and grab the embedding right before the classifier head. That embedding
+should capture things like composition, color palette, and overall
+visual style.</p>
+<p>I’m going to do this in two stages:</p>
+<ol type="1">
+<li>A small smoke test on ~8 posters to confirm the pipeline works.</li>
+<li>A full pass over all posters, saving a cache file so I don’t have to
+recompute.</li>
+</ol>
+<p>Note: The first time you run this, your environment may need to
+download pretrained weights.</p>
+<details><summary>Show code · cell 60</summary><pre><code>import numpy as np
+from PIL import Image
+import torch
+from torchvision import models
+from torchvision.models import ResNet50_Weights
+
+# 1) Load model and define an embedding function 
+weights = ResNet50_Weights.DEFAULT
+preprocess = weights.transforms()
+
+model = models.resnet50(weights=weights)
+model.fc = torch.nn.Identity()  # 2048-d embedding
+model.eval()
+
+device = torch.device(&quot;cuda&quot; if torch.cuda.is_available() else &quot;cpu&quot;)
+model = model.to(device)
+
+
+def embed_poster(path: str) -&gt; np.ndarray:
+    img = Image.open(path).convert(&quot;RGB&quot;)
+    x = preprocess(img).unsqueeze(0).to(device)
+    with torch.no_grad():
+        emb = model(x).squeeze(0).detach().cpu().numpy()
+    return emb
+
+
+# 2) Smoke test on a handful of posters to verify everything works
+sample_paths = (
+    df[df[&quot;poster_file&quot;].notna()][&quot;poster_file&quot;]
+    .astype(str)
+    .head(8)
+    .tolist()
+)
+print(&quot;Poster files found for smoke test:&quot;, len(sample_paths))
+
+if len(sample_paths) == 0:
+    raise ValueError(&quot;No poster_file paths found. Did the download cell finish and save poster_file?&quot;)
+
+sample_embs = np.stack([embed_poster(p) for p in sample_paths], axis=0)
+print(&quot;Smoke test embedding matrix shape:&quot;, sample_embs.shape)  # (8, 2048)
+</code></pre></details><details><summary>Show code · cell 61</summary><pre><code>import os
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+from PIL import Image
+import torch
+from torchvision import models
+from torchvision.models import ResNet50_Weights
+
+# Config 
+EMB_MODEL = &quot;resnet50&quot;
+POSTER_SIZE = &quot;w342&quot;  # should match the download size
+CACHE_PATH = EMBEDDING_CACHE_DIR / f&quot;poster_embeddings_{EMB_MODEL}_{POSTER_SIZE}.npz&quot;
+
+weights = ResNet50_Weights.DEFAULT
+preprocess = weights.transforms()
+
+model = models.resnet50(weights=weights)
+model.fc = torch.nn.Identity()  # 2048-d embedding
+model.eval()
+
+device = torch.device(&quot;cuda&quot; if torch.cuda.is_available() else &quot;cpu&quot;)
+model = model.to(device)
+
+
+def embed_batch(paths: list[str], batch_size: int = 32) -&gt; np.ndarray:
+    embs = []
+    for start in range(0, len(paths), batch_size):
+        batch_paths = paths[start:start + batch_size]
+        imgs = []
+        for p in batch_paths:
+            img = Image.open(p).convert(&quot;RGB&quot;)
+            imgs.append(preprocess(img))
+        x = torch.stack(imgs, dim=0).to(device)
+        with torch.no_grad():
+            out = model(x).detach().cpu().numpy()
+        embs.append(out)
+    return np.concatenate(embs, axis=0) if embs else np.zeros((0, 2048), dtype=np.float32)
+
+
+if CACHE_PATH.exists() and not (&quot;FORCE_REEMBED_POSTERS&quot; in globals() and FORCE_REEMBED_POSTERS):
+    data = np.load(CACHE_PATH, allow_pickle=False)
+    poster_tmdb_ids = data[&quot;tmdb_id&quot;]
+    poster_embs = data[&quot;emb&quot;]
+    print(&quot;Loaded cache:&quot;, CACHE_PATH, poster_embs.shape)
+else:
+    # Only embed rows where we actually have a downloaded poster file.
+    poster_rows = df[df[&quot;poster_file&quot;].notna() &amp; df[&quot;tmdb_id&quot;].notna()].copy()
+    poster_rows[&quot;poster_file&quot;] = poster_rows[&quot;poster_file&quot;].astype(str)
+    poster_rows[&quot;tmdb_id&quot;] = poster_rows[&quot;tmdb_id&quot;].astype(int)
+
+    paths = poster_rows[&quot;poster_file&quot;].tolist()
+    poster_tmdb_ids = poster_rows[&quot;tmdb_id&quot;].to_numpy(dtype=np.int64)
+
+    print(&quot;Embedding posters:&quot;, len(paths))
+    poster_embs = embed_batch(paths, batch_size=32)
+    print(&quot;Poster embedding matrix:&quot;, poster_embs.shape)
+
+    np.savez_compressed(CACHE_PATH, tmdb_id=poster_tmdb_ids, emb=poster_embs)
+    print(&quot;Saved cache:&quot;, CACHE_PATH)
+
+# Attach embeddings back to df as a column of vectors (object dtype)
+# (This is convenient for merges; for modeling we&#x27;ll build a 2D matrix.)
+emb_map = {int(i): poster_embs[k] for k, i in enumerate(poster_tmdb_ids)}
+df[&quot;poster_emb&quot;] = df[&quot;tmdb_id&quot;].apply(lambda x: emb_map.get(int(x)) if pd.notna(x) else None)
+
+print(&quot;Rows with poster_emb:&quot;, int(df[&quot;poster_emb&quot;].notna().sum()))
+</code></pre></details><h2 id="overview-text-embeddings">Overview Text Embeddings</h2>
+<p>Posters are one rich source of information, but they are also mostly
+about marketing and visual style.</p>
+<p>A second rich source is the text overview/plot description from TMDb.
+The idea is to convert each overview into a numeric embedding vector,
+then use it for prediction/clustering/time-evolution the same way as
+posters.</p>
+<p>I’m doing this with a safe fallback:</p>
+<ul>
+<li>If <code>sentence_transformers</code> is available (and the model is
+cached), I use a pretrained sentence embedder.</li>
+<li>Otherwise, I fall back to a TF-IDF representation reduced with SVD,
+which is fully offline.</li>
+</ul>
+<p>Either way, I cache the embeddings so I don’t have to recompute.</p>
+<details><summary>Show code · cell 63</summary><pre><code>import numpy as np
+
+if &quot;overview&quot; not in df.columns:
+    raise KeyError(&quot;overview column not found on df&quot;)
+
+nonempty = df[&quot;overview&quot;].fillna(&quot;&quot;).astype(str).str.strip()
+print(&quot;Rows with non-empty overview:&quot;, int((nonempty != &quot;&quot;).sum()))
+
+sample = df.loc[nonempty != &quot;&quot;, [&quot;tmdb_id&quot;, &quot;overview&quot;]].head(3)
+display(sample)
+</code></pre></details><details><summary>Show code · cell 64</summary><pre><code>import os
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+
+HF_CACHE = ARTIFACTS_CACHE_DIR / &quot;huggingface&quot;
+HF_CACHE.mkdir(parents=True, exist_ok=True)
+os.environ.setdefault(&quot;HF_HOME&quot;, str(HF_CACHE.resolve()))
+os.environ.setdefault(&quot;TRANSFORMERS_CACHE&quot;, str(HF_CACHE.resolve()))
+os.environ.setdefault(&quot;SENTENCE_TRANSFORMERS_HOME&quot;, str(HF_CACHE.resolve()))
+
+FORCE_REBUILD = bool(globals().get(&quot;FORCE_REEMBED_TEXT&quot;, False))
+SBERT_MODEL = &quot;all-MiniLM-L6-v2&quot;
+TFIDF_SVD_COMPONENTS = 300
+
+if TEXT_METHOD not in {&quot;tfidf_svd&quot;, &quot;sbert&quot;}:
+    raise ValueError(&#x27;TEXT_METHOD must be either &quot;tfidf_svd&quot; or &quot;sbert&quot;&#x27;)
+
+CACHE_SBERT = EMBEDDING_CACHE_DIR / f&quot;overview_embeddings_sbert_{SBERT_MODEL.replace(&#x27;/&#x27;, &#x27;_&#x27;)}.npz&quot;
+CACHE_TFIDF = EMBEDDING_CACHE_DIR / f&quot;overview_embeddings_tfidf_svd_{TFIDF_SVD_COMPONENTS}.npz&quot;
+
+texts_df = df[df[&quot;tmdb_id&quot;].notna()].copy()
+texts_df[&quot;tmdb_id&quot;] = texts_df[&quot;tmdb_id&quot;].astype(int)
+texts_df[&quot;overview&quot;] = texts_df[&quot;overview&quot;].fillna(&quot;&quot;).astype(str).str.strip()
+texts_df = texts_df[texts_df[&quot;overview&quot;] != &quot;&quot;].copy()
+
+texts = texts_df[&quot;overview&quot;].tolist()
+text_tmdb_ids = texts_df[&quot;tmdb_id&quot;].to_numpy(dtype=np.int64)
+
+if TEXT_METHOD == &quot;sbert&quot;:
+    if CACHE_SBERT.exists() and not FORCE_REBUILD:
+        data = np.load(CACHE_SBERT, allow_pickle=False)
+        text_tmdb_ids = data[&quot;tmdb_id&quot;].astype(int)
+        text_embs = data[&quot;emb&quot;]
+    else:
+        from sentence_transformers import SentenceTransformer
+
+        st_model = SentenceTransformer(SBERT_MODEL)
+        text_embs = st_model.encode(
+            texts,
+            batch_size=32,
+            show_progress_bar=True,
+            convert_to_numpy=True,
+            normalize_embeddings=True,
+        )
+        np.savez_compressed(CACHE_SBERT, tmdb_id=text_tmdb_ids, emb=text_embs)
+else:
+    if CACHE_TFIDF.exists() and not FORCE_REBUILD:
+        data = np.load(CACHE_TFIDF, allow_pickle=False)
+        text_tmdb_ids = data[&quot;tmdb_id&quot;].astype(int)
+        text_embs = data[&quot;emb&quot;]
+    else:
+        import joblib
+        from sklearn.decomposition import TruncatedSVD
+        from sklearn.feature_extraction.text import TfidfVectorizer
+
+        vectorizer = TfidfVectorizer(
+            max_features=20000,
+            stop_words=&quot;english&quot;,
+            ngram_range=(1, 2),
+            min_df=2,
+        )
+        X_tfidf = vectorizer.fit_transform(texts)
+        svd = TruncatedSVD(n_components=TFIDF_SVD_COMPONENTS, random_state=RANDOM_STATE)
+        text_embs = svd.fit_transform(X_tfidf)
+        np.savez_compressed(CACHE_TFIDF, tmdb_id=text_tmdb_ids, emb=text_embs)
+        joblib.dump(vectorizer, MODEL_CACHE_DIR / &quot;overview_tfidf_vectorizer.joblib&quot;)
+        joblib.dump(svd, MODEL_CACHE_DIR / &quot;overview_svd.joblib&quot;)
+
+emb_map = {int(i): text_embs[k] for k, i in enumerate(text_tmdb_ids)}
+df[&quot;text_emb&quot;] = df[&quot;tmdb_id&quot;].apply(
+    lambda x: emb_map.get(int(x)) if pd.notna(x) else None
+)
+
+if &quot;df_pca&quot; in globals():
+    df_pca[&quot;text_emb&quot;] = df_pca[&quot;tmdb_id&quot;].apply(
+        lambda x: emb_map.get(int(x)) if pd.notna(x) else None
+    )
+
+print(&quot;Text embedding method:&quot;, TEXT_METHOD)
+print(&quot;Rows with text embeddings:&quot;, int(df[&quot;text_emb&quot;].notna().sum()))
+</code></pre></details><details><summary>Show code · cell 65</summary><pre><code># Sync multimodal embeddings onto df_pca (safe if df_pca already has them)
+import numpy as np
+import pandas as pd
+
+if &quot;df_pca&quot; not in globals():
+    raise NameError(&quot;df_pca not found. Run the metadata PCA section first.&quot;)
+
+# Poster embeddings
+if &quot;poster_tmdb_ids&quot; in globals() and &quot;poster_embs&quot; in globals():
+    _poster_map = {int(i): poster_embs[k] for k, i in enumerate(poster_tmdb_ids)}
+    df_pca[&quot;poster_emb&quot;] = df_pca[&quot;tmdb_id&quot;].apply(lambda x: _poster_map.get(int(x)) if pd.notna(x) else None)
+    print(&quot;Rows with poster_emb on df_pca:&quot;, int(df_pca[&quot;poster_emb&quot;].notna().sum()))
+else:
+    print(&quot;poster_tmdb_ids/poster_embs not found; skipping poster_emb sync&quot;)
+
+# Text embeddings (text embedding cell also does this, but keep it robust)
+if &quot;df&quot; in globals() and &quot;text_emb&quot; in df.columns:
+    _text_map = dict(zip(df.loc[df[&quot;text_emb&quot;].notna(), &quot;tmdb_id&quot;].astype(int), df.loc[df[&quot;text_emb&quot;].notna(), &quot;text_emb&quot;]))
+    df_pca[&quot;text_emb&quot;] = df_pca[&quot;tmdb_id&quot;].apply(lambda x: _text_map.get(int(x)) if pd.notna(x) else None)
+    print(&quot;Rows with text_emb on df_pca:&quot;, int(pd.notna(df_pca[&quot;text_emb&quot;]).sum()))
+else:
+    print(&quot;text_emb not found on df; skipping text_emb sync&quot;)
+</code></pre></details><h2 id="poster-space-pca">Poster-Space PCA</h2>
+<p>Now that I have a 2048-dimensional ResNet embedding for each poster,
+I can treat the poster vectors like any other feature matrix and do PCA
+on them.</p>
+<p>This is answering a different question than the metadata PCA: instead
+of “genre/runtime/popularity structure”, this is “visual style
+structure”.</p>
+<details><summary>Show code · cell 67</summary><pre><code>import numpy as np
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+
+# Keep only the rows that have a poster embedding
+mask = df_pca[&quot;poster_emb&quot;].notna()
+df_post = df_pca.loc[mask].copy()
+
+X_post = np.stack(df_post[&quot;poster_emb&quot;].to_numpy())
+print(&quot;Poster embedding matrix used for PCA:&quot;, X_post.shape)
+
+# Standardize before PCA
+X_post_scaled = StandardScaler().fit_transform(X_post)
+
+pca_post = PCA(n_components=2)
+Z_post = pca_post.fit_transform(X_post_scaled)
+
+# Put the poster PCs onto df_post for plotting
+df_post[&quot;poster_PC1&quot;] = Z_post[:, 0]
+df_post[&quot;poster_PC2&quot;] = Z_post[:, 1]
+
+
+print(&quot;Poster PCA explained variance ratio:&quot;, pca_post.explained_variance_ratio_)
+print(&quot;Poster PCA total variance (PC1+PC2):&quot;, float(pca_post.explained_variance_ratio_.sum()))
+
+# Attach back to df_pca so later sections (clustering/time) can reuse it
+if &quot;poster_PC1&quot; not in df_pca.columns:
+    df_pca[&quot;poster_PC1&quot;] = np.nan
+if &quot;poster_PC2&quot; not in df_pca.columns:
+    df_pca[&quot;poster_PC2&quot;] = np.nan
+
+df_pca.loc[df_post.index, &quot;poster_PC1&quot;] = Z_post[:, 0]
+df_pca.loc[df_post.index, &quot;poster_PC2&quot;] = Z_post[:, 1]
+
+plt.figure(figsize=(8, 6))
+scatter = plt.scatter(
+    df_post[&quot;poster_PC1&quot;],
+    df_post[&quot;poster_PC2&quot;],
+    c=df_post[&quot;my_rating&quot;],
+    cmap=&quot;viridis&quot;,
+    alpha=0.75
+)
+plt.colorbar(scatter, label=&quot;My Rating&quot;)
+plt.axhline(0, color=&quot;gray&quot;, linewidth=0.5)
+plt.axvline(0, color=&quot;gray&quot;, linewidth=0.5)
+plt.xlabel(&quot;Poster PC1&quot;)
+plt.ylabel(&quot;Poster PC2&quot;)
+plt.title(&quot;Poster-space PCA (colored by my rating)&quot;)
+plt.tight_layout()
+plt.show()
+</code></pre></details><h2 id="joint-representation-metadata-posters">Joint Representation
+(Metadata + Posters)</h2>
+<p>Up to this point I looked at metadata structure (genres, votes,
+gender features, etc.) and poster structure (ResNet embeddings)
+separately.</p>
+<p>To actually combine the two data sources, I build a single joint
+representation per movie:</p>
+<ul>
+<li>reduce metadata to k_meta dimensions (PCA)</li>
+<li>reduce posters to k_poster dimensions (PCA)</li>
+<li>standardize each block so neither dominates by scale</li>
+<li>concatenate the blocks and run PCA again for a 2D joint
+visualization</li>
+</ul>
+<p>This gives a single 2D space where each point reflects both what the
+movie is (metadata) and how it is packaged visually (poster).</p>
+<details><summary>Show code · cell 69</summary><pre><code>import numpy as np
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+
+# Only keep movies that have both: (1) metadata features (df_pca already enforces this) and (2) poster embeddings
+if &quot;poster_emb&quot; not in df_pca.columns:
+    raise KeyError(&quot;poster_emb not found in df_pca. Run the poster embedding cell before creating df_pca.&quot;)
+
+joint_mask = df_pca[&quot;poster_emb&quot;].notna()
+df_joint = df_pca.loc[joint_mask].copy()
+
+print(&quot;Movies in joint set:&quot;, df_joint.shape[0])
+
+# 1) Metadata matrix
+# feature_cols is defined earlier (numeric + gender + genre one-hots)
+X_meta = df_joint[feature_cols].fillna(0).values
+
+# 2) Poster matrix
+X_post = np.stack(df_joint[&quot;poster_emb&quot;].to_numpy())  # (n, 2048)
+
+print(&quot;X_meta shape:&quot;, X_meta.shape)
+print(&quot;X_post shape:&quot;, X_post.shape)
+
+# 3) Reduce each block with PCA
+k_meta = 20
+k_poster = 100
+
+X_meta_scaled = StandardScaler().fit_transform(X_meta)
+X_post_scaled = StandardScaler().fit_transform(X_post)
+
+pca_meta = PCA(n_components=k_meta)
+Z_meta = pca_meta.fit_transform(X_meta_scaled)
+
+pca_poster = PCA(n_components=k_poster)
+Z_poster = pca_poster.fit_transform(X_post_scaled)
+
+print(&quot;Explained variance (metadata PCA, first 5):&quot;, pca_meta.explained_variance_ratio_[:5])
+print(&quot;Explained variance (poster PCA, first 5):&quot;, pca_poster.explained_variance_ratio_[:5])
+
+# Standardize reduced blocks so one block does not dominate the joint space
+Z_meta_std = StandardScaler().fit_transform(Z_meta)
+Z_poster_std = StandardScaler().fit_transform(Z_poster)
+
+Z_joint = np.concatenate([Z_meta_std, Z_poster_std], axis=1)
+print(&quot;Z_joint shape:&quot;, Z_joint.shape)
+
+# 4) Joint 2D PCA for visualization 
+pca_joint2 = PCA(n_components=2)
+Z_joint2 = pca_joint2.fit_transform(Z_joint)
+
+# Put joint PCs on df_joint for plotting (df_joint is a copy)
+df_joint[&quot;joint_PC1&quot;] = Z_joint2[:, 0]
+df_joint[&quot;joint_PC2&quot;] = Z_joint2[:, 1]
+
+print(&quot;Joint PCA explained variance ratio:&quot;, pca_joint2.explained_variance_ratio_)
+print(&quot;Joint PCA total variance (2D):&quot;, float(pca_joint2.explained_variance_ratio_.sum()))
+
+# Attach back to df_pca for later reuse
+for col in [&quot;joint_PC1&quot;, &quot;joint_PC2&quot;]:
+    if col not in df_pca.columns:
+        df_pca[col] = np.nan
+
+df_pca.loc[df_joint.index, &quot;joint_PC1&quot;] = Z_joint2[:, 0]
+df_pca.loc[df_joint.index, &quot;joint_PC2&quot;] = Z_joint2[:, 1]
+
+# Plot joint space
+plt.figure(figsize=(8, 6))
+scatter = plt.scatter(
+    df_joint[&quot;joint_PC1&quot;],
+    df_joint[&quot;joint_PC2&quot;],
+    c=df_joint[&quot;my_rating&quot;],
+    cmap=&quot;viridis&quot;,
+    alpha=0.75
+)
+plt.colorbar(scatter, label=&quot;My Rating&quot;)
+plt.axhline(0, color=&quot;gray&quot;, linewidth=0.5)
+plt.axvline(0, color=&quot;gray&quot;, linewidth=0.5)
+plt.xlabel(&quot;Joint PC1&quot;)
+plt.ylabel(&quot;Joint PC2&quot;)
+plt.title(&quot;Joint space (metadata + posters), colored by my rating&quot;)
+plt.tight_layout()
+plt.show()
+
+# Keep these around for CCA
+Z_meta_for_cca = Z_meta_std
+Z_poster_for_cca = Z_poster_std
+</code></pre></details><h2
+id="exploratory-cca-do-posters-and-metadata-encode-similar-structure">Exploratory
+CCA: do posters and metadata encode similar structure?</h2>
+<p>Canonical Correlation Analysis (CCA) finds directions in metadata and
+poster space that are maximally correlated. The calculation below is
+descriptive and in-sample: because CCA optimizes these correlations on
+the same observations, they should not be interpreted as held-out
+evidence of generalizable alignment.</p>
+<details><summary>Show code · cell 71</summary><pre><code>import numpy as np
+from sklearn.cross_decomposition import CCA
+
+n_cca = 5
+cca = CCA(n_components=n_cca, max_iter=2000)
+U, V = cca.fit_transform(Z_meta_for_cca, Z_poster_for_cca)
+
+corrs = []
+for i in range(n_cca):
+    corr = np.corrcoef(U[:, i], V[:, i])[0, 1]
+    corrs.append(corr)
+
+print(&quot;Canonical correlations (U_i vs V_i):&quot;)
+for i, c in enumerate(corrs, start=1):
+    print(f&quot;  CC{i}: {c:.3f}&quot;)
+
+plt.figure(figsize=(6, 4))
+plt.plot(range(1, n_cca + 1), corrs, marker=&quot;o&quot;)
+plt.ylim(-1, 1)
+plt.xlabel(&quot;Canonical component&quot;)
+plt.ylabel(&quot;Correlation&quot;)
+plt.title(&quot;CCA alignment: metadata vs posters&quot;)
+plt.grid(alpha=0.3)
+plt.tight_layout()
+plt.show()
+
+plt.figure(figsize=(5, 5))
+plt.scatter(U[:, 0], V[:, 0], alpha=0.6)
+plt.xlabel(&quot;Metadata canonical var 1&quot;)
+plt.ylabel(&quot;Poster canonical var 1&quot;)
+plt.title(f&quot;CCA component 1 (corr={corrs[0]:.3f})&quot;)
+plt.tight_layout()
+plt.show()
+</code></pre></details><h2 id="joint-clustering-metadata-posters">Joint Clustering (Metadata +
+Posters)</h2>
+<p>Now that I have a joint representation
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>Z</mi><mrow><mi>j</mi><mi>o</mi><mi>i</mi><mi>n</mi><mi>t</mi></mrow></msub><annotation encoding="application/x-tex">Z_{joint}</annotation></semantics></math>,
+I can cluster it and compare the separation against:</p>
+<ul>
+<li>metadata-only PCA space
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>Z</mi><mrow><mi>m</mi><mi>e</mi><mi>t</mi><mi>a</mi></mrow></msub><annotation encoding="application/x-tex">Z_{meta}</annotation></semantics></math>)</li>
+<li>poster-only PCA space
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>Z</mi><mrow><mi>p</mi><mi>o</mi><mi>s</mi><mi>t</mi><mi>e</mi><mi>r</mi></mrow></msub><annotation encoding="application/x-tex">Z_{poster}</annotation></semantics></math>)</li>
+</ul>
+<p>This is a sanity check: if posters really add new structure,
+clustering quality or interpretability might improve in the joint
+space.</p>
+<details><summary>Show code · cell 73</summary><pre><code>import numpy as np
+import pandas as pd
+from sklearn.cluster import KMeans
+from sklearn.metrics import silhouette_score
+
+# Z_meta_for_cca and Z_poster_for_cca are created in the joint section.
+# Z_joint is also created there.
+
+if &quot;Z_joint&quot; not in globals():
+    raise NameError(&quot;Z_joint not found. Run the Joint Representation cell above first.&quot;)
+if &quot;Z_meta_for_cca&quot; not in globals() or &quot;Z_poster_for_cca&quot; not in globals():
+    raise NameError(&quot;Z_meta_for_cca / Z_poster_for_cca not found. Run the Joint Representation cell above first.&quot;)
+if &quot;df_joint&quot; not in globals():
+    raise NameError(&quot;df_joint not found. Run the Joint Representation cell above first.&quot;)
+
+ks = list(range(2, 9))
+
+def silhouette_curve(Z, label):
+    rows = []
+    for k in ks:
+        km = KMeans(n_clusters=k, random_state=RANDOM_STATE, n_init=&quot;auto&quot;)
+        labels = km.fit_predict(Z)
+        rows.append({&quot;space&quot;: label, &quot;k&quot;: k, &quot;silhouette&quot;: float(silhouette_score(Z, labels))})
+    return pd.DataFrame(rows)
+
+scores = pd.concat(
+    [
+        silhouette_curve(Z_meta_for_cca, &quot;metadata (PCA)&quot;) ,
+        silhouette_curve(Z_poster_for_cca, &quot;posters (PCA)&quot;),
+        silhouette_curve(Z_joint, &quot;joint (meta+posters)&quot;),
+    ],
+    ignore_index=True
+)
+
+print(&quot;Silhouette scores by k:&quot;)
+display(scores.pivot(index=&quot;k&quot;, columns=&quot;space&quot;, values=&quot;silhouette&quot;))
+
+# Pick k=4 for comparability with earlier analysis
+k = 4
+
+km_meta = KMeans(n_clusters=k, random_state=RANDOM_STATE, n_init=&quot;auto&quot;).fit(Z_meta_for_cca)
+km_post = KMeans(n_clusters=k, random_state=RANDOM_STATE, n_init=&quot;auto&quot;).fit(Z_poster_for_cca)
+km_joint = KMeans(n_clusters=k, random_state=RANDOM_STATE, n_init=&quot;auto&quot;).fit(Z_joint)
+
+labels_meta = km_meta.labels_
+labels_post = km_post.labels_
+labels_joint = km_joint.labels_
+
+# Save cluster labels onto df_pca (aligned to df_joint rows)
+for col in [&quot;cluster_meta_pca&quot;, &quot;cluster_poster_pca&quot;, &quot;cluster_joint&quot;]:
+    if col not in df_pca.columns:
+        df_pca[col] = np.nan
+
+df_pca.loc[df_joint.index, &quot;cluster_meta_pca&quot;] = labels_meta
+df_pca.loc[df_joint.index, &quot;cluster_poster_pca&quot;] = labels_post
+df_pca.loc[df_joint.index, &quot;cluster_joint&quot;] = labels_joint
+
+# Quick summary of the joint clusters
+summary = df_pca.loc[df_joint.index].groupby(&quot;cluster_joint&quot;).agg(
+    n=(&quot;tmdb_id&quot;, &quot;size&quot;),
+    avg_my_rating=(&quot;my_rating&quot;, &quot;mean&quot;),
+    avg_imdb_rating=(&quot;imdb_rating&quot;, &quot;mean&quot;),
+    avg_year=(&quot;release_year&quot;, &quot;mean&quot;),
+).sort_index()
+
+display(summary)
+
+# Visualize cluster labels in the joint 2D space
+plt.figure(figsize=(8, 6))
+plt.scatter(df_joint[&quot;joint_PC1&quot;], df_joint[&quot;joint_PC2&quot;], c=labels_joint, cmap=&quot;tab10&quot;, alpha=0.75)
+plt.axhline(0, color=&quot;gray&quot;, linewidth=0.5)
+plt.axvline(0, color=&quot;gray&quot;, linewidth=0.5)
+plt.xlabel(&quot;Joint PC1&quot;)
+plt.ylabel(&quot;Joint PC2&quot;)
+plt.title(&quot;Joint space clustering (k=4)&quot;)
+plt.tight_layout()
+plt.show()
+</code></pre></details><h2 id="joint-taste-evolution-over-time">Joint Taste Evolution Over
+Time</h2>
+<p>With a joint space in hand, I can redo the time-evolution plots:
+instead of tracking movement through metadata PCA only, I can track
+movement through a space that also includes poster style.</p>
+<p>I also plot the first canonical variables from CCA over time. If the
+poster and metadata signals are tightly aligned, their canonical time
+series should move together.</p>
+<details><summary>Show code · cell 75</summary><pre><code>import pandas as pd
+
+if &quot;U&quot; not in globals() or &quot;V&quot; not in globals():
+    raise NameError(&quot;U/V from CCA not found. Run the CCA cell above first.&quot;)
+
+# Attach CCA coordinates to df_joint (ordering matches because CCA was fit on Z_* built from df_joint)
+df_joint = df_joint.copy()
+df_joint[&quot;cca_meta1&quot;] = U[:, 0]
+df_joint[&quot;cca_post1&quot;] = V[:, 0]
+
+# Parse dates
+if &quot;date_rated&quot; in df_joint.columns:
+    df_joint[&quot;date_rated&quot;] = pd.to_datetime(df_joint[&quot;date_rated&quot;], errors=&quot;coerce&quot;)
+
+# Per-movie trajectory in joint PC space
+jtime = df_joint.dropna(subset=[&quot;date_rated&quot;]).sort_values(&quot;date_rated&quot;)
+
+plt.figure(figsize=(10, 3))
+plt.plot(jtime[&quot;date_rated&quot;], jtime[&quot;joint_PC1&quot;], marker=&quot;o&quot;, linestyle=&quot;-&quot;, alpha=0.5)
+plt.xlabel(&quot;Date rated&quot;)
+plt.ylabel(&quot;Joint PC1&quot;)
+plt.title(&quot;Joint PC1 over time&quot;)
+plt.xticks(rotation=45)
+plt.tight_layout()
+plt.show()
+
+plt.figure(figsize=(10, 3))
+plt.plot(jtime[&quot;date_rated&quot;], jtime[&quot;joint_PC2&quot;], marker=&quot;o&quot;, linestyle=&quot;-&quot;, alpha=0.5)
+plt.xlabel(&quot;Date rated&quot;)
+plt.ylabel(&quot;Joint PC2&quot;)
+plt.title(&quot;Joint PC2 over time&quot;)
+plt.xticks(rotation=45)
+plt.tight_layout()
+plt.show()
+
+# CCA time series
+plt.figure(figsize=(10, 3))
+plt.plot(jtime[&quot;date_rated&quot;], jtime[&quot;cca_meta1&quot;], label=&quot;CCA meta1&quot;, alpha=0.7)
+plt.plot(jtime[&quot;date_rated&quot;], jtime[&quot;cca_post1&quot;], label=&quot;CCA post1&quot;, alpha=0.7)
+plt.xlabel(&quot;Date rated&quot;)
+plt.ylabel(&quot;Canonical value&quot;)
+plt.title(&quot;CCA component 1 over time (metadata vs posters)&quot;)
+plt.xticks(rotation=45)
+plt.legend()
+plt.tight_layout()
+plt.show()
+
+# Yearly averages (less noisy)
+jtime[&quot;year_rated&quot;] = jtime[&quot;date_rated&quot;].dt.year
+yearly = jtime.groupby(&quot;year_rated&quot;).agg(
+    mean_joint_PC1=(&quot;joint_PC1&quot;, &quot;mean&quot;),
+    mean_joint_PC2=(&quot;joint_PC2&quot;, &quot;mean&quot;),
+    mean_cca_meta1=(&quot;cca_meta1&quot;, &quot;mean&quot;),
+    mean_cca_post1=(&quot;cca_post1&quot;, &quot;mean&quot;),
+    count=(&quot;joint_PC1&quot;, &quot;size&quot;),
+).reset_index()
+
+display(yearly)
+</code></pre></details><h2 id="multimodal-prediction-ablation-validation-status">Multimodal
+prediction ablation: validation status</h2>
+<p>The original course notebook compared metadata, poster, and
+concatenated representations after fitting their dimensionality
+reductions on the complete dataset. That made the reported AUC values
+exploratory rather than clean generalization estimates. The executable
+ablation has therefore been removed from this public notebook. A
+corrected rerun must split observations first and fit every scaler, PCA,
+text vectorizer, CCA, and residualization map on training folds
+only.</p>
+<blockquote>
+<p>The original multimodal AUC code is intentionally omitted from the
+portfolio copy until each representation can be rebuilt inside
+training-only validation folds. See the project README for the
+historical finding and its</p>
+</blockquote>
+<h2 id="adding-text-and-residualizing-shared-structure">Adding text and
+residualizing shared structure</h2>
+<p>The following representation analysis is descriptive. It explores how
+much of the poster and overview-text spaces can be reconstructed from
+metadata, but it is not used here as a validated predictive estimate.
+Any future predictive use must fit PCA and residualization maps within
+training folds.</p>
+<details><summary>Show code · cell 79</summary><pre><code>import numpy as np
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+
+# Preconditions
+for name in [&quot;df_pca&quot;, &quot;feature_cols&quot;]:
+    if name not in globals():
+        raise NameError(f&quot;{name} not found. Run the metadata feature engineering / PCA setup above first.&quot;)
+
+if &quot;poster_emb&quot; not in df_pca.columns:
+    raise KeyError(&quot;poster_emb not found on df_pca. Run poster embedding first.&quot;)
+if &quot;text_emb&quot; not in df_pca.columns:
+    raise KeyError(&quot;text_emb not found on df_pca. Run overview text embedding first.&quot;)
+
+mm_mask = df_pca[&quot;poster_emb&quot;].notna() &amp; df_pca[&quot;text_emb&quot;].notna()
+df_mm = df_pca.loc[mm_mask].copy()
+
+print(&quot;Movies with metadata + poster + text:&quot;, df_mm.shape[0])
+
+# --- Build blocks ---
+X_meta = df_mm[feature_cols].fillna(0).values
+X_post = np.stack(df_mm[&quot;poster_emb&quot;].to_numpy())  # (n, 2048)
+X_text = np.stack(df_mm[&quot;text_emb&quot;].to_numpy())    # (n, 300) for TF-IDF+SVD fallback
+
+print(&quot;X_meta:&quot;, X_meta.shape, &quot;X_post:&quot;, X_post.shape, &quot;X_text:&quot;, X_text.shape)
+
+# --- Reduce blocks ---
+k_meta = 20
+k_post = 100
+k_text = 100
+
+Z_meta = PCA(n_components=k_meta).fit_transform(StandardScaler().fit_transform(X_meta))
+Z_post = PCA(n_components=k_post).fit_transform(StandardScaler().fit_transform(X_post))
+Z_text = PCA(n_components=k_text).fit_transform(StandardScaler().fit_transform(X_text))
+
+# Standardize reduced blocks (important for concatenation and least squares)
+Z_meta_std = StandardScaler().fit_transform(Z_meta)
+Z_post_std = StandardScaler().fit_transform(Z_post)
+Z_text_std = StandardScaler().fit_transform(Z_text)
+
+# --- Residualize poster/text against metadata ---
+# Solve min_B ||Z_post_std - Z_meta_std B||_F
+B_post, *_ = np.linalg.lstsq(Z_meta_std, Z_post_std, rcond=None)
+B_text, *_ = np.linalg.lstsq(Z_meta_std, Z_text_std, rcond=None)
+
+R_post = Z_post_std - Z_meta_std @ B_post
+R_text = Z_text_std - Z_meta_std @ B_text
+
+# How much of poster/text space is explained by metadata?
+post_r2 = 1.0 - (np.sum(R_post**2) / np.sum(Z_post_std**2))
+text_r2 = 1.0 - (np.sum(R_text**2) / np.sum(Z_text_std**2))
+
+print(f&quot;Variance explained by metadata -&gt; posters (overall R^2): {post_r2:.3f}&quot;)
+print(f&quot;Variance explained by metadata -&gt; text (overall R^2): {text_r2:.3f}&quot;)
+
+# --- Build multimodal feature sets for downstream tasks ---
+Z_mm_naive = np.concatenate([Z_meta_std, Z_post_std, Z_text_std], axis=1)
+Z_mm_resid = np.concatenate([Z_meta_std, R_post, R_text], axis=1)
+
+print(&quot;Z_mm_naive:&quot;, Z_mm_naive.shape)
+print(&quot;Z_mm_resid:&quot;, Z_mm_resid.shape)
+
+# Save globals for ICA / prediction comparisons
+Z_mm_df = df_mm
+Z_meta_mm = Z_meta_std
+Z_post_mm = Z_post_std
+Z_text_mm = Z_text_std
+Z_mm_naive_global = Z_mm_naive
+Z_mm_resid_global = Z_mm_resid
+</code></pre></details><h2 id="ica-analysis">ICA Analysis</h2>
+<details><summary>Show code · cell 81</summary><pre><code>from sklearn.decomposition import FastICA
+
+# Fit ICA on the same standardized features used for PCA
+n_ica_components = 10  # can match your PCA dimensionality
+ica = FastICA(n_components=n_ica_components, random_state=RANDOM_STATE, max_iter=2000)
+Z_ica = ica.fit_transform(X_scaled)
+
+# Attach the first few independent components to your main dataframe
+df_ica = df_pca.copy()
+for k in range(n_ica_components):
+    df_ica[f&quot;IC{k+1}&quot;] = Z_ica[:, k]
+
+df_ica.head()
+</code></pre></details><details><summary>Show code · cell 82</summary><pre><code># Choose variables you care about
+cols_for_corr = [
+    &quot;IC1&quot;, &quot;IC2&quot;, &quot;IC3&quot;, &quot;IC4&quot;, &quot;IC5&quot;,
+    &quot;PC1&quot;, &quot;PC2&quot;, &quot;PC3&quot;,
+    &quot;my_rating&quot;, &quot;imdb_rating&quot;,
+    &quot;main_char_female&quot;, &quot;main_char_male&quot;,
+    &quot;female_director&quot;, &quot;male_director&quot;,
+    &quot;release_year&quot;
+]
+
+# Add a few key genre dummies if you have them
+for g in [&quot;genre_Drama&quot;, &quot;genre_Comedy&quot;, &quot;genre_Action&quot;, &quot;genre_Fantasy&quot;, &quot;genre_Animation&quot;]:
+    if g in df_ica.columns:
+        cols_for_corr.append(g)
+
+corr = df_ica[cols_for_corr].corr()
+
+# Look at how ICs correlate with everything else
+corr.loc[[&quot;IC1&quot;, &quot;IC2&quot;, &quot;IC3&quot;, &quot;IC4&quot;, &quot;IC5&quot;]]
+</code></pre></details><details><summary>Show code · cell 83</summary><pre><code>plt.figure(figsize=(10, 6))
+sns.heatmap(
+    corr.loc[[&quot;IC1&quot;, &quot;IC2&quot;, &quot;IC3&quot;, &quot;IC4&quot;, &quot;IC5&quot;], :],
+    annot=False,
+    cmap=&quot;coolwarm&quot;,
+    center=0
+)
+plt.title(&quot;Correlations of Independent Components with PCs and metadata&quot;)
+plt.tight_layout()
+plt.show()
+</code></pre></details><details><summary>Show code · cell 84</summary><pre><code>numeric_cols = df_ica.select_dtypes(include=[float, int]).columns.tolist()
+
+# Remove ICs to avoid self-correlation
+numeric_cols = [c for c in numeric_cols if not c.startswith(&quot;IC&quot;)]
+numeric_cols
+</code></pre></details><details><summary>Show code · cell 85</summary><pre><code>corr_ic1 = df_ica[numeric_cols].corrwith(df_ica[&quot;IC1&quot;]).sort_values(ascending=False)
+corr_ic2 = df_ica[numeric_cols].corrwith(df_ica[&quot;IC2&quot;]).sort_values(ascending=False)
+
+print(&quot;Top correlations with IC1:&quot;)
+print(corr_ic1.head(15), &quot;\n&quot;)
+
+print(&quot;Most negative correlations with IC1:&quot;)
+print(corr_ic1.tail(15), &quot;\n&quot;)
+
+print(&quot;Top correlations with IC2:&quot;)
+print(corr_ic2.head(15), &quot;\n&quot;)
+
+print(&quot;Most negative correlations with IC2:&quot;)
+print(corr_ic2.tail(15))
+</code></pre></details><h3 id="ica-on-z10-pca---ica">ICA on Z10 (PCA -&gt; ICA)</h3>
+<p>To compare against ICA on the full standardized feature space
+(X_scaled), I also run ICA on the 10-dimensional PCA representation
+(Z10).</p>
+<p>The motivation is practical: Z10 is a denoised, lower-dimensional
+summary of the metadata, so ICA might be able to separate cleaner
+underlying factors there.</p>
+<p>This does change what the independent components mean: these ICs are
+independent directions in PCA-space, not directly independent directions
+in the original feature space.</p>
+<details><summary>Show code · cell 87</summary><pre><code>from sklearn.decomposition import FastICA
+
+# ICA on top of the 10-PC PCA representation
+# (Z10 is created in the PCA section above: pca10.fit_transform(X_scaled))
+ica_z10 = FastICA(n_components=10, random_state=RANDOM_STATE, max_iter=2000)
+Z_ica_z10 = ica_z10.fit_transform(Z10)
+
+df_ica_z10 = df_pca.copy()
+for k in range(Z_ica_z10.shape[1]):
+    df_ica_z10[f&quot;ICz10_{k+1}&quot;] = Z_ica_z10[:, k]
+
+df_ica_z10.head()
+</code></pre></details><details><summary>Show code · cell 88</summary><pre><code>numeric_cols_z10 = df_ica_z10.select_dtypes(include=[float, int]).columns.tolist()
+
+# Remove ICz10_ columns to avoid self-correlation
+numeric_cols_z10 = [c for c in numeric_cols_z10 if not c.startswith(&quot;ICz10_&quot;)]
+
+corr_icz10_1 = df_ica_z10[numeric_cols_z10].corrwith(df_ica_z10[&quot;ICz10_1&quot;]).sort_values(ascending=False)
+corr_icz10_2 = df_ica_z10[numeric_cols_z10].corrwith(df_ica_z10[&quot;ICz10_2&quot;]).sort_values(ascending=False)
+
+print(&quot;Top correlations with ICz10_1:&quot;)
+print(corr_icz10_1.head(15), &quot;\n&quot;)
+
+print(&quot;Most negative correlations with ICz10_1:&quot;)
+print(corr_icz10_1.tail(15), &quot;\n&quot;)
+
+print(&quot;Top correlations with ICz10_2:&quot;)
+print(corr_icz10_2.head(15), &quot;\n&quot;)
+
+print(&quot;Most negative correlations with ICz10_2:&quot;)
+print(corr_icz10_2.tail(15))
+</code></pre></details><details><summary>Show code · cell 89</summary><pre><code>import matplotlib.pyplot as plt
+import seaborn as sns
+
+plt.figure(figsize=(18, 5))
+
+# Left: PCA (PC1 vs PC2)
+plt.subplot(1, 3, 1)
+sns.scatterplot(
+    data=df_pca,
+    x=&quot;PC1&quot;, y=&quot;PC2&quot;,
+    hue=&quot;cluster&quot;,
+    palette=&quot;tab10&quot;,
+    alpha=0.8,
+    legend=False
+)
+plt.axhline(0, color=&quot;gray&quot;, linewidth=0.5)
+plt.axvline(0, color=&quot;gray&quot;, linewidth=0.5)
+plt.title(&quot;PCA embedding (PC1 vs PC2)&quot;)
+plt.xlabel(&quot;PC1&quot;)
+plt.ylabel(&quot;PC2&quot;)
+
+# Middle: ICA on X_scaled
+plt.subplot(1, 3, 2)
+sns.scatterplot(
+    data=df_ica,
+    x=&quot;IC1&quot;, y=&quot;IC2&quot;,
+    hue=&quot;cluster&quot;,
+    palette=&quot;tab10&quot;,
+    alpha=0.8,
+    legend=False
+)
+plt.axhline(0, color=&quot;gray&quot;, linewidth=0.5)
+plt.axvline(0, color=&quot;gray&quot;, linewidth=0.5)
+plt.title(&quot;ICA on X_scaled (IC1 vs IC2)&quot;)
+plt.xlabel(&quot;IC1&quot;)
+plt.ylabel(&quot;IC2&quot;)
+
+# Right: ICA on Z10 (PCA -&gt; ICA)
+plt.subplot(1, 3, 3)
+sns.scatterplot(
+    data=df_ica_z10,
+    x=&quot;ICz10_1&quot;, y=&quot;ICz10_2&quot;,
+    hue=&quot;cluster&quot;,
+    palette=&quot;tab10&quot;,
+    alpha=0.8,
+    legend=True
+)
+plt.axhline(0, color=&quot;gray&quot;, linewidth=0.5)
+plt.axvline(0, color=&quot;gray&quot;, linewidth=0.5)
+plt.title(&quot;ICA on Z10 (ICz10_1 vs ICz10_2)&quot;)
+plt.xlabel(&quot;ICz10_1&quot;)
+plt.ylabel(&quot;ICz10_2&quot;)
+
+plt.tight_layout()
+plt.show()
+</code></pre></details><details><summary>Show code · cell 90</summary><pre><code>import pandas as pd
+
+df_ica[&quot;date_rated&quot;] = pd.to_datetime(df_ica[&quot;date_rated&quot;])
+df_time_ica = df_ica.dropna(subset=[&quot;date_rated&quot;]).sort_values(&quot;date_rated&quot;).copy()
+df_time_ica[&quot;year_rated&quot;] = df_time_ica[&quot;date_rated&quot;].dt.year
+
+# Per-movie lines (noisy but detailed)
+plt.figure(figsize=(10, 3))
+plt.plot(df_time_ica[&quot;date_rated&quot;], df_time_ica[&quot;IC1&quot;], marker=&quot;o&quot;, linestyle=&quot;-&quot;, alpha=0.6)
+plt.xlabel(&quot;Date rated&quot;)
+plt.ylabel(&quot;IC1&quot;)
+plt.title(&quot;IC1 over time&quot;)
+plt.xticks(rotation=45)
+plt.tight_layout()
+plt.show()
+
+plt.figure(figsize=(10, 3))
+plt.plot(df_time_ica[&quot;date_rated&quot;], df_time_ica[&quot;IC2&quot;], marker=&quot;o&quot;, linestyle=&quot;-&quot;, alpha=0.6)
+plt.xlabel(&quot;Date rated&quot;)
+plt.ylabel(&quot;IC2&quot;)
+plt.title(&quot;IC2 over time&quot;)
+plt.xticks(rotation=45)
+plt.tight_layout()
+plt.show()
+</code></pre></details><details><summary>Show code · cell 91</summary><pre><code>year_ica = df_time_ica.groupby(&quot;year_rated&quot;).agg(
+    mean_IC1=(&quot;IC1&quot;, &quot;mean&quot;),
+    mean_IC2=(&quot;IC2&quot;, &quot;mean&quot;),
+    mean_IC3=(&quot;IC3&quot;, &quot;mean&quot;),
+    count=(&quot;IC1&quot;, &quot;size&quot;)
+).reset_index()
+
+plt.figure(figsize=(8, 3))
+plt.plot(year_ica[&quot;year_rated&quot;], year_ica[&quot;mean_IC1&quot;], marker=&quot;o&quot;)
+plt.xlabel(&quot;Year rated&quot;)
+plt.ylabel(&quot;Average IC1&quot;)
+plt.title(&quot;Average IC1 per year&quot;)
+plt.tight_layout()
+plt.show()
+
+plt.figure(figsize=(8, 3))
+plt.plot(year_ica[&quot;year_rated&quot;], year_ica[&quot;mean_IC2&quot;], marker=&quot;o&quot;)
+plt.xlabel(&quot;Year rated&quot;)
+plt.ylabel(&quot;Average IC2&quot;)
+plt.title(&quot;Average IC2 per year&quot;)
+plt.tight_layout()
+plt.show()
+
+year_ica
+</code></pre></details><details><summary>Show code · cell 92</summary><pre><code>plt.figure(figsize=(7, 6))
+points = plt.scatter(
+    df_time_ica[&quot;IC1&quot;],
+    df_time_ica[&quot;IC2&quot;],
+    c=df_time_ica[&quot;date_rated&quot;].map(lambda d: d.toordinal()),
+    cmap=&quot;viridis&quot;,
+    alpha=0.8
+)
+plt.colorbar(points, label=&quot;Date rated (earlier → later)&quot;)
+plt.axhline(0, color=&quot;gray&quot;, linewidth=0.5)
+plt.axvline(0, color=&quot;gray&quot;, linewidth=0.5)
+plt.xlabel(&quot;IC1&quot;)
+plt.ylabel(&quot;IC2&quot;)
+plt.title(&quot;Taste trajectory in ICA space over time&quot;)
+plt.tight_layout()
+plt.show()
+</code></pre></details><h3 id="multimodal-ica-metadata-posters-text">Multimodal ICA (metadata +
+posters + text)</h3>
+<p>Up to now, ICA has only seen the structured metadata feature space.
+Since I now have three representations per title (metadata, poster CNN
+embeddings, and text embeddings), I can also run ICA on a
+<em>multimodal</em> feature vector.</p>
+<p>I compare two versions:</p>
+<ol type="1">
+<li><strong>Naive concat:</strong>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">[</mo><msub><mi>Z</mi><mrow><mi>m</mi><mi>e</mi><mi>t</mi><mi>a</mi></mrow></msub><mo>,</mo><msub><mi>Z</mi><mrow><mi>p</mi><mi>o</mi><mi>s</mi><mi>t</mi><mi>e</mi><mi>r</mi></mrow></msub><mo>,</mo><msub><mi>Z</mi><mrow><mi>t</mi><mi>e</mi><mi>x</mi><mi>t</mi></mrow></msub><mo stretchy="false" form="postfix">]</mo></mrow><annotation encoding="application/x-tex">[Z_{meta}, Z_{poster}, Z_{text}]</annotation></semantics></math>
+after PCA-per-block + standardization.</li>
+<li><strong>Residualized:</strong>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">[</mo><msub><mi>Z</mi><mrow><mi>m</mi><mi>e</mi><mi>t</mi><mi>a</mi></mrow></msub><mo>,</mo><msub><mi>R</mi><mrow><mi>p</mi><mi>o</mi><mi>s</mi><mi>t</mi><mi>e</mi><mi>r</mi></mrow></msub><mo>,</mo><msub><mi>R</mi><mrow><mi>t</mi><mi>e</mi><mi>x</mi><mi>t</mi></mrow></msub><mo stretchy="false" form="postfix">]</mo></mrow><annotation encoding="application/x-tex">[Z_{meta}, R_{poster}, R_{text}]</annotation></semantics></math>
+where
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>R</mi><annotation encoding="application/x-tex">R</annotation></semantics></math>
+removes the linear part that is predictable from metadata (so the
+remaining signal is closer to “what posters/text add beyond
+metadata”).</li>
+</ol>
+<p>Interpretation note: ICA components are still only defined up to sign
+and permutation, so I treat them as <em>axes</em> rather than “IC1 is
+always the same concept”.</p>
+<details><summary>Show code · cell 94</summary><pre><code>import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.decomposition import FastICA
+
+# Preconditions (created in the multimodal residualization section)
+for name in [&quot;Z_mm_df&quot;, &quot;Z_meta_mm&quot;, &quot;Z_post_mm&quot;, &quot;Z_text_mm&quot;, &quot;Z_mm_naive_global&quot;, &quot;Z_mm_resid_global&quot;]:
+    if name not in globals():
+        raise NameError(f&quot;{name} not found. Run the multimodal residualization cell first.&quot;)
+
+k_meta = Z_meta_mm.shape[1]
+k_post = Z_post_mm.shape[1]
+k_text = Z_text_mm.shape[1]
+assert Z_mm_naive_global.shape[1] == k_meta + k_post + k_text
+assert Z_mm_resid_global.shape[1] == k_meta + k_post + k_text
+
+def fit_ica(Z, n_components=10, seed=42):
+    ica = FastICA(n_components=n_components, random_state=seed, max_iter=3000)
+    S = ica.fit_transform(Z)
+    return ica, S
+
+n_mm_ica = 10
+ica_naive, S_naive = fit_ica(Z_mm_naive_global, n_components=n_mm_ica)
+ica_resid, S_resid = fit_ica(Z_mm_resid_global, n_components=n_mm_ica)
+
+df_ica_mm = Z_mm_df.copy()
+for j in range(n_mm_ica):
+    df_ica_mm[f&quot;ICmm_naive_{j+1}&quot;] = S_naive[:, j]
+    df_ica_mm[f&quot;ICmm_resid_{j+1}&quot;] = S_resid[:, j]
+
+# How much each modality contributes to each IC (via unmixing weights)
+def block_norms(ica):
+    rows = []
+    for j in range(ica.components_.shape[0]):
+        w = ica.components_[j]
+        rows.append({
+            &quot;IC&quot;: j+1,
+            &quot;meta_norm&quot;: float(np.linalg.norm(w[:k_meta])),
+            &quot;poster_norm&quot;: float(np.linalg.norm(w[k_meta:k_meta+k_post])),
+            &quot;text_norm&quot;: float(np.linalg.norm(w[k_meta+k_post:])),
+        })
+    out = pd.DataFrame(rows)
+    out[&quot;total&quot;] = out[[&quot;meta_norm&quot;, &quot;poster_norm&quot;, &quot;text_norm&quot;]].sum(axis=1)
+    for col in [&quot;meta_norm&quot;, &quot;poster_norm&quot;, &quot;text_norm&quot;]:
+        out[col.replace(&quot;_norm&quot;, &quot;_share&quot;)] = out[col] / out[&quot;total&quot;].replace(0, np.nan)
+    return out.drop(columns=[&quot;total&quot;])
+
+print(&quot;Block shares (naive concat):&quot;)
+display(block_norms(ica_naive).sort_values([&quot;poster_share&quot;, &quot;text_share&quot;], ascending=False).head(10))
+
+print(&quot;Block shares (residualized):&quot;)
+display(block_norms(ica_resid).sort_values([&quot;poster_share&quot;, &quot;text_share&quot;], ascending=False).head(10))
+
+# Correlate ICs with a small set of observed variables to interpret them
+df_tmp = df_ica_mm.copy()
+df_tmp[&quot;date_rated&quot;] = pd.to_datetime(df_tmp[&quot;date_rated&quot;], errors=&quot;coerce&quot;)
+df_tmp[&quot;year_rated&quot;] = df_tmp[&quot;date_rated&quot;].dt.year
+
+obs_cols = [c for c in [&quot;my_rating&quot;, &quot;imdb_rating&quot;, &quot;release_year&quot;, &quot;year_rated&quot;] if c in df_tmp.columns]
+genre_cols = [c for c in df_tmp.columns if c.startswith(&quot;genre_&quot;)]
+# keep this readable
+genre_cols = genre_cols[:25]
+obs_cols = obs_cols + genre_cols
+
+def top_corrs(prefix, which=1, k=12):
+    ic = f&quot;{prefix}_{which}&quot;
+    numeric = df_tmp[obs_cols].select_dtypes(include=[&quot;number&quot;])
+    corrs = numeric.corrwith(df_tmp[ic]).sort_values(ascending=False)
+    print(f&quot;Top correlations with {ic}:&quot;)
+    display(corrs.head(k))
+    print(f&quot;Most negative correlations with {ic}:&quot;)
+    display(corrs.tail(k))
+
+top_corrs(&quot;ICmm_naive&quot;, which=1)
+top_corrs(&quot;ICmm_resid&quot;, which=1)
+
+# Simple 2D views
+plt.figure(figsize=(14, 5))
+plt.subplot(1, 2, 1)
+sns.scatterplot(data=df_tmp, x=&quot;ICmm_naive_1&quot;, y=&quot;ICmm_naive_2&quot;, hue=&quot;my_rating&quot;, palette=&quot;viridis&quot;, alpha=0.7, legend=False)
+plt.title(&quot;Multimodal ICA (naive) IC1 vs IC2&quot;)
+plt.subplot(1, 2, 2)
+sns.scatterplot(data=df_tmp, x=&quot;ICmm_resid_1&quot;, y=&quot;ICmm_resid_2&quot;, hue=&quot;my_rating&quot;, palette=&quot;viridis&quot;, alpha=0.7, legend=False)
+plt.title(&quot;Multimodal ICA (residualized) IC1 vs IC2&quot;)
+plt.tight_layout()
+plt.show()
+
+# Yearly averages (more stable than per-movie trajectories)
+year = df_tmp.dropna(subset=[&quot;year_rated&quot;]).groupby(&quot;year_rated&quot;).agg(
+    mean_naive_IC1=(&quot;ICmm_naive_1&quot;, &quot;mean&quot;),
+    mean_resid_IC1=(&quot;ICmm_resid_1&quot;, &quot;mean&quot;),
+    count=(&quot;ICmm_naive_1&quot;, &quot;size&quot;),
+).reset_index()
+
+plt.figure(figsize=(9, 3))
+plt.plot(year[&quot;year_rated&quot;], year[&quot;mean_naive_IC1&quot;], marker=&quot;o&quot;, label=&quot;naive IC1&quot;)
+plt.plot(year[&quot;year_rated&quot;], year[&quot;mean_resid_IC1&quot;], marker=&quot;o&quot;, label=&quot;residualized IC1&quot;)
+plt.xlabel(&quot;Year rated&quot;)
+plt.ylabel(&quot;Mean IC1&quot;)
+plt.title(&quot;Multimodal ICA: average IC1 over time&quot;)
+plt.legend()
+plt.tight_layout()
+plt.show()
+
+year
+</code></pre></details></body></html>

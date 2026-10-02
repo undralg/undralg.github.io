@@ -1,0 +1,389 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Bayesian Housing · Full analysis</title><style>body{max-width:1000px;margin:auto;padding:28px;font:18px/1.65 system-ui;color:#172b33}h1,h2{font-family:Georgia}a{color:#087d89}img{max-width:100%;height:auto;display:block;margin:25px auto}pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px;max-height:450px;overflow:auto;background:#f2f5f6;padding:16px}details{margin:12px 0;border:1px solid #dbe3e6;padding:12px}summary{cursor:pointer}.note{background:#edf5f6;padding:20px;border-left:4px solid #087d89}table{display:block;overflow:auto;border-collapse:collapse}td,th{padding:8px;border-bottom:1px solid #ddd}</style></head><body><a href="./">← Project overview</a><h1>Bayesian Housing: full analysis</h1><aside class="note">Saved course analysis; models have not been rerun. PSIS-LOO warnings for influential observations limit the strength of the model ranking.</aside><h2
+id="bayesian-regression-for-real-estate-pricing-in-buenos-aires">Bayesian
+Regression for Real Estate Pricing in Buenos Aires</h2>
+<p>Undral Ganbaatar</p>
+<p>March 1, 2025</p>
+<h3 id="data">Data</h3>
+<details><summary>Show code · cell 3</summary><pre><code># There are 5 files that have been concatenated into one file.
+import pandas as pd
+
+# Directly reference the combined dataset
+combined_file_path = &quot;/Users/undralganbaatar/Downloads/combined.csv&quot;
+
+# Load the dataset
+df = pd.read_csv(combined_file_path)
+
+print(&quot;Combined dataset loaded successfully!&quot;)
+print(df.info())  # Display dataset structure
+
+</code></pre></details><details><summary>Saved output · cell 3</summary><pre>Combined dataset loaded successfully!
+&lt;class &#x27;pandas.core.frame.DataFrame&#x27;&gt;
+RangeIndex: 43029 entries, 0 to 43028
+Data columns (total 16 columns):
+ #   Column                      Non-Null Count  Dtype  
+---  ------                      --------------  -----  
+ 0   operation                   43029 non-null  object 
+ 1   property_type               43029 non-null  object 
+ 2   place_with_parent_names     43029 non-null  object 
+ 3   lat-lon                     34734 non-null  object 
+ 4   price                       38073 non-null  float64
+ 5   currency                    38072 non-null  object 
+ 6   price_aprox_local_currency  38073 non-null  float64
+ 7   price_aprox_usd             38073 non-null  float64
+ 8   surface_total_in_m2         29871 non-null  float64
+ 9   surface_covered_in_m2       36420 non-null  float64
+ 10  price_usd_per_m2            24449 non-null  float64
+ 11  price_per_m2                32642 non-null  float64
+ 12  floor                       6505 non-null   float64
+ 13  rooms                       23806 non-null  float64
+ 14  expenses                    4452 non-null   float64
+ 15  properati_url               43029 non-null  object 
+dtypes: float64(10), object(6)
+memory usage: 5.3+ MB
+None
+</pre></details><details><summary>Show code · cell 4</summary><pre><code>import warnings
+warnings.filterwarnings(&quot;ignore&quot;)</code></pre></details><details><summary>Show code · cell 5</summary><pre><code>print(f&quot;Original data: {df.shape[0]} rows&quot;)</code></pre></details><details><summary>Saved output · cell 5</summary><pre>Original data: 43029 rows
+</pre></details><details><summary>Show code · cell 6</summary><pre><code># Remove rows where &#x27;price&#x27;, &#x27;rooms&#x27;, or &#x27;surface_total_in_m2&#x27; have NaN values
+df = df.dropna(subset=[&#x27;price&#x27;, &#x27;rooms&#x27;, &#x27;surface_total_in_m2&#x27;])
+print(f&quot;Cleaned data: {df.shape[0]} rows&quot;)
+</code></pre></details><details><summary>Saved output · cell 6</summary><pre>Cleaned data: 14200 rows
+</pre></details><details><summary>Show code · cell 7</summary><pre><code>import pymc as pm
+import numpy as np
+import arviz as az
+import matplotlib.pyplot as plt
+
+# Extract independent and dependent variables
+y = df[&quot;price&quot;].values  # Dependent variable 
+x1 = df[&quot;rooms&quot;].values  # Independent variable 1
+x2 = df[&quot;surface_total_in_m2&quot;].values  # Independent variable 2
+
+# Standardizing the data 
+y_mean, y_std = y.mean(), y.std()
+x1_mean, x1_std = x1.mean(), x1.std()
+x2_mean, x2_std = x2.mean(), x2.std()
+
+y_scaled = (y - y_mean) / y_std
+x1_scaled = (x1 - x1_mean) / x1_std
+x2_scaled = (x2 - x2_mean) / x2_std</code></pre></details><h3 id="model-1-normal-likelihood">Model 1: Normal Likelihood</h3>
+<details><summary>Show code · cell 9</summary><pre><code>n = len(y_scaled)
+with pm.Model() as model_normal:
+    pm.Data(&quot;obs_idx&quot;, np.arange(n), dims=&quot;obs_id&quot;)
+    # Priors for intercept and slopes
+    α = pm.Normal(&quot;α&quot;, mu=0, sigma=5)  # Intercept
+    β1 = pm.Normal(&quot;β1&quot;, mu=0.2, sigma=0.5)  # Slope for rooms
+    β2 = pm.Normal(&quot;β2&quot;, mu=0.3, sigma=0.3)  # Slope for surface_total_in_m2
+    σ = pm.HalfNormal(&quot;σ&quot;, sigma=1)  # Noise term
+
+    # Linear model
+    mu = α + β1 * x1_scaled + β2 * x2_scaled
+
+    # Normal likelihood
+    y_obs = pm.Normal(&quot;y_obs&quot;, mu=mu, sigma=σ, observed=y_scaled, dims=&quot;obs_id&quot;)
+
+    # Sample from the posterior
+    trace_normal = pm.sample(
+        2000, 
+        return_inferencedata=True, 
+        idata_kwargs={&quot;log_likelihood&quot;: True}
+    )
+
+# Plot posterior distributions
+az.plot_trace(trace_normal, combined=True, figsize=(10, 8))
+
+# Use tight layout to fix overlapping text
+plt.tight_layout()
+plt.show()
+</code></pre></details><details><summary>Saved output · cell 9</summary><pre>Initializing NUTS using jitter+adapt_diag...
+Multiprocess sampling (4 chains in 4 jobs)
+NUTS: [α, β1, β2, σ]
+</pre></details><details><summary>Saved output · cell 9</summary><pre>Output()</pre></details><details><summary>Saved output · cell 9</summary><pre>Sampling 4 chains for 1_000 tune and 2_000 draw iterations (4_000 + 8_000 draws total) took 2 seconds.
+</pre></details><img src="figures/cell-8-4.png" alt="Saved figure from cell 9" loading="lazy"><details><summary>Show code · cell 10</summary><pre><code># Get summary statistics
+summary = az.summary(trace_normal, round_to=2)
+print(summary)
+az.plot_rank(trace_normal)
+plt.show()</code></pre></details><details><summary>Saved output · cell 10</summary><pre>    mean    sd  hdi_3%  hdi_97%  mcse_mean  mcse_sd  ess_bulk  ess_tail  r_hat
+α   0.00  0.01   -0.02     0.01        0.0      0.0  12585.22   5756.30    1.0
+β1  0.19  0.01    0.18     0.21        0.0      0.0  14123.38   6489.76    1.0
+β2  0.03  0.01    0.01     0.04        0.0      0.0  14275.48   6624.56    1.0
+σ   0.98  0.01    0.97     0.99        0.0      0.0  15019.70   6633.02    1.0
+</pre></details><img src="figures/cell-9-1.png" alt="Saved figure from cell 10" loading="lazy"><details><summary>Show code · cell 11</summary><pre><code>az.plot_pair(
+    trace_normal,
+    var_names=[&quot;α&quot;, &quot;β1&quot;, &quot;β2&quot;, &quot;σ&quot;], 
+    kind=&quot;kde&quot;,       
+    divergences=True, # highlight divergent samples if any
+)
+plt.suptitle(&quot;Pair Plot: Normal Model&quot;, y=1.02)
+plt.tight_layout()
+plt.show()</code></pre></details><img src="figures/cell-10-0.png" alt="Saved figure from cell 11" loading="lazy"><details><summary>Show code · cell 12</summary><pre><code>from mpl_toolkits.mplot3d import Axes3D
+
+fig = plt.figure(figsize=(8,6))
+ax = fig.add_subplot(111, projection=&#x27;3d&#x27;)
+
+ax.scatter(x1, x2, y, alpha=0.5)
+
+ax.set_xlabel(&quot;Rooms&quot;)
+ax.set_ylabel(&quot;Surface (m²)&quot;)
+ax.set_zlabel(&quot;Price&quot;)
+
+plt.title(&quot;3D Scatter of Real Estate Data&quot;)
+plt.show()</code></pre></details><img src="figures/cell-11-0.png" alt="Saved figure from cell 12" loading="lazy"><details><summary>Show code · cell 13</summary><pre><code>import seaborn as sns
+df_plot = df[[&quot;rooms&quot;, &quot;surface_total_in_m2&quot;, &quot;price&quot;]] 
+sns.pairplot(df_plot, diag_kind=&quot;kde&quot;)
+plt.show()
+</code></pre></details><img src="figures/cell-12-0.png" alt="Saved figure from cell 13" loading="lazy"><h3 id="model-2-student-t-likelihood">Model 2: Student T Likelihood</h3>
+<details><summary>Show code · cell 15</summary><pre><code>with pm.Model() as model_student:
+    pm.Data(&quot;obs_idx&quot;, np.arange(n), dims=&quot;obs_id&quot;)
+    α = pm.Normal(&quot;α&quot;, mu=0, sigma=5)
+    β1 = pm.Normal(&quot;β1&quot;, mu=0.2, sigma=0.5)
+    β2 = pm.Normal(&quot;β2&quot;, mu=0.3, sigma=0.3)
+    σ = pm.HalfNormal(&quot;σ&quot;, sigma=1)
+    
+    # Degrees of freedom for Student T (must be &gt; 0)
+    nu = pm.Exponential(&quot;nu&quot;, lam=1/30)
+
+    mu = α + β1 * x1_scaled + β2 * x2_scaled
+
+    # Student T likelihood
+    y_obs = pm.StudentT(&quot;y_obs&quot;, nu=nu, mu=mu, sigma=σ, observed=y_scaled, dims=&quot;obs_id&quot;)
+
+    trace_student = pm.sample(
+        2000, 
+        return_inferencedata=True, 
+        idata_kwargs={&quot;log_likelihood&quot;: True}
+    )
+
+# Posterior plots
+az.plot_trace(trace_student, var_names=[&quot;α&quot;, &quot;β1&quot;, &quot;β2&quot;, &quot;σ&quot;, &quot;nu&quot;], combined=True)
+plt.tight_layout()
+plt.show()
+</code></pre></details><details><summary>Saved output · cell 15</summary><pre>Initializing NUTS using jitter+adapt_diag...
+Multiprocess sampling (4 chains in 4 jobs)
+NUTS: [α, β1, β2, σ, nu]
+</pre></details><details><summary>Saved output · cell 15</summary><pre>Output()</pre></details><details><summary>Saved output · cell 15</summary><pre>Sampling 4 chains for 1_000 tune and 2_000 draw iterations (4_000 + 8_000 draws total) took 11 seconds.
+</pre></details><img src="figures/cell-14-4.png" alt="Saved figure from cell 15" loading="lazy"><details><summary>Show code · cell 16</summary><pre><code>summary = az.summary(trace_student, round_to=2)
+print(summary)
+az.plot_rank(trace_student)
+plt.show()</code></pre></details><details><summary>Saved output · cell 16</summary><pre>    mean    sd  hdi_3%  hdi_97%  mcse_mean  mcse_sd  ess_bulk  ess_tail  r_hat
+α  -0.26  0.00   -0.26    -0.25        0.0      0.0   6658.82   5674.67    1.0
+β1  0.11  0.00    0.11     0.11        0.0      0.0   6409.94   6218.60    1.0
+β2  0.51  0.02    0.46     0.55        0.0      0.0   5052.54   4981.52    1.0
+σ   0.10  0.00    0.10     0.11        0.0      0.0   6238.34   6140.00    1.0
+nu  1.00  0.01    0.97     1.03        0.0      0.0   6068.02   5700.67    1.0
+</pre></details><img src="figures/cell-15-1.png" alt="Saved figure from cell 16" loading="lazy"><details><summary>Show code · cell 17</summary><pre><code>az.plot_pair(
+    trace_student,
+    var_names=[&quot;α&quot;, &quot;β1&quot;, &quot;β2&quot;, &quot;σ&quot;, &quot;nu&quot;],
+    kind=&quot;kde&quot;,
+    divergences=True,
+)
+plt.suptitle(&quot;Pair Plot: StudentT Model&quot;, y=1.02)
+plt.tight_layout()
+plt.show()
+</code></pre></details><img src="figures/cell-16-0.png" alt="Saved figure from cell 17" loading="lazy"><h3 id="model-3-outlier-classifier">Model 3: Outlier Classifier</h3>
+<details><summary>Show code · cell 19</summary><pre><code>import pytensor.tensor as pt
+
+with pm.Model() as outlier_classifier_model:
+    pm.Data(&quot;obs_idx&quot;, np.arange(n), dims=&quot;obs_id&quot;)
+    
+    α = pm.Normal(&quot;α&quot;, mu=0, sigma=5)
+    β1 = pm.Normal(&quot;β1&quot;, mu=0.2, sigma=0.5)
+    β2 = pm.Normal(&quot;β2&quot;, mu=0.3, sigma=0.3)
+    mu = α + β1 * x1_scaled + β2 * x2_scaled
+
+    # Noise parameters for inliers/outliers
+    # We&#x27;ll allow a base sigma_in and an additional sigma_out for outliers
+    sigma_in = pm.HalfNormal(&quot;sigma_in&quot;, sigma=0.5)
+    sigma_out = pm.HalfNormal(&quot;sigma_out&quot;, sigma=2)
+    
+    # This array has shape [2], index 0 for inlier, 1 for outlier
+    sigmas = pt.as_tensor_variable([sigma_in, sigma_in + sigma_out])
+    
+    # Probability that a given point is an outlier
+    p = pm.Uniform(&quot;p&quot;, lower=0, upper=0.5)
+    
+    # Bernoulli indicator for each data point =&gt; 0=inlier, 1=outlier
+    is_outlier = pm.Bernoulli(&quot;is_outlier&quot;, p=p, dims=&quot;obs_id&quot;)
+    
+    # Likelihood: pick sigma_in or sigma_in+sigma_out for each point
+    pm.Normal(
+        &quot;y_obs&quot;, 
+        mu=mu, 
+        sigma=sigmas[is_outlier], 
+        observed=y_scaled, 
+        dims=&quot;obs_id&quot;
+    )
+    
+    # Sample from the posterior
+    trace_outlier = pm.sample(
+        2000, 
+        return_inferencedata=True, 
+        idata_kwargs={&quot;log_likelihood&quot;: True}
+    )
+
+# Posterior analysis
+az.plot_trace(
+    trace_outlier,
+    var_names=[&quot;α&quot;, &quot;β1&quot;, &quot;β2&quot;, &quot;sigma_in&quot;, &quot;sigma_out&quot;, &quot;p&quot;, &quot;is_outlier&quot;],
+    combined=True
+)
+plt.tight_layout()
+plt.show()
+</code></pre></details><details><summary>Saved output · cell 19</summary><pre>Multiprocess sampling (4 chains in 4 jobs)
+CompoundStep
+&gt;NUTS: [α, β1, β2, sigma_in, sigma_out, p]
+&gt;BinaryGibbsMetropolis: [is_outlier]
+</pre></details><details><summary>Saved output · cell 19</summary><pre>Output()</pre></details><details><summary>Show code · cell 20</summary><pre><code>summary = az.summary(trace_outlier, round_to=2)
+print(summary)
+az.plot_rank(trace_student)
+plt.show()</code></pre></details><details><summary>Saved output · cell 20</summary><pre>/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/arviz/stats/diagnostics.py:596: RuntimeWarning: invalid value encountered in scalar divide
+  (between_chain_variance / within_chain_variance + num_samples - 1) / (num_samples)
+/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/arviz/stats/diagnostics.py:596: RuntimeWarning: invalid value encountered in scalar divide
+  (between_chain_variance / within_chain_variance + num_samples - 1) / (num_samples)
+/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/arviz/stats/diagnostics.py:596: RuntimeWarning: invalid value encountered in scalar divide
+  (between_chain_variance / within_chain_variance + num_samples - 1) / (num_samples)
+/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/arviz/stats/diagnostics.py:596: RuntimeWarning: invalid value encountered in scalar divide
+  (between_chain_variance / within_chain_variance + num_samples - 1) / (num_samples)
+/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/arviz/stats/diagnostics.py:596: RuntimeWarning: invalid value encountered in scalar divide
+  (between_chain_variance / within_chain_variance + num_samples - 1) / (num_samples)
+/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/arviz/stats/diagnostics.py:596: RuntimeWarning: invalid value encountered in scalar divide
+  (between_chain_variance / within_chain_variance + num_samples - 1) / (num_samples)
+/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/arviz/stats/diagnostics.py:596: RuntimeWarning: invalid value encountered in scalar divide
+  (between_chain_variance / within_chain_variance + num_samples - 1) / (num_samples)
+/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/arviz/stats/diagnostics.py:596: RuntimeWarning: invalid value encountered in scalar divide
+  (between_chain_variance / within_chain_variance + num_samples - 1) / (num_samples)
+/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/arviz/stats/diagnostics.py:596: RuntimeWarning: invalid value encountered in scalar divide
+  (between_chain_variance / within_chain_variance + num_samples - 1) / (num_samples)
+/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/arviz/stats/diagnostics.py:596: RuntimeWarning: invalid value encountered in scalar divide
+  (between_chain_variance / within_chain_variance + num_samples - 1) / (num_samples)
+/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/arviz/stats/diagnostics.py:596: RuntimeWarning: invalid value encountered in scalar divide
+  (between_chain_variance / within_chain_variance + num_samples - 1) / (num_samples)
+/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/arviz/stats/diagnostics.py:596: RuntimeWarning: invalid value encountered in scalar divide
+  (between_chain_variance / within_chain_variance + num_samples - 1) / (num_samples)
+/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/arviz/stats/diagnostics.py:596: RuntimeWarning: invalid value encountered in scalar divide
+  (between_chain_variance / within_chain_variance + num_samples - 1) / (num_samples)
+/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/arviz/stats/diagnostics.py:596: RuntimeWarning: invalid value encountered in scalar divide
+  (between_chain_variance / within_chain_variance + num_samples - 1) / (num_samples)
+/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/arviz/stats/diagnostics.py:596: RuntimeWarning: invalid value encountered in scalar divide
+  (between_chain_variance / within_chain_variance + num_samples - 1) / (num_samples)
+/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/arviz/stats/diagnostics.py:596: RuntimeWarning: invalid value encountered in scalar divide
+  (between_chain_variance / within_chain_variance + num_samples - 1) / (num_samples)
+/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/arviz/stats/diagnostics.py:596: RuntimeWarning: invalid value encountered in scalar divide
+  (between_chain_variance / within_chain_variance + num_samples - 1) / (num_samples)
+/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/arviz/stats/diagnostics.py:596: RuntimeWarning: invalid value encountered in scalar divide
+  (between_chain_variance / within_chain_variance + num_samples - 1) / (num_samples)
+/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/arviz/stats/diagnostics.py:596: RuntimeWarning: invalid value encountered in scalar divide
+  (between_chain_variance / within_chain_variance + num_samples - 1) / (num_samples)
+/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/arviz/stats/diagnostics.py:596: RuntimeWarning: invalid value encountered in scalar divide
+  (between_chain_variance / within_chain_variance + num_samples - 1) / (num_samples)
+/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/arviz/stats/diagnostics.py:596: RuntimeWarning: invalid value encountered in scalar divide
+  (between_chain_variance / within_chain_variance + num_samples - 1) / (num_samples)
+/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/arviz/stats/diagnostics.py:596: RuntimeWarning: invalid value encountered in scalar divide
+  (between_chain_variance / within_chain_variance + num_samples - 1) / (num_samples)
+/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/arviz/stats/diagnostics.py:596: RuntimeWarning: invalid value encountered in scalar divide
+  (between_chain_variance / within_chain_variance + num_samples - 1) / (num_samples)
+/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/arviz/stats/diagnostics.py:596: RuntimeWarning: invalid value encountered in scalar divide
+  (between_chain_variance / within_chain_variance + num_samples - 1) / (num_samples)
+/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/arviz/stats/diagnostics.py:596: RuntimeWarning: invalid value encountered in scalar divide
+  (between_chain_variance / within_chain_variance + num_samples - 1) / (num_samples)
+/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/arviz/stats/diagnostics.py:596: RuntimeWarning: invalid value encountered in scalar divide
+  (between_chain_variance / within_chain_variance + num_samples - 1) / (num_samples)
+/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/arviz/stats/diagnostics.py:596: RuntimeWarning: invalid value encountered in scalar divide
+  (between_chain_variance / within_chain_variance + num_samples - 1) / (num_samples)
+/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/arviz/stats/diagnostics.py:596: RuntimeWarning: invalid value encountered in scalar divide
+  (between_chain_variance / within_chain_variance + num_samples - 1) / (num_samples)
+/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/arviz/stats/diagnostics.py:596: RuntimeWarning: invalid value encountered in scalar divide
+  (between_chain_variance / within_chain_variance + num_samples - 1) / (num_samples)
+/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/arviz/stats/diagnostics.py:596: RuntimeWarning: invalid value encountered in scalar divide
+  (between_chain_variance / within_chain_variance + num_samples - 1) / (num_samples)
+/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/arviz/stats/diagnostics.py:596: RuntimeWarning: invalid value encountered in scalar divide
+  (between_chain_variance / within_chain_variance + num_samples - 1) / (num_samples)
+/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/arviz/stats/diagnostics.py:596: RuntimeWarning: invalid value encountered in scalar divide
+  (between_chain_variance / within_chain_variance + num_samples - 1) / (num_samples)
+/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/arviz/stats/diagnostics.py:596: RuntimeWarning: invalid value encountered in scalar divide
+  (between_chain_variance / within_chain_variance + num_samples - 1) / (num_samples)
+/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/arviz/stats/diagnostics.py:596: RuntimeWarning: invalid value encountered in scalar divide
+  (between_chain_variance / within_chain_variance + num_samples - 1) / (num_samples)
+/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/arviz/stats/diagnostics.py:596: RuntimeWarning: invalid value encountered in scalar divide
+  (between_chain_variance / within_chain_variance + num_samples - 1) / (num_samples)
+/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/arviz/stats/diagnostics.py:596: RuntimeWarning: invalid value encountered in scalar divide
+  (between_chain_variance / within_chain_variance + num_samples - 1) / (num_samples)
+/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/arviz/stats/diagnostics.py:596: RuntimeWarning: invalid value encountered in scalar divide
+  (between_chain_variance / within_chain_variance + num_samples - 1) / (num_samples)
+/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/arviz/stats/diagnostics.py:596: RuntimeWarning: invalid value encountered in scalar divide
+  (between_chain_variance / within_chain_variance + num_samples - 1) / (num_samples)
+/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/arviz/stats/diagnostics.py:596: RuntimeWarning: invalid value encountered in scalar divide
+  (between_chain_variance / within_chain_variance + num_samples - 1) / (num_samples)
+/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/arviz/stats/diagnostics.py:596: RuntimeWarning: invalid value encountered in scalar divide
+  (between_chain_variance / within_chain_variance + num_samples - 1) / (num_samples)
+/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/arviz/stats/diagnostics.py:596: RuntimeWarning: invalid value encountered in scalar divide
+  (between_chain_variance / within_chain_variance + num_samples - 1) / (num_samples)
+/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/arviz/stats/diagnostics.py:596: RuntimeWarning: invalid value encountered in scalar divide
+  (between_chain_variance / within_chain_variance + num_samples - 1) / (num_samples)
+/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/arviz/stats/diagnostics.py:596: RuntimeWarning: invalid value encountered in scalar divide
+  (between_chain_variance / within_chain_variance + num_samples - 1) / (num_samples)
+/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/arviz/stats/diagnostics.py:596: RuntimeWarning: invalid value encountered in scalar divide
+  (between_chain_variance / within_chain_variance + num_samples - 1) / (num_samples)
+/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/arviz/stats/diagnostics.py:596: RuntimeWarning: invalid value encountered in scalar divide
+  (between_chain_variance / within_chain_variance + num_samples - 1) / (num_samples)
+/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/arviz/stats/diagnostics.py:596: RuntimeWarning: invalid value encountered in scalar divide
+  (between_chain_variance / within_chain_variance + num_samples - 1) / (num_samples)
+/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/arviz/stats/diagnostics.py:596: RuntimeWarning: invalid value encountered in scalar divide
+  (between_chain_variance / within_chain_variance + n
+[Long output truncated in this preview; see original notebook.]</pre></details><details><summary>Saved output · cell 20</summary><pre>                   mean    sd  hdi_3%  hdi_97%  mcse_mean  mcse_sd  ess_bulk  \
+α                 -0.25  0.00   -0.25    -0.24        0.0      0.0   3778.94   
+β1                 0.14  0.00    0.14     0.15        0.0      0.0   3798.32   
+β2                 0.17  0.00    0.16     0.17        0.0      0.0   6118.98   
+is_outlier[0]      0.01  0.11    0.00     0.00        0.0      0.0   5613.42   
+is_outlier[1]      0.01  0.12    0.00     0.00        0.0      0.0   5210.22   
+...                 ...   ...     ...      ...        ...      ...       ...   
+is_outlier[14198]  0.05  0.21    0.00     0.00        0.0      0.0   5843.84   
+is_outlier[14199]  1.00  0.00    1.00     1.00        0.0      0.0   8000.00   
+sigma_in           0.16  0.00    0.16     0.16        0.0      0.0   2678.36   
+sigma_out          2.47  0.04    2.38     2.55        0.0      0.0   4946.23   
+p                  0.15  0.00    0.14     0.15        0.0      0.0   3732.30   
+
+                   ess_tail  r_hat  
+α                   5160.39    1.0  
+β1                  5203.99    1.0  
+β2                  5510.17    1.0  
+is_outlier[0]       5613.42    1.0  
+is_outlier[1]       5210.22    1.0  
+...                     ...    ...  
+is_outlier[14198]   5843.84    1.0  
+is_outlier[14199]   8000.00    NaN  
+sigma_in            4558.09    1.0  
+sigma_out           5671.03    1.0  
+p                   5075.04    1.0  
+
+[14206 rows x 9 columns]
+</pre></details><img src="figures/cell-19-2.png" alt="Saved figure from cell 20" loading="lazy"><details><summary>Show code · cell 21</summary><pre><code>az.plot_pair(
+    trace_outlier,
+    var_names=[&quot;α&quot;, &quot;β1&quot;, &quot;β2&quot;, &quot;sigma_in&quot;, &quot;sigma_out&quot;, &quot;p&quot;], 
+    kind=&quot;kde&quot;,
+    divergences=True,
+)
+plt.suptitle(&quot;Pair Plot: Outlier Classifier Model&quot;, y=1.02)
+plt.tight_layout()
+plt.show()
+</code></pre></details><img src="figures/cell-20-0.png" alt="Saved figure from cell 21" loading="lazy"><h3 id="model-comparison">Model Comparison</h3>
+<details><summary>Show code · cell 23</summary><pre><code>model_dict = {
+    &quot;Normal Likelihood&quot;: trace_normal,
+    &quot;StudentT Likelihood&quot;: trace_student,
+    &quot;Outlier Classifier&quot;: trace_outlier
+}
+
+comp_df = az.compare(model_dict, ic=&quot;loo&quot;, scale=&quot;deviance&quot;)
+comp_df</code></pre></details><details><summary>Saved output · cell 23</summary><pre>/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/arviz/stats/stats.py:1043: RuntimeWarning: overflow encountered in exp
+  weights = 1 / np.exp(len_scale - len_scale[:, None]).sum(axis=1)
+/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/numpy/core/_methods.py:49: RuntimeWarning: overflow encountered in reduce
+  return umr_sum(a, axis, dtype, out, keepdims, initial, where)
+/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/arviz/stats/stats.py:795: UserWarning: Estimated shape parameter of Pareto distribution is greater than 0.70 for one or more samples. You should consider using a more robust model, this is because importance sampling is less likely to work well if the marginal posterior and LOO posterior are very different. This is more likely to happen with a non-robust model and highly influential observations.
+  warnings.warn(
+</pre></details><details><summary>Saved output · cell 23</summary><pre>                     rank     elpd_loo        p_loo    elpd_diff    weight  \
+Outlier Classifier      0  1701.851629  1386.559989     0.000000  0.999349   
+Normal Likelihood       1  7766.633154    10.914917  6064.781525  0.000000   
+StudentT Likelihood     2  7766.831681    11.035886  6064.980052  0.000651   
+
+                             se         dse  warning     scale  
+Outlier Classifier   355.136640    0.000000     True  deviance  
+Normal Likelihood    422.902338  234.371137    False  deviance  
+StudentT Likelihood  422.905734  234.345122    False  deviance  </pre></details></body></html>

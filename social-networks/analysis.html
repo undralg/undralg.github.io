@@ -1,0 +1,1212 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Social Networks · Full analysis</title><style>body{max-width:1000px;margin:auto;padding:28px;font:18px/1.65 system-ui;color:#172b33}h1,h2{font-family:Georgia}a{color:#087d89}img{max-width:100%;height:auto;display:block;margin:25px auto}pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px;max-height:450px;overflow:auto;background:#f2f5f6;padding:16px}details{margin:12px 0;border:1px solid #dbe3e6;padding:12px}summary{cursor:pointer}.note{background:#edf5f6;padding:20px;border-left:4px solid #087d89}table{display:block;overflow:auto;border-collapse:collapse}td,th{padding:8px;border-bottom:1px solid #ddd}</style></head><body><a href="./">← Project overview</a><h1>Social Networks: full analysis</h1><aside class="note">All outcomes are simulations under specified assumptions, not measured effects in a population. Models have not been rerun.</aside><h1 id="cs166-final-project-code-notebook">CS166 Final Project Code
+Notebook</h1>
+<p>Agent-based Monte Carlo simulation of the male loneliness spiral and
+algorithmic exposure.</p>
+<p>This notebook: - Defines the model and assumptions. - Implements the
+simulation engine (OOP). - Runs Monte Carlo experiments across
+interventions. - Produces plots, histograms, and confidence
+intervals.</p>
+<details><summary>Show code · cell 2</summary><pre><code># Setup and imports
+import os
+# These environment variables limit BLAS and OpenMP threads for reproducibility and to
+# avoid oversubscription slowdowns in notebooks.
+os.environ.setdefault(&quot;OMP_NUM_THREADS&quot;, &quot;1&quot;)
+os.environ.setdefault(&quot;MKL_NUM_THREADS&quot;, &quot;1&quot;)
+os.environ.setdefault(&quot;NUMEXPR_NUM_THREADS&quot;, &quot;1&quot;)
+
+import math
+import random
+import json
+import hashlib
+
+import networkx as nx
+import numpy as np
+import matplotlib.pyplot as plt
+
+RANDOM_SEED = 42
+np.random.seed(RANDOM_SEED)
+random.seed(RANDOM_SEED)
+
+
+# Notebook helpers
+FIG_DIR = &quot;figures&quot;
+os.makedirs(FIG_DIR, exist_ok=True)
+
+def save_fig(fig, filename):
+    &quot;&quot;&quot;Save a Matplotlib figure into the figures folder.
+
+    This helper keeps figure saving consistent across the notebook and makes it easy to
+    reuse plots in the report notebook.
+    &quot;&quot;&quot;
+    path = os.path.join(FIG_DIR, filename)
+    fig.savefig(path, dpi=200, bbox_inches=&quot;tight&quot;)
+    print(&quot;Saved figure:&quot;, path)
+
+def normalize_for_json(obj):
+    &quot;&quot;&quot;Convert common Python and NumPy objects into JSON-serializable types.
+
+    This is used when hashing cache configurations and when writing cached result files.
+    &quot;&quot;&quot;
+    if isinstance(obj, dict):
+        return {str(k): normalize_for_json(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [normalize_for_json(x) for x in obj]
+    if hasattr(obj, &quot;item&quot;) and callable(obj.item):
+        try:
+            return obj.item()
+        except Exception:
+            pass
+    return obj
+
+def config_hash(config):
+    &quot;&quot;&quot;Compute a short, deterministic hash for a cache configuration dictionary.&quot;&quot;&quot;
+    blob = json.dumps(normalize_for_json(config), sort_keys=True).encode(&quot;utf-8&quot;)
+    return hashlib.sha1(blob).hexdigest()[:12]
+
+def load_or_compute_json(cache_prefix, config, compute_fn):
+    &quot;&quot;&quot;Load a JSON cache keyed by a config hash, or compute and save it.
+
+    The cache key changes whenever the config changes. If you change behavior but keep
+    the same config keys, increment config[&#x27;version&#x27;] to force recomputation.
+    &quot;&quot;&quot;
+    os.makedirs(&quot;.cache&quot;, exist_ok=True)
+    key = config_hash(config)
+    path = os.path.join(&quot;.cache&quot;, f&quot;{cache_prefix}_{key}.json&quot;)
+    if os.path.exists(path):
+        with open(path, &quot;r&quot;, encoding=&quot;utf-8&quot;) as f:
+            return json.load(f), path
+    value = compute_fn()
+    with open(path, &quot;w&quot;, encoding=&quot;utf-8&quot;) as f:
+        json.dump(value, f)
+    return value, path
+</code></pre></details><h2 id="model-summary">Model summary</h2>
+<p>Each agent i has isolation I_i, exposure R_i, ideological drift D_i,
+and social engagement S_i. Friendships are weighted edges w_ij. The
+model updates are:</p>
+<p><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>R</mi><mi>i</mi></msub><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo>+</mo><mn>1</mn><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>−</mo><mi>α</mi><mo stretchy="false" form="postfix">)</mo><msub><mi>R</mi><mi>i</mi></msub><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo stretchy="false" form="postfix">)</mo><mo>+</mo><mi>α</mi><msub><mi>E</mi><mi>i</mi></msub><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">R_i(t+1) = (1 - \alpha) R_i(t) + \alpha E_i(t)</annotation></semantics></math>,
+where
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>E</mi><mi>i</mi></msub><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo stretchy="false" form="postfix">)</mo><mo>∼</mo><mtext mathvariant="normal">Bernoulli</mtext><mo stretchy="false" form="prefix">(</mo><msub><mi>p</mi><mrow><mi>a</mi><mi>l</mi><mi>g</mi></mrow></msub><mo stretchy="false" form="prefix">(</mo><msub><mi>I</mi><mi>i</mi></msub><mo stretchy="false" form="postfix">)</mo><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">E_i(t) \sim \text{Bernoulli}(p_{alg}(I_i))</annotation></semantics></math>.</p>
+<p><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>p</mi><mrow><mi>a</mi><mi>l</mi><mi>g</mi></mrow></msub><mo stretchy="false" form="prefix">(</mo><mi>I</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><msub><mi>p</mi><mn>0</mn></msub><mo>+</mo><mo stretchy="false" form="prefix">(</mo><msub><mi>p</mi><mrow><mi>m</mi><mi>a</mi><mi>x</mi></mrow></msub><mo>−</mo><msub><mi>p</mi><mn>0</mn></msub><mo stretchy="false" form="postfix">)</mo><mi>I</mi></mrow><annotation encoding="application/x-tex">p_{alg}(I) = p_0 + (p_{max} - p_0) I</annotation></semantics></math>.</p>
+<p><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>D</mi><mi>i</mi></msub><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo>+</mo><mn>1</mn><mo stretchy="false" form="postfix">)</mo><mo>=</mo><msub><mi>D</mi><mi>i</mi></msub><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo stretchy="false" form="postfix">)</mo><mo>+</mo><mi>β</mi><msub><mi>R</mi><mi>i</mi></msub><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo stretchy="false" form="postfix">)</mo><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>−</mo><msub><mi>S</mi><mi>i</mi></msub><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo stretchy="false" form="postfix">)</mo><mo stretchy="false" form="postfix">)</mo><mo>−</mo><msub><mi>β</mi><mrow><mi>f</mi><mi>r</mi><mi>i</mi><mi>e</mi><mi>n</mi><mi>d</mi></mrow></msub><mfrac><mn>1</mn><msub><mi>k</mi><mi>i</mi></msub></mfrac><msub><mo>∑</mo><mi>j</mi></msub><msub><mi>w</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub><mo stretchy="false" form="prefix">(</mo><msub><mi>D</mi><mi>i</mi></msub><mo>−</mo><msub><mi>D</mi><mi>j</mi></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">D_i(t+1) = D_i(t) + \beta R_i(t) (1 - S_i(t)) - \beta_{friend} \frac{1}{k_i} \sum_{j} w_{ij}(D_i - D_j)</annotation></semantics></math>.</p>
+<p><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>I</mi><mi>i</mi></msub><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo>+</mo><mn>1</mn><mo stretchy="false" form="postfix">)</mo><mo>=</mo><msub><mi>I</mi><mi>i</mi></msub><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo stretchy="false" form="postfix">)</mo><mo>+</mo><mi>γ</mi><mfrac><mn>1</mn><msub><mi>k</mi><mi>i</mi></msub></mfrac><msub><mo>∑</mo><mi>j</mi></msub><mo stretchy="false" form="prefix">|</mo><msub><mi>D</mi><mi>i</mi></msub><mo>−</mo><msub><mi>D</mi><mi>j</mi></msub><mo stretchy="false" form="prefix">|</mo><mi>−</mi><mi>δ</mi><msub><mi>S</mi><mi>i</mi></msub><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">I_i(t+1) = I_i(t) + \gamma \frac{1}{k_i} \sum_{j} |D_i - D_j| - \delta S_i(t)</annotation></semantics></math>.</p>
+<p><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>w</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo>+</mo><mn>1</mn><mo stretchy="false" form="postfix">)</mo><mo>=</mo><msub><mi>w</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo stretchy="false" form="postfix">)</mo><mo stretchy="false" form="prefix">[</mo><mn>1</mn><mo>−</mo><msub><mi>μ</mi><mn>1</mn></msub><mo stretchy="false" form="prefix">|</mo><msub><mi>D</mi><mi>i</mi></msub><mo>−</mo><msub><mi>D</mi><mi>j</mi></msub><mo stretchy="false" form="prefix">|</mo><mi>−</mi><msub><mi>μ</mi><mn>2</mn></msub><mo stretchy="false" form="prefix">(</mo><msub><mi>I</mi><mi>i</mi></msub><mo>+</mo><msub><mi>I</mi><mi>j</mi></msub><mo stretchy="false" form="postfix">)</mo><mi>/</mi><mn>2</mn><mo stretchy="false" form="postfix">]</mo></mrow><annotation encoding="application/x-tex">w_{ij}(t+1) = w_{ij}(t) [1 - \mu_1 |D_i - D_j| - \mu_2 (I_i + I_j)/2]</annotation></semantics></math>.</p>
+<p>Ties are cut with probability lambda when
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">|</mo><msub><mi>D</mi><mi>i</mi></msub><mo>−</mo><msub><mi>D</mi><mi>j</mi></msub><mo stretchy="false" form="prefix">|</mo><mo>&gt;</mo><mi>τ</mi><mi>.</mi></mrow><annotation encoding="application/x-tex">|D_i - D_j| &gt; \tau.</annotation></semantics></math></p>
+<p>Assumption: social engagement is derived from tie strength and
+isolation:
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>S</mi><mi>i</mi></msub><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mtext mathvariant="normal">avg</mtext><mo stretchy="false" form="prefix">(</mo><msub><mi>w</mi><mi>i</mi></msub><mo stretchy="false" form="postfix">)</mo><mo>⋅</mo><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>−</mo><msub><mi>I</mi><mi>i</mi></msub><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo stretchy="false" form="postfix">)</mo><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">S_i(t) = \text{avg}(w_i) \cdot (1 - I_i(t))</annotation></semantics></math>.
+All state variables are clipped to [0, 1].</p>
+<details><summary>Show code · cell 4</summary><pre><code># Baseline parameters
+BASE_PARAMS = {
+    &quot;n&quot;: 800,
+    &quot;T&quot;: 80,
+    &quot;network&quot;: &quot;er&quot;,
+    &quot;k&quot;: 6,
+    &quot;rewire_p&quot;: 0.1,
+    &quot;er_mean_degree&quot;: 12,
+    &quot;scale_free_m&quot;: 3,
+    &quot;w_min&quot;: 0.3,
+    &quot;w_max&quot;: 0.9,
+    &quot;init_I_a&quot;: 2.0,
+    &quot;init_I_b&quot;: 5.0,
+    &quot;init_D_a&quot;: 2.0,
+    &quot;init_D_b&quot;: 5.0,
+    &quot;init_R_a&quot;: 1.0,
+    &quot;init_R_b&quot;: 8.0,
+    &quot;alpha&quot;: 0.30,
+    &quot;p0&quot;: 0.05,
+    &quot;p_max&quot;: 0.60,
+    &quot;beta&quot;: 0.35,
+    &quot;beta_friend&quot;: 0.60,
+    &quot;gamma&quot;: 0.25,
+    &quot;delta&quot;: 0.25,
+    &quot;mu1&quot;: 0.25,
+    &quot;mu2&quot;: 0.20,
+    &quot;tau&quot;: 0.60,
+    &quot;lambda&quot;: 0.10,
+}
+</code></pre></details><h2 id="parameters-and-outputs">Parameters and outputs</h2>
+<p><strong>Randomness (Monte Carlo):</strong> - Random network
+generation and initial conditions (I, R, D). - Per-timestep algorithm
+exposure sampled as a Bernoulli event with probability
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>p</mi><mrow><mi>a</mi><mi>l</mi><mi>g</mi></mrow></msub><mo stretchy="false" form="prefix">(</mo><msub><mi>I</mi><mi>i</mi></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">p_{alg}(I_i)</annotation></semantics></math>.
+- Friendship dissolution when
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">|</mo><msub><mi>D</mi><mi>i</mi></msub><mo>−</mo><msub><mi>D</mi><mi>j</mi></msub><mo stretchy="false" form="prefix">|</mo><mo>&gt;</mo><mi>τ</mi></mrow><annotation encoding="application/x-tex">|D_i-D_j|&gt;\tau</annotation></semantics></math>
+occurs with probability
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>λ</mi><annotation encoding="application/x-tex">\lambda</annotation></semantics></math>.</p>
+<p><strong>Key parameters (how to read them):</strong> -
+<code>alpha</code>: smoothing rate for exposure <code>R</code> (higher =
+exposure responds faster). - <code>p0</code>, <code>p_max</code>:
+baseline and maximum algorithm exposure probability;
+<code>(p_max - p0)</code> is the “algorithm slope”. - <code>beta</code>:
+strength of red-pill exposure on drift. - <code>beta_friend</code>:
+corrective social influence pulling drift toward friends. -
+<code>gamma</code>: how much ideological mismatch increases isolation. -
+<code>delta</code>: how much social engagement reduces isolation. -
+<code>mu1</code>, <code>mu2</code>: rates at which ideology gaps and
+isolation erode friendship weights. - <code>tau</code>,
+<code>lambda</code>: cutoff threshold and probability of severing
+ties.</p>
+<p><strong>Network parameters:</strong> - ER (Erdős–Rényi): set
+<code>network="er"</code> and choose <code>er_mean_degree</code>
+(expected degree). - SBM (high-school extension): set
+<code>network="sbm"</code> with <code>sbm_block_sizes</code>,
+<code>sbm_p_in</code>, <code>sbm_p_out</code>.</p>
+<p><strong>Quantities of interest (reported per simulation
+run):</strong> - <code>mean_drift</code>: average final
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>D</mi><mi>i</mi></msub><mo stretchy="false" form="prefix">(</mo><mi>T</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">D_i(T)</annotation></semantics></math>
+across agents. - <code>mean_isolation</code>: average final
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>I</mi><mi>i</mi></msub><mo stretchy="false" form="prefix">(</mo><mi>T</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">I_i(T)</annotation></semantics></math>
+across agents. - <code>mean_exposure</code>: average final
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>R</mi><mi>i</mi></msub><mo stretchy="false" form="prefix">(</mo><mi>T</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">R_i(T)</annotation></semantics></math>
+across agents. - <code>isolated_frac</code>: fraction of agents with
+degree 0 (no friends) at the end. - <code>avg_weight</code>: average
+remaining friendship weight at the end.</p>
+<p>In addition to run-level summaries, I also visualize the
+<strong>distribution of final drift values</strong>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">{</mo><msub><mi>D</mi><mi>i</mi></msub><mo stretchy="false" form="prefix">(</mo><mi>T</mi><mo stretchy="false" form="postfix">)</mo><mo stretchy="false" form="postfix">}</mo></mrow><annotation encoding="application/x-tex">\{D_i(T)\}</annotation></semantics></math>
+across agents in a single run to show within-run heterogeneity.</p>
+<details><summary>Show code · cell 6</summary><pre><code>class LonelinessModel:
+    &quot;&quot;&quot;Agent-based network simulation of a loneliness feedback loop.
+    
+    This class implements the update rules used in the project report. It evolves agent
+    states on a weighted friendship network and allows ties to weaken and be cut over
+    time.
+    
+    State per agent:
+    - `I`: isolation in [0,1]
+    - `R`: red pill exposure in [0,1]
+    - `D`: ideological drift in [0,1]
+    - `S`: social engagement in [0,1] (recomputed each timestep)
+    
+    The friendship network is an undirected weighted `networkx.Graph` with edge
+    attribute `weight` in [0,1].
+    
+    All stochasticity is generated from the NumPy random generator seeded in `__init__`,
+    including network generation, initial state draws, exposure events, and tie cutting.
+    &quot;&quot;&quot;
+    def __init__(self, params, seed=0):
+        &quot;&quot;&quot;Initialize the friendship network and agent states.
+
+        Args:
+            params: Dict of model parameters.
+            seed: Integer seed that controls network generation, initial states, and
+                all randomness during the run.
+        &quot;&quot;&quot;
+        self.params = params
+        # A single RNG controls all randomness for reproducibility.
+        self.rng = np.random.default_rng(seed)
+        self.G = self._make_network()
+        self.I, self.R, self.D = self._init_states()
+        self.S = np.zeros_like(self.I)
+
+    @staticmethod
+    def _clip01(x):
+        &quot;&quot;&quot;Clip a scalar value to the interval [0, 1].&quot;&quot;&quot;
+        return max(0.0, min(1.0, x))
+
+    def _make_network(self):
+        &quot;&quot;&quot;Create the initial friendship graph and initialize edge weights.
+
+        The graph generator is selected by params[&#x27;network&#x27;]. NetworkX expects a
+        Python int or random.Random as the seed, so NumPy integers are cast to int.
+        &quot;&quot;&quot;
+        n = self.params[&quot;n&quot;]
+        if self.params[&quot;network&quot;] == &quot;small_world&quot;:
+            G = nx.watts_strogatz_graph(
+                n,
+                self.params[&quot;k&quot;],
+                self.params[&quot;rewire_p&quot;],
+                seed=int(self.rng.integers(0, 1_000_000)),
+            )
+        elif self.params[&quot;network&quot;] == &quot;scale_free&quot;:
+            G = nx.barabasi_albert_graph(
+                n,
+                self.params[&quot;scale_free_m&quot;],
+                seed=int(self.rng.integers(0, 1_000_000)),
+            )
+        elif self.params[&quot;network&quot;] == &quot;er&quot;:
+            # ER graph with expected mean degree.
+            mean_deg = float(self.params.get(&quot;er_mean_degree&quot;, self.params.get(&quot;k&quot;, 6)))
+            p = max(0.0, min(1.0, mean_deg / max(1, (n - 1))))
+            G = nx.erdos_renyi_graph(n, p, seed=int(self.rng.integers(0, 1_000_000)))
+        elif self.params[&quot;network&quot;] == &quot;sbm&quot;:
+            # Stochastic block model for community structure (e.g., grades/classes).
+            sizes = list(self.params[&quot;sbm_block_sizes&quot;])
+            if sum(sizes) != n:
+                raise ValueError(&quot;sbm_block_sizes must sum to n&quot;)
+            p_in = float(self.params[&quot;sbm_p_in&quot;])
+            p_out = float(self.params[&quot;sbm_p_out&quot;])
+            B = len(sizes)
+            probs = [[p_out] * B for _ in range(B)]
+            for b in range(B):
+                probs[b][b] = p_in
+            G = nx.stochastic_block_model(sizes, probs, seed=int(self.rng.integers(0, 1_000_000)))
+        else:
+            raise ValueError(&quot;Unknown network model&quot;)
+        for u, v in G.edges():
+            G[u][v][&quot;weight&quot;] = self.rng.uniform(self.params[&quot;w_min&quot;], self.params[&quot;w_max&quot;])
+        return G
+
+    def _init_states(self):
+        &quot;&quot;&quot;Sample initial agent states from the Beta distributions in params.&quot;&quot;&quot;
+        n = self.params[&quot;n&quot;]
+        I = self.rng.beta(self.params[&quot;init_I_a&quot;], self.params[&quot;init_I_b&quot;], size=n)
+        D = self.rng.beta(self.params[&quot;init_D_a&quot;], self.params[&quot;init_D_b&quot;], size=n)
+        R = self.rng.beta(self.params[&quot;init_R_a&quot;], self.params[&quot;init_R_b&quot;], size=n)
+        return I, R, D
+
+    def _compute_neighbor_stats(self):
+        &quot;&quot;&quot;Compute neighbor aggregates used in the state update rules.
+
+        Returns weighted sums and degrees so updates can be vectorized over nodes.
+        &quot;&quot;&quot;
+        n = len(self.D)
+        sum_diff = np.zeros(n)
+        sum_abs = np.zeros(n)
+        sum_w = np.zeros(n)
+        deg = np.zeros(n, dtype=int)
+
+        for u, v, data in self.G.edges(data=True):
+            # diff is signed so sum_diff captures a Laplacian-like pull to neighbors.
+            w = data[&quot;weight&quot;]
+            diff = self.D[u] - self.D[v]
+            sum_diff[u] += w * diff
+            sum_diff[v] -= w * diff
+            absdiff = abs(diff)
+            sum_abs[u] += absdiff
+            sum_abs[v] += absdiff
+            sum_w[u] += w
+            sum_w[v] += w
+            deg[u] += 1
+            deg[v] += 1
+
+        return sum_diff, sum_abs, sum_w, deg
+
+    def _compute_engagement(self, sum_w, deg):
+        &quot;&quot;&quot;Compute social engagement S_i from average tie strength and isolation.&quot;&quot;&quot;
+        S = np.zeros_like(self.I)
+        mask = deg &gt; 0
+        S[mask] = (sum_w[mask] / deg[mask]) * (1.0 - self.I[mask])
+        return np.clip(S, 0.0, 1.0)
+
+    def step(self):
+        &quot;&quot;&quot;Advance the simulation by one timestep.
+
+        The implementation updates a derived engagement signal, then updates agent
+        states, and finally updates the social network.
+        &quot;&quot;&quot;
+        sum_diff, sum_abs, sum_w, deg = self._compute_neighbor_stats()
+        # Social engagement depends on current ties and current isolation.
+        self.S = self._compute_engagement(sum_w, deg)
+
+        # Algorithmic exposure is modeled as a Bernoulli event with probability p_alg(I).
+        p_alg = self.params[&quot;p0&quot;] + (self.params[&quot;p_max&quot;] - self.params[&quot;p0&quot;]) * self.I
+        p_alg = np.clip(p_alg, 0.0, 1.0)
+        exposure = (self.rng.random(len(self.I)) &lt; p_alg).astype(float)
+
+        # Exposure updates are smoothed with an exponential moving average.
+        R_new = (1.0 - self.params[&quot;alpha&quot;]) * self.R + self.params[&quot;alpha&quot;] * exposure
+
+        # Drift uses R(t) rather than R(t+1) so exposure affects drift starting next step.
+        D_new = self.D + self.params[&quot;beta&quot;] * self.R * (1.0 - self.S)
+        mask = deg &gt; 0
+        D_new[mask] -= self.params[&quot;beta_friend&quot;] * (sum_diff[mask] / deg[mask])
+        D_new = np.clip(D_new, 0.0, 1.0)
+
+        I_new = self.I.copy()
+        I_new[mask] += self.params[&quot;gamma&quot;] * (sum_abs[mask] / deg[mask]) - self.params[&quot;delta&quot;] * self.S[mask]
+        I_new[~mask] = self.I[~mask]
+        I_new = np.clip(I_new, 0.0, 1.0)
+
+        # Update friendship weights and optionally cut ties that exceed the drift threshold.
+        for u, v, data in list(self.G.edges(data=True)):
+            diff = abs(self.D[u] - self.D[v])
+            w = data[&quot;weight&quot;]
+            w_new = w * (1.0 - self.params[&quot;mu1&quot;] * diff - self.params[&quot;mu2&quot;] * (self.I[u] + self.I[v]) / 2.0)
+            w_new = self._clip01(w_new)
+            if diff &gt; self.params[&quot;tau&quot;] and self.rng.random() &lt; self.params[&quot;lambda&quot;]:
+                self.G.remove_edge(u, v)
+            else:
+                data[&quot;weight&quot;] = w_new
+
+        self.I, self.R, self.D = I_new, R_new, D_new
+
+    def compute_metrics(self):
+        &quot;&quot;&quot;Compute run-level summary metrics from the current state.
+
+        These metrics match what is reported in the Monte Carlo experiment section.
+        &quot;&quot;&quot;
+        n = len(self.I)
+        edges = list(self.G.edges(data=True))
+        avg_weight = float(np.mean([d[&quot;weight&quot;] for _, _, d in edges])) if edges else 0.0
+        isolated = sum(1 for i in self.G.nodes() if self.G.degree(i) == 0) / n
+        return {
+            &quot;mean_isolation&quot;: float(np.mean(self.I)),
+            &quot;mean_drift&quot;: float(np.mean(self.D)),
+            &quot;mean_exposure&quot;: float(np.mean(self.R)),
+            &quot;isolated_frac&quot;: float(isolated),
+            &quot;avg_weight&quot;: float(avg_weight),
+        }
+
+    def run(self, T=None, track=True):
+        &quot;&quot;&quot;Run the model forward for T steps.
+
+        Args:
+            T: Number of timesteps to simulate. If None, uses params[&#x27;T&#x27;].
+            track: If True, record time-series aggregates at each step.
+
+        Returns:
+            metrics: Dict of final summary metrics.
+            series: Dict of time-series lists when track is True.
+            G: The final friendship graph.
+            state: Dict of final per-agent arrays.
+        &quot;&quot;&quot;
+        steps = T if T is not None else self.params[&quot;T&quot;]
+        series = {
+            &quot;mean_I&quot;: [],
+            &quot;mean_D&quot;: [],
+            &quot;mean_R&quot;: [],
+            &quot;mean_S&quot;: [],
+            &quot;num_edges&quot;: [],
+            &quot;mean_R_1minusS&quot;: [],
+            &quot;frac_D_at_bounds&quot;: [],
+        }
+
+        for _ in range(steps):
+            self.step()
+            if track:
+                series[&quot;mean_I&quot;].append(float(np.mean(self.I)))
+                series[&quot;mean_D&quot;].append(float(np.mean(self.D)))
+                series[&quot;mean_R&quot;].append(float(np.mean(self.R)))
+                series[&quot;mean_S&quot;].append(float(np.mean(self.S)))
+                series[&quot;mean_R_1minusS&quot;].append(float(np.mean(self.R * (1.0 - self.S))))
+                series[&quot;frac_D_at_bounds&quot;].append(float(np.mean((self.D &lt;= 1e-12) | (self.D &gt;= 1.0 - 1e-12))))
+                series[&quot;num_edges&quot;].append(self.G.number_of_edges())
+
+        metrics = self.compute_metrics()
+        state = {
+            &quot;I&quot;: self.I.copy(),
+            &quot;R&quot;: self.R.copy(),
+            &quot;D&quot;: self.D.copy(),
+            &quot;S&quot;: self.S.copy(),
+        }
+        return metrics, series, self.G, state
+
+    @staticmethod
+    def plot_network(G, values, title, save_path=None, show=True, pos=None):
+        &quot;&quot;&quot;Plot a network snapshot with node colors given by values.
+
+        Args:
+            G: A NetworkX graph.
+            values: Sequence of per-node values in [0,1] used to color nodes.
+            title: Plot title.
+            save_path: Optional path to save a PNG.
+            show: If True, display the plot.
+            pos: Optional fixed layout dict so multiple snapshots are comparable.
+
+        Returns:
+            The Matplotlib Figure, or None if the graph is empty.
+        &quot;&quot;&quot;
+        if G.number_of_nodes() == 0:
+            return None
+        if pos is None:
+            pos = nx.spring_layout(G, seed=1, iterations=50)
+        node_colors = [values[i] for i in G.nodes()]
+        fig, ax = plt.subplots(figsize=(6, 5))
+        nodes = nx.draw_networkx_nodes(
+            G,
+            pos,
+            ax=ax,
+            node_color=node_colors,
+            cmap=&#x27;viridis&#x27;,
+            vmin=0,
+            vmax=1,
+            node_size=50,
+        )
+        nx.draw_networkx_edges(G, pos, ax=ax, alpha=0.2, width=0.5)
+        cbar = fig.colorbar(nodes, ax=ax, fraction=0.046, pad=0.04)
+        cbar.set_label(&#x27;ideological drift D_i&#x27;)
+        cbar.set_ticks([0.0, 0.5, 1.0])
+        ax.set_title(title)
+        ax.axis(&#x27;off&#x27;)
+        if save_path:
+            fig.savefig(save_path, dpi=200, bbox_inches=&#x27;tight&#x27;)
+        if show:
+            plt.show()
+        return fig
+class ExperimentRunner:
+    &quot;&quot;&quot;Run Monte Carlo experiments over multiple scenarios.
+    
+    Each scenario is a params dict; each run uses the same seed across scenarios for fair comparison.
+    &quot;&quot;&quot;
+    def __init__(self, scenarios, num_runs, seed=0):
+        &quot;&quot;&quot;Create a runner for repeated simulations.
+
+        Args:
+            scenarios: Dict mapping scenario name to a params dict.
+            num_runs: Number of Monte Carlo runs per scenario.
+            seed: Base seed. Run r uses seed + r for all scenarios so comparisons are fair.
+        &quot;&quot;&quot;
+        self.scenarios = scenarios
+        self.num_runs = num_runs
+        self.seed = seed
+
+    def run(self):
+        &quot;&quot;&quot;Execute the experiment set and return a dict of metric lists.
+
+        Each run index uses the same random seed across scenarios so that differences
+        in outcomes are driven by the intervention rather than by unrelated randomness.
+        &quot;&quot;&quot;
+        results = {name: [] for name in self.scenarios}
+        for run_idx in range(self.num_runs):
+            run_seed = self.seed + run_idx
+            for name, params in self.scenarios.items():
+                model = LonelinessModel(params, seed=run_seed)
+                metrics, _, _, _ = model.run(track=False)
+                results[name].append(metrics)
+        return results
+
+
+def mean_ci(values, z=1.96):
+    &quot;&quot;&quot;Compute a normal-approximation confidence interval for the mean.
+
+    This uses a normal approximation with critical value z. In this project, z=1.96
+    corresponds to a 95% confidence interval.
+    &quot;&quot;&quot;
+    values = np.asarray(values, dtype=float)
+    n = len(values)
+    mean = float(np.mean(values))
+    if n &lt; 2:
+        return mean, (mean, mean)
+    se = float(np.std(values, ddof=1)) / math.sqrt(n)
+    return mean, (mean - z * se, mean + z * se)
+</code></pre></details><details><summary>Show code · cell 7</summary><pre><code># Sanity checks 
+def run_sanity_checks():
+    &quot;&quot;&quot;Run a lightweight set of checks to validate the implementation.
+
+    These are not exhaustive unit tests. They are designed to catch common mistakes
+    in the update rules, such as values leaving [0,1] or parameters not having the
+    expected qualitative effect.
+    &quot;&quot;&quot;
+    # Use a small, fast run so checks execute quickly in the notebook.
+    params = dict(BASE_PARAMS)
+    params.update({&quot;n&quot;: 40, &quot;T&quot;: 5})
+    m = LonelinessModel(params, seed=123)
+
+    # Invariant: states stay in [0,1] and weights stay in [0,1].
+    m.step()
+    assert np.all((0 &lt;= m.I) &amp; (m.I &lt;= 1))
+    assert np.all((0 &lt;= m.R) &amp; (m.R &lt;= 1))
+    assert np.all((0 &lt;= m.D) &amp; (m.D &lt;= 1))
+    assert np.all((0 &lt;= m.S) &amp; (m.S &lt;= 1))
+    for _, _, d in m.G.edges(data=True):
+        assert 0 &lt;= d[&quot;weight&quot;] &lt;= 1
+
+    # Engagement should be tied to the network and isolation, so it should generally change over time.
+    S0 = m.S.copy()
+    m.step()
+    S1 = m.S.copy()
+    assert np.any(np.abs(S1 - S0) &gt; 1e-12)
+
+    # If friendship erosion and cutting are disabled, weights should not change.
+    params2 = dict(params)
+    params2.update({&quot;mu1&quot;: 0.0, &quot;mu2&quot;: 0.0, &quot;lambda&quot;: 0.0})
+    m2 = LonelinessModel(params2, seed=123)
+    w_before = [d[&quot;weight&quot;] for _, _, d in m2.G.edges(data=True)]
+    m2.step()
+    w_after = [d[&quot;weight&quot;] for _, _, d in m2.G.edges(data=True)]
+    assert np.allclose(w_before, w_after)
+
+    # If the algorithm never exposes anyone, exposure should decay toward 0.
+    params3 = dict(params)
+    params3.update({&quot;p0&quot;: 0.0, &quot;p_max&quot;: 0.0})
+    m3 = LonelinessModel(params3, seed=123)
+    r0 = float(np.mean(m3.R))
+    m3.step()
+    r1 = float(np.mean(m3.R))
+    assert r1 &lt;= r0 + 1e-12
+
+    # If drift forces are disabled, D should remain unchanged.
+    params4 = dict(params)
+    params4.update({&quot;beta&quot;: 0.0, &quot;beta_friend&quot;: 0.0})
+    m4 = LonelinessModel(params4, seed=123)
+    d0 = m4.D.copy()
+    m4.step()
+    assert np.allclose(d0, m4.D)
+
+    print(&quot;Sanity checks passed.&quot;)
+
+run_sanity_checks()
+</code></pre></details><details><summary>Saved output · cell 7</summary><pre>Sanity checks passed.
+</pre></details><details><summary>Show code · cell 8</summary><pre><code># Single-run demonstration
+model = LonelinessModel(BASE_PARAMS, seed=RANDOM_SEED)
+G_init = model.G.copy()
+I0, R0, D0, S0 = model.I.copy(), model.R.copy(), model.D.copy(), model.S.copy()
+metrics, series, G, state = model.run(track=True)
+metrics
+
+# Time-series plots
+t = range(len(series[&quot;mean_I&quot;]))
+plt.figure(figsize=(10, 5))
+plt.plot(t, series[&quot;mean_I&quot;], label=&quot;mean isolation&quot;)
+plt.plot(t, series[&quot;mean_D&quot;], label=&quot;mean drift&quot;)
+plt.plot(t, series[&quot;mean_R&quot;], label=&quot;mean exposure&quot;)
+plt.plot(t, series[&quot;mean_S&quot;], label=&quot;mean engagement&quot;)
+plt.legend()
+plt.xlabel(&quot;time step&quot;)
+plt.ylabel(&quot;average value&quot;)
+plt.title(&quot;Baseline dynamics (single run)&quot;)
+plt.tight_layout()
+fig = plt.gcf()
+save_fig(fig, &#x27;er_single_run_timeseries.png&#x27;)
+plt.show()
+
+</code></pre></details><details><summary>Saved output · cell 8</summary><pre>Saved figure: figures/er_single_run_timeseries.png
+</pre></details><img src="figures/cell-7-1.png" alt="Saved figure from cell 8" loading="lazy"><details><summary>Show code · cell 9</summary><pre><code># Distribution of drift across agents (end of single run)
+plt.figure(figsize=(6, 4))
+plt.hist(state[&quot;D&quot;], bins=20, alpha=0.8)
+plt.xlabel(&quot;final D_i&quot;)
+plt.ylabel(&quot;count&quot;)
+plt.title(&quot;Final ideological drift distribution (single run)&quot;)
+plt.tight_layout()
+fig = plt.gcf()
+save_fig(fig, &#x27;er_final_drift_distribution.png&#x27;)
+plt.show()
+</code></pre></details><details><summary>Saved output · cell 9</summary><pre>Saved figure: figures/er_final_drift_distribution.png
+</pre></details><img src="figures/cell-8-1.png" alt="Saved figure from cell 9" loading="lazy"><h2 id="animate-the-simulation-state">Animate the simulation state</h2>
+<p>This animation is a visual correctness check: you can watch drift and
+friendships evolve over time. To keep it fast, it uses a smaller network
+than the main experiments.</p>
+<details><summary>Show code · cell 11</summary><pre><code># Animation
+# This section visualizes the evolving network state to demonstrate that the
+# implementation behaves as expected over time.
+from matplotlib.animation import FuncAnimation
+from matplotlib.collections import LineCollection
+
+ANIM_PARAMS = dict(BASE_PARAMS)
+ANIM_PARAMS.update({&quot;n&quot;: 80, &quot;T&quot;: 60})
+
+anim_model = LonelinessModel(ANIM_PARAMS, seed=RANDOM_SEED)
+pos = nx.spring_layout(anim_model.G, seed=1)
+
+fig, ax = plt.subplots(figsize=(6, 5))
+ax.axis(&quot;off&quot;)
+
+# Initial artists
+node_xy = np.array([pos[i] for i in anim_model.G.nodes()])
+sc = ax.scatter(node_xy[:, 0], node_xy[:, 1], c=anim_model.D, cmap=&quot;viridis&quot;, vmin=0, vmax=1, s=30)
+cbar = plt.colorbar(sc, ax=ax, fraction=0.046, pad=0.04)
+cbar.set_label(&quot;ideological drift D_i&quot;)
+
+lc = LineCollection([], colors=(0, 0, 0, 0.15), linewidths=0.5)
+ax.add_collection(lc)
+
+title = ax.set_title(&quot;t = 0&quot;)
+
+def edge_segments_and_widths(G):
+    &quot;&quot;&quot;Convert graph edges into line segments and widths for LineCollection.&quot;&quot;&quot;
+    segs = []
+    widths = []
+    for u, v, d in G.edges(data=True):
+        segs.append([pos[u], pos[v]])
+        w = float(d.get(&quot;weight&quot;, 0.0))
+        widths.append(0.2 + 2.0 * w)
+    return segs, widths
+
+def update(frame):
+    &quot;&quot;&quot;Advance one timestep and update the plotted artists.&quot;&quot;&quot;
+    # Step the model forward and update artists.
+    anim_model.step()
+    sc.set_array(anim_model.D)
+    segs, widths = edge_segments_and_widths(anim_model.G)
+    lc.set_segments(segs)
+    lc.set_linewidths(widths)
+    title.set_text(f&quot;t = {frame+1} | mean D={np.mean(anim_model.D):.2f} | mean I={np.mean(anim_model.I):.2f} | edges={anim_model.G.number_of_edges()}&quot;)
+    return sc, lc, title
+
+ani = FuncAnimation(fig, update, frames=ANIM_PARAMS[&quot;T&quot;], interval=200, blit=False)
+plt.show()
+
+# Save as a GIF.
+# This can take a bit of time because it renders every frame.
+ani.save(&quot;simulation.gif&quot;, writer=&quot;pillow&quot;, fps=5)
+</code></pre></details><img src="figures/cell-10-0.png" alt="Saved figure from cell 11" loading="lazy"><h2 id="monte-carlo-experiments">Monte Carlo experiments</h2>
+<p>I compare multiple interventions by running the simulation many times
+and analyzing the distribution of outcomes.</p>
+<details><summary>Show code · cell 13</summary><pre><code>SCENARIOS = {
+    &#x27;baseline&#x27;: dict(BASE_PARAMS),
+    &#x27;lower_algo&#x27;: {**BASE_PARAMS, &#x27;p_max&#x27;: 0.35},
+    &#x27;boost_support&#x27;: {**BASE_PARAMS, &#x27;delta&#x27;: 0.40},
+    &#x27;stronger_friends&#x27;: {**BASE_PARAMS, &#x27;beta_friend&#x27;: 0.85},
+}
+
+NUM_RUNS = 200
+
+# Cache configuration for the expensive Monte Carlo experiment.
+# If you change the simulation code but keep the same config fields, bump version
+# to force recomputation.
+cache_config = {
+    &#x27;version&#x27;: 1,
+    &#x27;scenarios&#x27;: SCENARIOS,
+    &#x27;num_runs&#x27;: NUM_RUNS,
+    &#x27;seed&#x27;: RANDOM_SEED,
+}
+
+def _compute_results():
+    &quot;&quot;&quot;Compute Monte Carlo results for all scenarios.
+
+    This is separated into a function so it can be passed into the cache helper.
+    &quot;&quot;&quot;
+    return ExperimentRunner(SCENARIOS, NUM_RUNS, seed=RANDOM_SEED).run()
+
+results, cache_path = load_or_compute_json(&#x27;results&#x27;, cache_config, _compute_results)
+print(&#x27;Monte Carlo results cache:&#x27;, cache_path)
+</code></pre></details><details><summary>Saved output · cell 13</summary><pre>Monte Carlo results cache: .cache/results_aa8417e88e19.json
+</pre></details><details><summary>Show code · cell 14</summary><pre><code># Confidence intervals on key outcomes
+metrics_to_report = [&quot;mean_drift&quot;, &quot;mean_isolation&quot;, &quot;mean_exposure&quot;, &quot;isolated_frac&quot;, &quot;avg_weight&quot;]
+
+
+for metric in metrics_to_report:
+    print(f&quot;\nMetric: {metric}&quot;)
+    for name, rows in results.items():
+        values = [r[metric] for r in rows]
+        mean, (lo, hi) = mean_ci(values)
+        print(f&quot;  {name:16s} mean={mean:.3f}  95% CI=({lo:.3f}, {hi:.3f})&quot;)
+</code></pre></details><details><summary>Saved output · cell 14</summary><pre>
+Metric: mean_drift
+  baseline         mean=0.998  95% CI=(0.998, 0.998)
+  lower_algo       mean=0.997  95% CI=(0.997, 0.997)
+  boost_support    mean=0.997  95% CI=(0.997, 0.997)
+  stronger_friends mean=1.000  95% CI=(1.000, 1.000)
+
+Metric: mean_isolation
+  baseline         mean=0.140  95% CI=(0.138, 0.141)
+  lower_algo       mean=0.120  95% CI=(0.118, 0.121)
+  boost_support    mean=0.042  95% CI=(0.041, 0.043)
+  stronger_friends mean=0.099  95% CI=(0.097, 0.100)
+
+Metric: mean_exposure
+  baseline         mean=0.127  95% CI=(0.126, 0.128)
+  lower_algo       mean=0.086  95% CI=(0.085, 0.087)
+  boost_support    mean=0.073  95% CI=(0.072, 0.074)
+  stronger_friends mean=0.105  95% CI=(0.104, 0.106)
+
+Metric: isolated_frac
+  baseline         mean=0.000  95% CI=(0.000, 0.000)
+  lower_algo       mean=0.000  95% CI=(0.000, 0.000)
+  boost_support    mean=0.000  95% CI=(0.000, 0.000)
+  stronger_friends mean=0.000  95% CI=(0.000, 0.000)
+
+Metric: avg_weight
+  baseline         mean=0.134  95% CI=(0.133, 0.135)
+  lower_algo       mean=0.130  95% CI=(0.129, 0.130)
+  boost_support    mean=0.164  95% CI=(0.163, 0.164)
+  stronger_friends mean=0.192  95% CI=(0.191, 0.193)
+</pre></details><details><summary>Show code · cell 15</summary><pre><code># Visualize 95% confidence intervals (error bars)
+# This plot summarizes the Monte Carlo results as expected values with uncertainty.
+def summarize_cis(results, metrics):
+    &quot;&quot;&quot;Compute mean and 95% confidence interval per metric and scenario.
+
+    This uses the same mean_ci helper as the rest of the notebook.
+    &quot;&quot;&quot;
+    summary = {m: {} for m in metrics}
+    for m in metrics:
+        for scenario, rows in results.items():
+            vals = [r[m] for r in rows]
+            mean, (lo, hi) = mean_ci(vals)
+            summary[m][scenario] = {&quot;mean&quot;: mean, &quot;lo&quot;: lo, &quot;hi&quot;: hi}
+    return summary
+
+ci_summary = summarize_cis(results, metrics_to_report)
+
+scenarios = list(results.keys())
+x = np.arange(len(scenarios))
+
+fig, axes = plt.subplots(2, 3, figsize=(14, 7))
+axes = axes.ravel()
+
+for ax_idx, metric in enumerate(metrics_to_report):
+    ax = axes[ax_idx]
+    means = [ci_summary[metric][s][&quot;mean&quot;] for s in scenarios]
+    los = [ci_summary[metric][s][&quot;lo&quot;] for s in scenarios]
+    his = [ci_summary[metric][s][&quot;hi&quot;] for s in scenarios]
+    yerr = [np.array(means) - np.array(los), np.array(his) - np.array(means)]
+    ax.errorbar(x, means, yerr=yerr, fmt=&quot;o&quot;, capsize=4)
+    ax.set_title(metric)
+    ax.set_xticks(x)
+    ax.set_xticklabels(scenarios, rotation=25, ha=&quot;right&quot;)
+    ax.grid(True, axis=&quot;y&quot;, alpha=0.3)
+
+
+for j in range(len(metrics_to_report), len(axes)):
+    axes[j].axis(&quot;off&quot;)
+
+fig.suptitle(&quot;Mean outcomes with 95% confidence intervals&quot;)
+plt.tight_layout()
+save_fig(fig, &#x27;er_mc_ci_errorbars.png&#x27;)
+plt.show()
+</code></pre></details><details><summary>Saved output · cell 15</summary><pre>Saved figure: figures/er_mc_ci_errorbars.png
+</pre></details><img src="figures/cell-14-1.png" alt="Saved figure from cell 15" loading="lazy"><details><summary>Show code · cell 16</summary><pre><code># Monte Carlo uncertainty: how many runs are enough?
+def required_runs_for_halfwidth(values, target_halfwidth, z=1.96):
+    &quot;&quot;&quot;Estimate runs needed so the mean CI half-width is at most target_halfwidth.
+
+    This uses the approximate scaling half_width ≈ z * s / sqrt(N).
+    &quot;&quot;&quot;
+    values = np.asarray(values, dtype=float)
+    s = float(np.std(values, ddof=1))
+    if target_halfwidth &lt;= 0 or s == 0:
+        return 1
+    return int(math.ceil((z * s / target_halfwidth) ** 2))
+
+def ci_halfwidth(values, z=1.96):
+    &quot;&quot;&quot;Compute the normal-approximation CI half-width for the mean.&quot;&quot;&quot;
+    values = np.asarray(values, dtype=float)
+    n = len(values)
+    if n &lt; 2:
+        return 0.0
+    se = float(np.std(values, ddof=1)) / math.sqrt(n)
+    return z * se
+
+metric = &quot;mean_drift&quot;
+vals = [r[metric] for r in results[&quot;baseline&quot;]]
+hw = ci_halfwidth(vals)
+print(f&quot;Baseline {metric} CI half-width with M={len(vals)} runs: {hw:.4f}&quot;)
+target = hw / 2
+needed = required_runs_for_halfwidth(vals, target)
+print(f&quot;Estimated runs needed to halve half-width (~{target:.4f}): {needed}&quot;)
+</code></pre></details><details><summary>Saved output · cell 16</summary><pre>Baseline mean_drift CI half-width with M=200 runs: 0.0000
+Estimated runs needed to halve half-width (~0.0000): 801
+</pre></details><details><summary>Show code · cell 17</summary><pre><code># Histograms of Monte Carlo outcomes
+metrics_to_plot = [&quot;mean_drift&quot;, &quot;mean_isolation&quot;]
+
+fig, axes = plt.subplots(1, len(metrics_to_plot), figsize=(12, 4))
+if len(metrics_to_plot) == 1:
+    axes = [axes]
+
+for ax, metric in zip(axes, metrics_to_plot):
+    for name, rows in results.items():
+        values = [r[metric] for r in rows]
+        ax.hist(values, bins=20, alpha=0.5, label=name)
+    ax.set_title(metric)
+    ax.set_xlabel(&quot;value&quot;)
+    ax.set_ylabel(&quot;count&quot;)
+    ax.legend()
+
+plt.tight_layout()
+save_fig(fig, &#x27;er_mc_histograms_mean_drift_isolation.png&#x27;)
+plt.show()
+</code></pre></details><details><summary>Saved output · cell 17</summary><pre>Saved figure: figures/er_mc_histograms_mean_drift_isolation.png
+</pre></details><img src="figures/cell-16-1.png" alt="Saved figure from cell 17" loading="lazy"><details><summary>Show code · cell 18</summary><pre><code># Initial vs final network snapshot (main simulation; one baseline run)
+# Compares the ER topology at t=0 to the final topology after edge decay and tie cutting.
+
+snapshot_seed = RANDOM_SEED
+snapshot_model = LonelinessModel(SCENARIOS[&quot;baseline&quot;], seed=snapshot_seed)
+
+# Capture initial state
+G0 = snapshot_model.G.copy()
+D0 = snapshot_model.D.copy()
+
+# Run to completion
+snapshot_metrics, _, Gf, state_f = snapshot_model.run(track=True)
+Df = state_f[&quot;D&quot;]
+
+print(&quot;Initial edges:&quot;, G0.number_of_edges(), &quot; | clustering:&quot;, nx.average_clustering(G0))
+print(&quot;Final edges:&quot;, Gf.number_of_edges(), &quot; | clustering:&quot;, nx.average_clustering(Gf))
+print(&quot;Final snapshot metrics:&quot;, snapshot_metrics)
+
+# Use one layout (from the initial graph) for both plots so topology changes are visually comparable.
+pos = nx.spring_layout(G0, seed=1, iterations=50)
+
+fig, axes = plt.subplots(1, 2, figsize=(13, 6))
+# Leave room on the right for a shared colorbar.
+fig.subplots_adjust(right=0.88, wspace=0.08)
+
+for ax, G, D, title in [
+    (axes[0], G0, D0, &quot;Initial (t=0)&quot;),
+    (axes[1], Gf, Df, &quot;Final (t=T)&quot;),
+]:
+    ax.axis(&quot;off&quot;)
+    nodes = nx.draw_networkx_nodes(
+        G,
+        pos,
+        ax=ax,
+        node_color=D,
+        cmap=&quot;viridis&quot;,
+        vmin=0,
+        vmax=1,
+        node_size=18,
+    )
+    nx.draw_networkx_edges(G, pos, ax=ax, alpha=0.08, width=0.3)
+    ax.set_title(title)
+
+# Put the colorbar in its own axis so it does not overlap the right subplot.
+cax = fig.add_axes([0.90, 0.15, 0.02, 0.70])
+cbar = fig.colorbar(nodes, cax=cax)
+cbar.set_label(&quot;ideological drift D_i&quot;)
+fig.suptitle(f&quot;Baseline ER network: initial vs final (seed={snapshot_seed})&quot;, y=0.98)
+fig.tight_layout(rect=[0.0, 0.0, 0.88, 0.95])
+save_fig(fig, &#x27;er_network_initial_vs_final2.png&#x27;)
+plt.show()
+</code></pre></details><details><summary>Saved output · cell 18</summary><pre>Initial edges: 4821  | clustering: 0.015189029037174817
+Final edges: 4816  | clustering: 0.01518028084092662
+Final snapshot metrics: {&#x27;mean_isolation&#x27;: 0.14175211157136516, &#x27;mean_drift&#x27;: 0.9985781781795248, &#x27;mean_exposure&#x27;: 0.12290345188291571, &#x27;isolated_frac&#x27;: 0.0, &#x27;avg_weight&#x27;: 0.13075540054158152}
+</pre></details><details><summary>Saved output · cell 18</summary><pre>/var/folders/wk/4dx3s0td2p5fk3_hbsdcp03h0000gn/T/ipykernel_13879/3232603092.py:49: UserWarning: This figure includes Axes that are not compatible with tight_layout, so results might be incorrect.
+  fig.tight_layout(rect=[0.0, 0.0, 0.88, 0.95])
+</pre></details><details><summary>Saved output · cell 18</summary><pre>Saved figure: figures/er_network_initial_vs_final2.png
+</pre></details><img src="figures/cell-17-3.png" alt="Saved figure from cell 18" loading="lazy"><h2 id="baseline-monte-carlo-mean-trajectories-for-theory">Baseline
+Monte Carlo mean trajectories (for theory)</h2>
+<p>Tracking full time series for all 4 scenarios × 200 runs would be
+expensive. Instead, I run a smaller baseline-only Monte Carlo batch with
+<code>track=True</code> to estimate expected trajectories and compare
+them to theory. Results are cached on disk so reruns are faster.</p>
+<details><summary>Show code · cell 20</summary><pre><code># Baseline Monte Carlo time-series cache (used for theory-vs-expected comparison)
+# This is separate from the main experiment cache and is used to plot empirical mean
+# trajectories with uncertainty bands.
+TS_RUNS = 30  # increase for tighter bands
+# Use a seed offset so these runs do not overlap with the main Monte Carlo runs.
+TS_SEED_OFFSET = 50000
+
+ts_config = {
+    &#x27;version&#x27;: 1,
+    &#x27;params&#x27;: BASE_PARAMS,
+    &#x27;runs&#x27;: TS_RUNS,
+    &#x27;seed&#x27;: RANDOM_SEED,
+    &#x27;seed_offset&#x27;: TS_SEED_OFFSET,
+}
+os.makedirs(&#x27;.cache&#x27;, exist_ok=True)
+ts_key = config_hash(ts_config)
+ts_path = os.path.join(&#x27;.cache&#x27;, f&#x27;baseline_ts_{ts_key}.npz&#x27;)
+
+T = int(BASE_PARAMS[&#x27;T&#x27;])
+
+if os.path.exists(ts_path):
+    data = np.load(ts_path)
+    mean_I_runs = data[&#x27;mean_I_runs&#x27;]
+    mean_R_runs = data[&#x27;mean_R_runs&#x27;]
+    mean_D_runs = data[&#x27;mean_D_runs&#x27;]
+    mean_R1S_runs = data[&#x27;mean_R1S_runs&#x27;]
+    frac_bounds_runs = data[&#x27;frac_bounds_runs&#x27;]
+    print(&#x27;Loaded cached baseline time series from&#x27;, ts_path)
+else:
+    mean_I_runs = np.zeros((TS_RUNS, T + 1))
+    mean_R_runs = np.zeros((TS_RUNS, T + 1))
+    mean_D_runs = np.zeros((TS_RUNS, T + 1))
+    mean_R1S_runs = np.zeros((TS_RUNS, T))
+    frac_bounds_runs = np.zeros((TS_RUNS, T))
+
+    for r in range(TS_RUNS):
+        m = LonelinessModel(BASE_PARAMS, seed=RANDOM_SEED + TS_SEED_OFFSET + r)
+        I0, R0, D0 = float(np.mean(m.I)), float(np.mean(m.R)), float(np.mean(m.D))
+        _, series_r, _, _ = m.run(track=True)
+        mean_I_runs[r, :] = np.array([I0] + list(series_r[&#x27;mean_I&#x27;]))
+        mean_R_runs[r, :] = np.array([R0] + list(series_r[&#x27;mean_R&#x27;]))
+        mean_D_runs[r, :] = np.array([D0] + list(series_r[&#x27;mean_D&#x27;]))
+        mean_R1S_runs[r, :] = np.array(series_r[&#x27;mean_R_1minusS&#x27;])
+        frac_bounds_runs[r, :] = np.array(series_r[&#x27;frac_D_at_bounds&#x27;])
+
+    np.savez(
+        ts_path,
+        mean_I_runs=mean_I_runs,
+        mean_R_runs=mean_R_runs,
+        mean_D_runs=mean_D_runs,
+        mean_R1S_runs=mean_R1S_runs,
+        frac_bounds_runs=frac_bounds_runs,
+    )
+    print(&#x27;Saved baseline time series to&#x27;, ts_path)
+
+def _mean_and_band(arr):
+    &quot;&quot;&quot;Compute a mean trajectory and a 95% normal-approximation band over runs.&quot;&quot;&quot;
+    mean = arr.mean(axis=0)
+    se = arr.std(axis=0, ddof=1) / np.sqrt(arr.shape[0])
+    lo = mean - 1.96 * se
+    hi = mean + 1.96 * se
+    return mean, lo, hi
+
+baseline_ts = {
+    &#x27;t&#x27;: np.arange(T + 1),
+    &#x27;mean_I&#x27;: _mean_and_band(mean_I_runs),
+    &#x27;mean_R&#x27;: _mean_and_band(mean_R_runs),
+    &#x27;mean_D&#x27;: _mean_and_band(mean_D_runs),
+    &#x27;mean_R1S&#x27;: _mean_and_band(mean_R1S_runs),
+    &#x27;frac_bounds&#x27;: _mean_and_band(frac_bounds_runs),
+}
+</code></pre></details><details><summary>Saved output · cell 20</summary><pre>Loaded cached baseline time series from .cache/baseline_ts_e420833ef1fb.npz
+</pre></details><h2 id="theoretical-analysis-er-mean-field-checks">Theoretical analysis
+(ER mean-field checks)</h2>
+<p>Comparing analytic expectations against empirical simulation
+outputs.</p>
+<details><summary>Show code · cell 22</summary><pre><code># Theoretical vs empirical comparisons
+n = BASE_PARAMS[&quot;n&quot;]
+mean_deg_target = float(BASE_PARAMS.get(&quot;er_mean_degree&quot;, 12))
+p = mean_deg_target / (n - 1)
+
+# Compare ER theory to the INITIAL network (before tie decay/cutting).
+emp_avg_deg = float(np.mean([d for _, d in G_init.degree()]))
+emp_edges = G_init.number_of_edges()
+emp_clust = nx.average_clustering(G_init)
+
+print(&quot;ER network theory vs empirical (t=0)&quot;)
+print(f&quot;  n={n}, p≈{p:.4f}&quot;)
+print(f&quot;  Expected mean degree: {(n-1)*p:.2f} | Empirical mean degree: {emp_avg_deg:.2f}&quot;)
+print(f&quot;  Expected #edges: {p*n*(n-1)/2:.0f} | Empirical #edges: {emp_edges}&quot;)
+print(f&quot;  Expected clustering≈p: {p:.4f} | Empirical clustering: {emp_clust:.4f}&quot;)
+
+T = BASE_PARAMS[&quot;T&quot;]
+
+# Prefer Monte Carlo mean trajectories (baseline_ts); otherwise fall back to the single run above 
+use_mc = &quot;baseline_ts&quot; in globals()
+
+if use_mc:
+    tgrid = baseline_ts[&quot;t&quot;]
+    mean_I = baseline_ts[&quot;mean_I&quot;][0]
+    mean_R_emp = baseline_ts[&quot;mean_R&quot;][0]
+    mean_R_lo, mean_R_hi = baseline_ts[&quot;mean_R&quot;][1], baseline_ts[&quot;mean_R&quot;][2]
+    mean_D_emp = baseline_ts[&quot;mean_D&quot;][0]
+    mean_D_lo, mean_D_hi = baseline_ts[&quot;mean_D&quot;][1], baseline_ts[&quot;mean_D&quot;][2]
+    mean_R_1minusS = baseline_ts[&quot;mean_R1S&quot;][0]
+    frac_bounds = baseline_ts[&quot;frac_bounds&quot;][0]
+else:
+    tgrid = np.arange(T + 1)
+    mean_I = np.array([float(np.mean(I0))] + list(series[&quot;mean_I&quot;]))
+    mean_R_emp = np.array([float(np.mean(R0))] + list(series[&quot;mean_R&quot;]))
+    mean_D_emp = np.array([float(np.mean(D0))] + list(series[&quot;mean_D&quot;]))
+    mean_R_lo = mean_R_emp
+    mean_R_hi = mean_R_emp
+    mean_D_lo = mean_D_emp
+    mean_D_hi = mean_D_emp
+    mean_R_1minusS = np.array(list(series[&quot;mean_R_1minusS&quot;]))
+    frac_bounds = np.array(list(series[&quot;frac_D_at_bounds&quot;]))
+
+# Predict mean R using conditional expectation given mean isolation (exact because p_alg is linear).
+mean_R_pred = np.zeros(T + 1)
+mean_R_pred[0] = mean_R_emp[0]
+for t in range(T):
+    p_alg_t = p0 + (pmax - p0) * mean_I[t]
+    mean_R_pred[t+1] = (1.0 - alpha) * mean_R_pred[t] + alpha * p_alg_t
+
+# Predict mean D using beta * mean(R*(1-S)). Compare both unclipped and step-clipped versions.
+mean_D_pred = np.zeros(T + 1)
+mean_D_pred_clip = np.zeros(T + 1)
+mean_D_pred[0] = mean_D_emp[0]
+mean_D_pred_clip[0] = mean_D_emp[0]
+for t in range(T):
+    mean_D_pred[t+1] = mean_D_pred[t] + beta * mean_R_1minusS[t]
+    mean_D_pred_clip[t+1] = np.clip(mean_D_pred_clip[t] + beta * mean_R_1minusS[t], 0.0, 1.0)
+
+fig, axes = plt.subplots(1, 2, figsize=(12, 4))
+
+axes[0].plot(tgrid, mean_R_emp, label=&quot;empirical mean R&quot;)
+if use_mc:
+    axes[0].fill_between(tgrid, mean_R_lo, mean_R_hi, alpha=0.2, label=&quot;95% CI band (MC mean)&quot;)
+axes[0].plot(tgrid, mean_R_pred, &quot;--&quot;, label=&quot;theory mean R&quot;)
+axes[0].set_title(&quot;Mean exposure: theory vs empirical&quot;)
+axes[0].set_xlabel(&quot;t&quot;)
+axes[0].set_ylabel(&quot;mean R&quot;)
+axes[0].legend()
+axes[0].grid(True, alpha=0.3)
+
+axes[1].plot(tgrid, mean_D_emp, label=&quot;empirical mean D&quot;)
+if use_mc:
+    axes[1].fill_between(tgrid, mean_D_lo, mean_D_hi, alpha=0.2, label=&quot;95% CI band (MC mean)&quot;)
+axes[1].plot(tgrid, mean_D_pred, &quot;--&quot;, label=&quot;theory mean D (no clipping)&quot;)
+axes[1].plot(tgrid, mean_D_pred_clip, &quot;--&quot;, label=&quot;theory mean D (step-clipped)&quot;)
+axes[1].set_title(&quot;Mean drift: theory vs empirical&quot;)
+axes[1].set_xlabel(&quot;t&quot;)
+axes[1].set_ylabel(&quot;mean D&quot;)
+axes[1].legend()
+axes[1].grid(True, alpha=0.3)
+
+plt.tight_layout()
+save_fig(fig, &#x27;theory_vs_empirical_trajectories.png&#x27;)
+plt.show()
+
+plt.figure(figsize=(6, 3))
+plt.plot(frac_bounds, label=&quot;fraction of agents at D=0 or D=1&quot;)
+plt.title(&quot;Clipping indicator over time&quot;)
+plt.xlabel(&quot;t&quot;)
+plt.ylabel(&quot;fraction at bounds&quot;)
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+fig2 = plt.gcf()
+save_fig(fig2, &#x27;theory_clipping_indicator.png&#x27;)
+plt.show()
+</code></pre></details><details><summary>Saved output · cell 22</summary><pre>ER network theory vs empirical (t=0)
+  n=800, p≈0.0150
+  Expected mean degree: 12.00 | Empirical mean degree: 12.05
+  Expected #edges: 4800 | Empirical #edges: 4821
+  Expected clustering≈p: 0.0150 | Empirical clustering: 0.0152
+Saved figure: figures/theory_vs_empirical_trajectories.png
+</pre></details><img src="figures/cell-21-1.png" alt="Saved figure from cell 22" loading="lazy"><details><summary>Saved output · cell 22</summary><pre>Saved figure: figures/theory_clipping_indicator.png
+</pre></details><img src="figures/cell-21-3.png" alt="Saved figure from cell 22" loading="lazy"><h2 id="theory-vs-monte-carlo-final-metrics-no-rerun">Theory vs Monte
+Carlo (final metrics; no rerun)</h2>
+<p>The time-series comparison above uses a single run as a
+trajectory-level sanity check. For an <strong>expected-value</strong>
+comparison without rerunning Monte Carlo time series, we use the cached
+Monte Carlo outputs (final-run summaries).</p>
+<p><strong>Exposure steady-state check:</strong> if
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mover><mi>I</mi><mo accent="true">‾</mo></mover><annotation encoding="application/x-tex">\bar I</annotation></semantics></math>
+is approximately stable late in the run, the exposure recursion
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>R</mi><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo>+</mo><mn>1</mn><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>−</mo><mi>α</mi><mo stretchy="false" form="postfix">)</mo><mi>R</mi><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo stretchy="false" form="postfix">)</mo><mo>+</mo><mi>α</mi><mi>E</mi><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">R(t+1)=(1-\alpha)R(t)+\alpha E(t)</annotation></semantics></math>
+implies a steady-state
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>𝔼</mi><mo stretchy="false" form="prefix">[</mo><mover><mi>R</mi><mo accent="true">‾</mo></mover><mo stretchy="false" form="postfix">]</mo><mo>≈</mo><msub><mi>p</mi><mrow><mi>a</mi><mi>l</mi><mi>g</mi></mrow></msub><mo stretchy="false" form="prefix">(</mo><mover><mi>I</mi><mo accent="true">‾</mo></mover><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\mathbb{E}[\bar R] \approx p_{alg}(\bar I)</annotation></semantics></math>.</p>
+<p><strong>Drift rough check (mean-field):</strong> using
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>S</mi><mo>≈</mo><mover><mi>w</mi><mo accent="true">¯</mo></mover><mspace width="0.167em"></mspace><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>−</mo><mover><mi>I</mi><mo accent="true">‾</mo></mover><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">S \approx \overline{w}\,(1-\bar I)</annotation></semantics></math>
+and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mover><mi>D</mi><mo accent="true">‾</mo></mover><mo stretchy="false" form="prefix">(</mo><mi>T</mi><mo stretchy="false" form="postfix">)</mo><mo>≈</mo><mtext mathvariant="normal">clip</mtext><mo stretchy="false" form="prefix">(</mo><mover><mi>D</mi><mo accent="true">‾</mo></mover><mo stretchy="false" form="prefix">(</mo><mn>0</mn><mo stretchy="false" form="postfix">)</mo><mo>+</mo><mi>T</mi><mspace width="0.167em"></mspace><mi>β</mi><mspace width="0.167em"></mspace><msub><mi>p</mi><mrow><mi>a</mi><mi>l</mi><mi>g</mi></mrow></msub><mo stretchy="false" form="prefix">(</mo><mover><mi>I</mi><mo accent="true">‾</mo></mover><mo stretchy="false" form="postfix">)</mo><mspace width="0.167em"></mspace><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>−</mo><mi>S</mi><mo stretchy="false" form="postfix">)</mo><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\bar D(T) \approx \text{clip}(\bar D(0) + T\,\beta\,p_{alg}(\bar I)\,(1-S))</annotation></semantics></math>.
+This is only a coarse benchmark because it ignores time variation and
+nonlinear clipping.</p>
+<details><summary>Show code · cell 24</summary><pre><code># Compare simple theoretical benchmarks to Monte Carlo final metrics (uses cached results)
+# These are intentionally simple checks rather than a fully derived closed-form model.
+def p_alg_from_I(mean_I, params):
+    &quot;&quot;&quot;Compute the linear algorithmic recommendation probability at mean isolation.&quot;&quot;&quot;
+    return float(params[&quot;p0&quot;] + (params[&quot;p_max&quot;] - params[&quot;p0&quot;]) * mean_I)
+
+def clip01(x):
+    &quot;&quot;&quot;Clip a scalar to [0, 1] to match the simulation&#x27;s state clipping.&quot;&quot;&quot;
+    return max(0.0, min(1.0, float(x)))
+
+def mc_mean_ci(metric, rows):
+    &quot;&quot;&quot;Compute the Monte Carlo mean and 95% CI for one metric across rows.&quot;&quot;&quot;
+    vals = [r[metric] for r in rows]
+    return mean_ci(vals)
+
+# Theoretical mean of initial drift from Beta(init_D_a, init_D_b).
+D0_theory = float(BASE_PARAMS[&quot;init_D_a&quot;]) / (float(BASE_PARAMS[&quot;init_D_a&quot;]) + float(BASE_PARAMS[&quot;init_D_b&quot;]))
+T = int(BASE_PARAMS[&quot;T&quot;])
+beta = float(BASE_PARAMS[&quot;beta&quot;])
+
+scenarios = list(results.keys())
+x = np.arange(len(scenarios))
+
+mc_I = []
+mc_I_ci = []
+mc_R = []
+mc_R_ci = []
+mc_D = []
+mc_D_ci = []
+mc_w = []
+mc_w_ci = []
+theory_R = []
+theory_D = []
+
+for name in scenarios:
+    rows = results[name]
+    mI, (mI_lo, mI_hi) = mc_mean_ci(&quot;mean_isolation&quot;, rows)
+    mR, (mR_lo, mR_hi) = mc_mean_ci(&quot;mean_exposure&quot;, rows)
+    mD, (mD_lo, mD_hi) = mc_mean_ci(&quot;mean_drift&quot;, rows)
+    mw, (mw_lo, mw_hi) = mc_mean_ci(&quot;avg_weight&quot;, rows)
+
+    R_star = p_alg_from_I(mI, SCENARIOS[name])
+    S_hat = float(mw * (1.0 - mI))
+    D_star = clip01(D0_theory + T * beta * R_star * (1.0 - S_hat))
+
+    mc_I.append(mI); mc_I_ci.append((mI_lo, mI_hi))
+    mc_R.append(mR); mc_R_ci.append((mR_lo, mR_hi))
+    mc_D.append(mD); mc_D_ci.append((mD_lo, mD_hi))
+    mc_w.append(mw); mc_w_ci.append((mw_lo, mw_hi))
+    theory_R.append(R_star)
+    theory_D.append(D_star)
+
+mc_R = np.array(mc_R); theory_R = np.array(theory_R)
+mc_D = np.array(mc_D); theory_D = np.array(theory_D)
+
+def yerr_from_ci(means, cis):
+    &quot;&quot;&quot;Convert (lo, hi) confidence intervals into Matplotlib errorbar yerr format.&quot;&quot;&quot;
+    lo = np.array([c[0] for c in cis])
+    hi = np.array([c[1] for c in cis])
+    return np.vstack([means - lo, hi - means])
+
+R_yerr = yerr_from_ci(mc_R, mc_R_ci)
+D_yerr = yerr_from_ci(mc_D, mc_D_ci)
+
+fig, axes = plt.subplots(1, 2, figsize=(12, 4))
+
+axes[0].errorbar(x, mc_R, yerr=R_yerr, fmt=&quot;o&quot;, capsize=4, label=&quot;MC mean (95% CI)&quot;)
+axes[0].scatter(x, theory_R, marker=&quot;x&quot;, s=60, label=&quot;Theory R*≈p_alg(mean_I)&quot;)
+axes[0].set_title(&quot;Mean exposure (final)&quot;)
+axes[0].set_xticks(x)
+axes[0].set_xticklabels(scenarios, rotation=25, ha=&quot;right&quot;)
+axes[0].set_ylabel(&quot;mean_exposure&quot;)
+axes[0].grid(True, axis=&quot;y&quot;, alpha=0.3)
+axes[0].legend()
+
+axes[1].errorbar(x, mc_D, yerr=D_yerr, fmt=&quot;o&quot;, capsize=4, label=&quot;MC mean (95% CI)&quot;)
+axes[1].scatter(x, theory_D, marker=&quot;x&quot;, s=60, label=&quot;Theory D* (rough)&quot;)
+axes[1].set_title(&quot;Mean drift (final)&quot;)
+axes[1].set_xticks(x)
+axes[1].set_xticklabels(scenarios, rotation=25, ha=&quot;right&quot;)
+axes[1].set_ylabel(&quot;mean_drift&quot;)
+axes[1].grid(True, axis=&quot;y&quot;, alpha=0.3)
+axes[1].legend()
+
+fig.suptitle(&quot;Theory vs Monte Carlo (final metrics)&quot;)
+plt.tight_layout()
+save_fig(fig, &#x27;theory_vs_mc_final_metrics.png&#x27;)
+plt.show()
+</code></pre></details><details><summary>Saved output · cell 24</summary><pre>Saved figure: figures/theory_vs_mc_final_metrics.png
+</pre></details><img src="figures/cell-23-1.png" alt="Saved figure from cell 24" loading="lazy"><h2 id="extension-sbm-high-school-network">Extension: SBM “high school”
+network</h2>
+<p>As an extension, we replace the ER graph with a <strong>stochastic
+block model (SBM)</strong> to represent grade-/group-based clustering
+typical of a high school. We keep the <em>same</em> simulation class
+(<code>LonelinessModel</code>) and only change network parameters.</p>
+<details><summary>Show code · cell 26</summary><pre><code># SBM extension: intervention comparison on a clustered (high-school-like) topology
+SBM_BASE = dict(BASE_PARAMS)
+SBM_BASE.update({
+    &#x27;network&#x27;: &#x27;sbm&#x27;,
+    &#x27;sbm_block_sizes&#x27;: [200, 200, 200, 200],
+    &#x27;sbm_p_in&#x27;: 0.04,
+    &#x27;sbm_p_out&#x27;: 0.004,
+})
+
+SBM_SCENARIOS = {
+    &#x27;baseline&#x27;: dict(SBM_BASE),
+    &#x27;lower_algo&#x27;: {**SBM_BASE, &#x27;p_max&#x27;: 0.35},
+    &#x27;boost_support&#x27;: {**SBM_BASE, &#x27;delta&#x27;: 0.40},
+    &#x27;stronger_friends&#x27;: {**SBM_BASE, &#x27;beta_friend&#x27;: 0.85},
+}
+
+SBM_RUNS = 120
+
+# Cache configuration for SBM runs.
+
+sbm_cache_config = {
+    &#x27;version&#x27;: 1,
+    &#x27;scenarios&#x27;: SBM_SCENARIOS,
+    &#x27;num_runs&#x27;: SBM_RUNS,
+    &#x27;seed&#x27;: RANDOM_SEED,
+}
+
+def _compute_sbm_results():
+    &quot;&quot;&quot;Compute Monte Carlo results for the SBM topology extension.&quot;&quot;&quot;
+    return ExperimentRunner(SBM_SCENARIOS, SBM_RUNS, seed=RANDOM_SEED).run()
+
+sbm_results, sbm_cache_path = load_or_compute_json(&#x27;sbm_results&#x27;, sbm_cache_config, _compute_sbm_results)
+print(&#x27;SBM results cache:&#x27;, sbm_cache_path)
+
+metrics_to_plot = [&#x27;mean_drift&#x27;, &#x27;mean_isolation&#x27;]
+fig, axes = plt.subplots(1, len(metrics_to_plot), figsize=(12, 4))
+if len(metrics_to_plot) == 1:
+    axes = [axes]
+
+for ax, metric in zip(axes, metrics_to_plot):
+    for name, rows in sbm_results.items():
+        values = [r[metric] for r in rows]
+        ax.hist(values, bins=20, alpha=0.5, label=name)
+    ax.set_title(f&#x27;SBM: {metric}&#x27;)
+    ax.set_xlabel(&#x27;value&#x27;)
+    ax.set_ylabel(&#x27;count&#x27;)
+    ax.legend()
+
+plt.tight_layout()
+save_fig(fig, &#x27;sbm_mc_histograms_mean_drift_isolation.png&#x27;)
+plt.show()
+
+# Final snapshot (one SBM run)
+sbm_model = LonelinessModel(SBM_BASE, seed=RANDOM_SEED)
+_, _, Gf, st = sbm_model.run(track=True)
+LonelinessModel.plot_network(Gf, st[&#x27;D&#x27;], &#x27;SBM final snapshot&#x27;, save_path=os.path.join(FIG_DIR, &#x27;sbm_final_snapshot.png&#x27;))
+</code></pre></details><details><summary>Saved output · cell 26</summary><pre>SBM results cache: .cache/sbm_results_f749ce0b9935.json
+Saved figure: figures/sbm_mc_histograms_mean_drift_isolation.png
+</pre></details><img src="figures/cell-25-1.png" alt="Saved figure from cell 26" loading="lazy"><img src="figures/cell-25-2.png" alt="Saved figure from cell 26" loading="lazy"><img src="figures/cell-25-3.png" alt="Saved figure from cell 26" loading="lazy"></body></html>

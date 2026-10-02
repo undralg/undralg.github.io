@@ -1,0 +1,1439 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Multilevel Scores · Full analysis</title><style>body{max-width:1000px;margin:auto;padding:28px;font:18px/1.65 system-ui;color:#172b33}h1,h2{font-family:Georgia}a{color:#087d89}img{max-width:100%;height:auto;display:block;margin:25px auto}pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px;max-height:450px;overflow:auto;background:#f2f5f6;padding:16px}details{margin:12px 0;border:1px solid #dbe3e6;padding:12px}summary{cursor:pointer}.note{background:#edf5f6;padding:20px;border-left:4px solid #087d89}table{display:block;overflow:auto;border-collapse:collapse}td,th{padding:8px;border-bottom:1px solid #ddd}</style></head><body><a href="./">← Project overview</a><h1>Multilevel Scores: full analysis</h1><aside class="note">Saved course analysis; models have not been rerun. Reading correction: 1500 × sigmoid(mu) is the logit-normal median, not its arithmetic mean. Interpret the original “effective mean” labels accordingly.</aside><h1 id="discrete-and-multi-level-models">Discrete and multi-level
+models</h1>
+<h2 id="introduction">Introduction</h2>
+<p>In this report, we compare groups of students who completed a
+standardized test. They are grouped by the year in which they took the
+test. The challenge here is that the data from the different years are
+provided in an inconsistent format. Each group provides a histogram of
+results but the bins of the histograms aren’t spaced in the same way
+from year to year.</p>
+<p><strong>Motivating question:</strong> Did some years get better
+scores overall than other years? Or are the scores consistent across all
+years?</p>
+<p><strong>Figure 1:</strong> Some groups have an <strong>even</strong>
+bin spacing. All bins have the same width along the <em>score</em> axis.
+Each test score is an integer between 0 (nothing correct) and 1500
+(everything correct) but test scores are typically between 800 and
+1500.</p>
+<figure>
+<img src="figures/inline-2-0.png" alt="image.png" />
+<figcaption aria-hidden="true">image.png</figcaption>
+</figure>
+<p><strong>Figure 2:</strong> Some groups have an
+<strong>uneven</strong> bin spacing. Wider bins are used in score ranges
+where fewer students ended up and narrower bins are used in score ranges
+where the most students ended up, to show more detail.</p>
+<figure>
+<img src="figures/inline-3-1.png" alt="image.png" />
+<figcaption aria-hidden="true">image.png</figcaption>
+</figure>
+<h2 id="data">Data</h2>
+<details><summary>Show code · cell 6</summary><pre><code># Note: This data set is made up even though it is based on a real problem in
+# reported SAT score distributions.
+
+data_per_year = [
+    {
+        &#x27;year&#x27;: 2021,
+        &#x27;bin_edges&#x27;: [0, 125, 250, 375, 500, 625, 750, 875, 1000, 1125, 1250, 1375, 1500],
+        &#x27;bin_counts&#x27;: [1, 1, 6, 5, 39, 84, 191, 623, 1788, 3390, 2957, 817],
+    }, {
+        &#x27;year&#x27;: 2022,
+        &#x27;bin_edges&#x27;: [0, 125, 250, 375, 500, 625, 750, 875, 1000, 1125, 1250, 1375, 1500],
+        &#x27;bin_counts&#x27;: [1, 2, 11, 15, 27, 81, 195, 575, 1717, 3563, 2863, 847],
+    }, {
+        &#x27;year&#x27;: 2023,
+        &#x27;bin_edges&#x27;: [0, 400, 600, 800, 900, 1000, 1100, 1150, 1200, 1250, 1300, 1400, 1500],
+        &#x27;bin_counts&#x27;: [11, 16, 94, 142, 309, 808, 752, 1073, 1505, 1626, 2555, 932],
+    }, {
+        &#x27;year&#x27;: 2024,
+        &#x27;bin_edges&#x27;: [0, 400, 600, 800, 900, 1000, 1100, 1150, 1200, 1250, 1300, 1400, 1500],
+        &#x27;bin_counts&#x27;: [15, 32, 130, 257, 505, 1227, 1051, 1381, 1558, 1355, 1837, 550],
+    },
+]</code></pre></details><p>Let’s start by assuming a simple Normal score distribution, although
+it is not ideal for a few reasons. The test scores are bounded (0 to
+1500) and often exhibit skewness or ceiling effects. A Normal
+distribution has unbounded support and is symmetric, so it might not
+capture these characteristics well. A Normal distribution’s tails extend
+infinitely in both directions and thin out, so it may not accurately
+estimate the proportion of extremely high or low scores.</p>
+<p>We will consider 2 models under the Normal assumption.</p>
+<h3 id="no-pooling-model-for-test-scores">1. No Pooling Model for Test
+Scores</h3>
+<p>In this model, we assume that the test scores for each year are
+generated independently from a Normal distribution.</p>
+<h4 id="priors">Priors</h4>
+<p>We place the following priors on the parameters of the Normal
+distribution:</p>
+<ul>
+<li>For the mean score
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>μ</mi><annotation encoding="application/x-tex">\mu</annotation></semantics></math>,
+we assume:</li>
+</ul>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>μ</mi><mo>∼</mo><mi>𝒩</mi><mo stretchy="false" form="prefix">(</mo><mn>1000</mn><mo>,</mo><msup><mn>300</mn><mn>2</mn></msup><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">
+\mu \sim \mathcal{N}(1000, 300^2)
+</annotation></semantics></math></p>
+<p>This prior reflects our belief that, on average, test scores are
+around 1000 with a standard deviation of 300.</p>
+<ul>
+<li>For the standard deviation
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>σ</mi><annotation encoding="application/x-tex">\sigma</annotation></semantics></math>,
+we assume:</li>
+</ul>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>σ</mi><mo>∼</mo><mtext mathvariant="normal">HalfNormal</mtext><mo stretchy="false" form="prefix">(</mo><mn>300</mn><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">
+\sigma \sim \text{HalfNormal}(300)
+</annotation></semantics></math></p>
+<p>Since standard deviations must be positive, we use a HalfNormal prior
+with a scale of 300. This is a weakly informative prior, acknowledging
+that the spread of scores is likely around 300, but with considerable
+uncertainty.</p>
+<h4 id="likelihood">Likelihood</h4>
+<p>The data for each year are provided in the form of binned counts,
+with bin edges defined (for example,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>0</mn><mo>,</mo><mn>125</mn><mo>,</mo><mn>250</mn><mo>,</mo><mi>…</mi><mo>,</mo><mn>1500</mn></mrow><annotation encoding="application/x-tex">0, 125, 250, \dots, 1500</annotation></semantics></math>).
+Since we do not have the individual test scores but rather the number of
+students falling into each bin, we compute the probability mass for each
+bin based on the assumed Normal distribution.</p>
+<p>We compute the cumulative probability at each bin edge using the CDF
+of the Normal distribution. Let
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>F</mi><mo stretchy="false" form="prefix">(</mo><mi>x</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">F(x)</annotation></semantics></math>
+denote the CDF of
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>𝒩</mi><mo stretchy="false" form="prefix">(</mo><mi>μ</mi><mo>,</mo><mi>σ</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\mathcal{N}(\mu, \sigma)</annotation></semantics></math>,
+then the probability mass for the
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>i</mi><annotation encoding="application/x-tex">i</annotation></semantics></math>-th
+bin is given by:</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>p</mi><mi>i</mi></msub><mo>=</mo><mi>F</mi><mo stretchy="false" form="prefix">(</mo><msub><mi>b</mi><mi>i</mi></msub><mo stretchy="false" form="postfix">)</mo><mo>−</mo><mi>F</mi><mo stretchy="false" form="prefix">(</mo><msub><mi>b</mi><mrow><mi>i</mi><mo>−</mo><mn>1</mn></mrow></msub><mo stretchy="false" form="postfix">)</mo><mo>,</mo></mrow><annotation encoding="application/x-tex">
+p_i = F(b_i) - F(b_{i-1}),
+</annotation></semantics></math></p>
+<p>where
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>b</mi><mrow><mi>i</mi><mo>−</mo><mn>1</mn></mrow></msub><annotation encoding="application/x-tex">b_{i-1}</annotation></semantics></math>
+and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>b</mi><mi>i</mi></msub><annotation encoding="application/x-tex">b_i</annotation></semantics></math>
+are consecutive bin edges. In our implementation, we compute these
+differences using the <code>diff</code> operation on the vector of
+cumulative probabilities.</p>
+<p>Given the vector of bin probabilities
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>𝐩</mi><annotation encoding="application/x-tex">\mathbf{p}</annotation></semantics></math>,
+the observed bin counts (say,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>𝐲</mi><annotation encoding="application/x-tex">\mathbf{y}</annotation></semantics></math>)
+are modeled as a draw from a Multinomial distribution:</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>𝐲</mi><mo>∼</mo><mtext mathvariant="normal">Multinomial</mtext><mo stretchy="false" form="prefix">(</mo><mi>N</mi><mo>,</mo><mi>𝐩</mi><mo stretchy="false" form="postfix">)</mo><mo>,</mo></mrow><annotation encoding="application/x-tex">
+\mathbf{y} \sim \text{Multinomial}(N, \mathbf{p}),
+</annotation></semantics></math></p>
+<p>where
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>N</mi><mo>=</mo><msub><mo>∑</mo><mi>i</mi></msub><msub><mi>y</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">N = \sum_i y_i</annotation></semantics></math>
+is the total number of observations (students).</p>
+<p>By computing the differences in the Normal CDF at the specified bin
+edges, we capture the probability mass corresponding to each bin. This
+approach is equivalent to assuming that the underlying scores follow a
+continuous distribution (here, Normal) and that the observed bin counts
+are generated by grouping these continuous scores into the defined
+intervals. The Multinomial likelihood is appropriate because the counts
+in the bins follow a multinomial process given the total number of
+observations.</p>
+<details><summary>Show code · cell 8</summary><pre><code>import pymc as pm
+import pytensor.tensor as pt
+import numpy as np
+import matplotlib.pyplot as plt
+import arviz as az
+
+# A small constant to avoid zero probabilities in the tail
+eps = 1e-9
+
+# Data for each year (each dictionary contains the bin_edges and bin_counts for that year)
+data_per_year = [
+    {
+        &#x27;year&#x27;: 2021,
+        &#x27;bin_edges&#x27;: np.array([0, 125, 250, 375, 500, 625, 750, 875, 1000, 1125, 1250, 1375, 1500]),
+        &#x27;bin_counts&#x27;: np.array([1, 1, 6, 5, 39, 84, 191, 623, 1788, 3390, 2957, 817]),
+    },
+    {
+        &#x27;year&#x27;: 2022,
+        &#x27;bin_edges&#x27;: np.array([0, 125, 250, 375, 500, 625, 750, 875, 1000, 1125, 1250, 1375, 1500]),
+        &#x27;bin_counts&#x27;: np.array([1, 2, 11, 15, 27, 81, 195, 575, 1717, 3563, 2863, 847]),
+    },
+    {
+        &#x27;year&#x27;: 2023,
+        &#x27;bin_edges&#x27;: np.array([0, 400, 600, 800, 900, 1000, 1100, 1150, 1200, 1250, 1300, 1400, 1500]),
+        &#x27;bin_counts&#x27;: np.array([11, 16, 94, 142, 309, 808, 752, 1073, 1505, 1626, 2555, 932]),
+    },
+    {
+        &#x27;year&#x27;: 2024,
+        &#x27;bin_edges&#x27;: np.array([0, 400, 600, 800, 900, 1000, 1100, 1150, 1200, 1250, 1300, 1400, 1500]),
+        &#x27;bin_counts&#x27;: np.array([15, 32, 130, 257, 505, 1227, 1051, 1381, 1558, 1355, 1837, 550]),
+    },
+]
+
+# Dictionaries to store models and traces for each year
+models_no_pool = {}
+traces_no_pool = {}
+
+# Loop over each year, build and sample the model
+for d in data_per_year:
+    year = d[&#x27;year&#x27;]
+    bin_edges = d[&#x27;bin_edges&#x27;]
+    bin_counts = d[&#x27;bin_counts&#x27;]
+    total_counts = bin_counts.sum()
+    
+    with pm.Model() as model:
+        # Priors: we assume a Normal for the mean and a HalfNormal for the standard deviation.
+        mu = pm.Normal(&quot;mu&quot;, mu=1000, sigma=300)
+        sigma = pm.HalfNormal(&quot;sigma&quot;, sigma=300)
+        
+        # Compute the cumulative probabilities at the bin edges.
+        # Because bin_edges already include 0 and 1500, we simply evaluate the CDF at those points.
+        cdfs = pm.math.exp(pm.logcdf(pm.Normal.dist(mu=mu, sigma=sigma), bin_edges))
+        # Compute the probability mass in each bin via differences between successive CDF values.
+        p_raw = pt.extra_ops.diff(cdfs)
+        
+        # Avoid exactly zero probabilities by clipping and renormalizing. In addition, this lets us condition
+        # the likelihood on the bounded scores. 
+        p = pt.clip(p_raw, eps, 1)
+        p = p / pt.sum(p)
+        
+        # Likelihood: the observed bin counts are modeled as a draw from a Multinomial.
+        counts = pm.Multinomial(&quot;counts&quot;, n=total_counts, p=p, observed=bin_counts)
+        
+        # Sample from the posterior.
+        trace = pm.sample(1000, tune=1000, return_inferencedata=True)
+        models_no_pool[year] = model
+        traces_no_pool[year] = trace
+</code></pre></details><details><summary>Saved output · cell 8</summary><pre>WARNING (pytensor.link.c.cmodule): Deleting (Broken cache directory [EOF]): /Users/undralganbaatar/.pytensor/compiledir_macOS-15.3.2-arm64-arm-64bit-arm-3.12.4-64/tmpjtwmz3qn
+Initializing NUTS using jitter+adapt_diag...
+Multiprocess sampling (4 chains in 4 jobs)
+NUTS: [mu, sigma]
+</pre></details><details><summary>Saved output · cell 8</summary><pre>Output()</pre></details><details><summary>Saved output · cell 8</summary><pre>Sampling 4 chains for 1_000 tune and 1_000 draw iterations (4_000 + 4_000 draws total) took 1 seconds.
+Initializing NUTS using jitter+adapt_diag...
+Multiprocess sampling (4 chains in 4 jobs)
+NUTS: [mu, sigma]
+</pre></details><details><summary>Saved output · cell 8</summary><pre>Output()</pre></details><details><summary>Saved output · cell 8</summary><pre>Sampling 4 chains for 1_000 tune and 1_000 draw iterations (4_000 + 4_000 draws total) took 1 seconds.
+Initializing NUTS using jitter+adapt_diag...
+Multiprocess sampling (4 chains in 4 jobs)
+NUTS: [mu, sigma]
+</pre></details><details><summary>Saved output · cell 8</summary><pre>Output()</pre></details><details><summary>Saved output · cell 8</summary><pre>Sampling 4 chains for 1_000 tune and 1_000 draw iterations (4_000 + 4_000 draws total) took 1 seconds.
+Initializing NUTS using jitter+adapt_diag...
+Multiprocess sampling (4 chains in 4 jobs)
+NUTS: [mu, sigma]
+</pre></details><details><summary>Saved output · cell 8</summary><pre>Output()</pre></details><details><summary>Saved output · cell 8</summary><pre>Sampling 4 chains for 1_000 tune and 1_000 draw iterations (4_000 + 4_000 draws total) took 1 seconds.
+</pre></details><p>The sampler seems to have worked properly, with 0 divergences and no
+warnings. Let’s check the diagnostics.</p>
+<p>Note: In this model we compute the CDF only at the specified bin
+edges (0 to 1500) and then renormalize the differences so that they sum
+to 1. This effectively conditions the likelihood on scores being within
+those bounds. Even though the underlying Normal distribution has
+unbounded support, by focusing only on the interval [0,1500] and
+renormalizing, the model “ignores” the probability mass outside this
+range. This approach lets the model work with bounded data without being
+confused by the Normal’s theoretical tails.</p>
+<details><summary>Show code · cell 10</summary><pre><code># Diagnostics for the No Pooling models
+for d in data_per_year:
+    year = d[&#x27;year&#x27;]
+    trace = traces_no_pool[year]
+    
+    # Trace Plots 
+    fig_trace = az.plot_trace(trace, var_names=[&quot;mu&quot;, &quot;sigma&quot;], figsize=(10, 6))
+    plt.tight_layout()
+    plt.suptitle(f&quot;Trace Plots for Year {year}&quot;, fontsize=14, y=1.02)
+    plt.show()
+    
+    # Posterior Distribution Plots
+    fig_post = az.plot_posterior(trace, var_names=[&quot;mu&quot;, &quot;sigma&quot;], figsize=(10, 4))
+    plt.tight_layout()
+    plt.suptitle(f&quot;Posterior Distributions for Year {year}&quot;, fontsize=14, y=1.02)
+    plt.show()
+    
+    # Summary statistics
+    print(f&quot;\n--- Summary Statistics for Year {year} ---&quot;)
+    summary = az.summary(trace, var_names=[&quot;mu&quot;, &quot;sigma&quot;], round_to=3)
+    display(summary)
+
+</code></pre></details><img src="figures/cell-9-0.png" alt="Saved figure from cell 10" loading="lazy"><img src="figures/cell-9-1.png" alt="Saved figure from cell 10" loading="lazy"><details><summary>Saved output · cell 10</summary><pre>
+--- Summary Statistics for Year 2021 ---
+</pre></details><details><summary>Saved output · cell 10</summary><pre>           mean     sd    hdi_3%   hdi_97%  mcse_mean  mcse_sd  ess_bulk  \
+mu     1207.104  2.031  1203.502  1211.040      0.036    0.025  3200.395   
+sigma   165.316  1.671   162.214   168.315      0.029    0.020  3333.700   
+
+       ess_tail  r_hat  
+mu     2587.276  1.000  
+sigma  2768.891  1.002  </pre></details><img src="figures/cell-9-4.png" alt="Saved figure from cell 10" loading="lazy"><img src="figures/cell-9-5.png" alt="Saved figure from cell 10" loading="lazy"><details><summary>Saved output · cell 10</summary><pre>
+--- Summary Statistics for Year 2022 ---
+</pre></details><details><summary>Saved output · cell 10</summary><pre>           mean     sd    hdi_3%   hdi_97%  mcse_mean  mcse_sd  ess_bulk  \
+mu     1209.202  2.069  1205.550  1213.188      0.036    0.025  3389.509   
+sigma   166.705  1.664   163.588   169.747      0.028    0.020  3480.334   
+
+       ess_tail  r_hat  
+mu     2765.067    1.0  
+sigma  2941.615    1.0  </pre></details><img src="figures/cell-9-8.png" alt="Saved figure from cell 10" loading="lazy"><img src="figures/cell-9-9.png" alt="Saved figure from cell 10" loading="lazy"><details><summary>Saved output · cell 10</summary><pre>
+--- Summary Statistics for Year 2023 ---
+</pre></details><details><summary>Saved output · cell 10</summary><pre>           mean     sd    hdi_3%   hdi_97%  mcse_mean  mcse_sd  ess_bulk  \
+mu     1264.202  2.317  1259.924  1268.537      0.053    0.037  1924.796   
+sigma   164.048  1.822   160.760   167.529      0.038    0.027  2365.349   
+
+       ess_tail  r_hat  
+mu     2053.776  1.000  
+sigma  2243.648  1.003  </pre></details><img src="figures/cell-9-12.png" alt="Saved figure from cell 10" loading="lazy"><img src="figures/cell-9-13.png" alt="Saved figure from cell 10" loading="lazy"><details><summary>Saved output · cell 10</summary><pre>
+--- Summary Statistics for Year 2024 ---
+</pre></details><details><summary>Saved output · cell 10</summary><pre>           mean     sd    hdi_3%   hdi_97%  mcse_mean  mcse_sd  ess_bulk  \
+mu     1209.637  2.011  1206.007  1213.596      0.034    0.024  3597.756   
+sigma   165.432  1.632   162.232   168.379      0.027    0.019  3588.663   
+
+       ess_tail  r_hat  
+mu     2916.571  1.003  
+sigma  2948.880  1.000  </pre></details><p>The traces appear “fuzzy” with no obvious patterns. The posterior
+distribution plots look smooth and unimodal and the distributions from
+different chains overlap closely. The
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mover><mi>R</mi><mo accent="true">̂</mo></mover><annotation encoding="application/x-tex">\hat{R}</annotation></semantics></math>
+values are less than 1.01 for all parameters, and the effective sample
+sizes are in the thousands, both in the bulks and in the tails. These
+all indicate that there were no issues with the sampler.</p>
+<details><summary>Show code · cell 12</summary><pre><code>from matplotlib.lines import Line2D
+import numpy as np
+import pymc as pm
+
+import matplotlib.pyplot as plt
+
+# Create a figure with a 2x2 grid of subplots
+fig, axes = plt.subplots(2, 2, figsize=(16, 12))
+
+# Define the order of years in the grid
+years_order = [2021, 2022, 2023, 2024]
+
+# To ensure consistent axes, determine the maximum y-value across all years
+max_y = 0
+for year in years_order:
+    # Find the data for this year
+    year_data = next(d for d in data_per_year if d[&#x27;year&#x27;] == year)
+    bin_counts = year_data[&#x27;bin_counts&#x27;]
+    trace = traces_no_pool[year]
+    
+    # Get posterior predictive
+    with models_no_pool[year]:
+        ppc = pm.sample_posterior_predictive(trace, return_inferencedata=True)
+    
+    # Mean predicted counts across chains/draws
+    ppc_counts = ppc.posterior_predictive[&quot;counts&quot;].mean(dim=[&quot;chain&quot;, &quot;draw&quot;]).values
+    
+    # Update maximum y-value
+    max_y = max(max_y, max(np.max(bin_counts), np.max(ppc_counts)))
+
+# Add some padding to the maximum y-value
+max_y = max_y * 1.1
+
+# Define consistent tick positions for all plots
+common_ticks = np.array([0, 400, 600, 800, 1000, 1200, 1400, 1500])
+
+# Plot each year in the grid
+for i, year in enumerate(years_order):
+    # Find the data for this year
+    year_data = next(d for d in data_per_year if d[&#x27;year&#x27;] == year)
+    bin_edges = year_data[&#x27;bin_edges&#x27;]
+    observed_counts = year_data[&#x27;bin_counts&#x27;]
+    trace = traces_no_pool[year]
+    
+    # Get mu and sigma means for the legend
+    mu_mean = trace.posterior[&#x27;mu&#x27;].mean().values
+    sigma_mean = trace.posterior[&#x27;sigma&#x27;].mean().values
+    
+    # Get posterior predictive
+    with models_no_pool[year]:
+        ppc = pm.sample_posterior_predictive(trace, return_inferencedata=True)
+    
+    # Mean predicted counts across chains/draws
+    ppc_counts = ppc.posterior_predictive[&quot;counts&quot;].mean(dim=[&quot;chain&quot;, &quot;draw&quot;]).values
+    
+    # Calculate x positions and widths
+    x_left = bin_edges[:-1]
+    bin_widths = np.diff(bin_edges)
+    
+    # Determine subplot position (row, column)
+    row = i // 2
+    col = i % 2
+    ax = axes[row, col]
+    
+    # Plot observed and predicted bars
+    obs_bars = ax.bar(
+        x_left, 
+        observed_counts, 
+        width=bin_widths, 
+        align=&#x27;edge&#x27;, 
+        alpha=0.65, 
+        color=&#x27;#3498db&#x27;,
+        edgecolor=&#x27;#2980b9&#x27;,
+        linewidth=1,
+        label=&#x27;Observed&#x27;
+    )
+    
+    pred_bars = ax.bar(
+        x_left, 
+        ppc_counts, 
+        width=bin_widths, 
+        align=&#x27;edge&#x27;, 
+        alpha=0.65, 
+        color=&#x27;#e74c3c&#x27;,
+        edgecolor=&#x27;#c0392b&#x27;,
+        linewidth=1,
+        label=&#x27;Posterior Predictive&#x27;
+    )
+    
+    # Set consistent axis limits and ticks
+    ax.set_xlim(0, 1500)
+    ax.set_ylim(0, max_y)
+    ax.set_xticks(common_ticks)
+    ax.set_xticklabels([str(tick) for tick in common_ticks], fontsize=10)
+    
+    # Add title and labels
+    ax.set_title(f&quot;Year {year}: Normal Distribution Model&quot;, fontsize=14, fontweight=&#x27;bold&#x27;)
+    
+    # Only add x-axis label to bottom row
+    if row == 1:
+        ax.set_xlabel(&quot;Score&quot;, fontsize=12, fontweight=&#x27;bold&#x27;)
+    
+    # Only add y-axis label to left column
+    if col == 0:
+        ax.set_ylabel(&quot;Number of Students&quot;, fontsize=12, fontweight=&#x27;bold&#x27;)
+    
+    # Add model parameters to the plot
+    textstr = f&#x27;μ = {mu_mean:.1f}\nσ = {sigma_mean:.1f}&#x27;
+    props = dict(boxstyle=&#x27;round&#x27;, facecolor=&#x27;white&#x27;, alpha=0.7)
+    ax.text(0.05, 0.95, textstr, transform=ax.transAxes, fontsize=12,
+            verticalalignment=&#x27;top&#x27;, bbox=props)
+
+# Create a common legend for the entire figure
+legend_elements = [
+    plt.Rectangle((0,0), 1, 1, fc=&#x27;#3498db&#x27;, ec=&#x27;#2980b9&#x27;, alpha=0.65),
+    plt.Rectangle((0,0), 1, 1, fc=&#x27;#e74c3c&#x27;, ec=&#x27;#c0392b&#x27;, alpha=0.65)
+]
+fig.legend(legend_elements, [&#x27;Observed&#x27;, &#x27;Posterior Predictive&#x27;],
+           loc=&#x27;upper center&#x27;, ncol=2, fontsize=12, bbox_to_anchor=(0.5, 0.98))
+
+# Add an overall title
+fig.suptitle(&quot;Observed vs. Posterior Predictive by Year (No Pool)&quot;, fontsize=16, fontweight=&#x27;bold&#x27;, y=1.05)
+
+# Adjust layout
+plt.tight_layout()
+plt.subplots_adjust(top=0.9)  # Leave room for the suptitle
+plt.show()</code></pre></details><details><summary>Saved output · cell 12</summary><pre>Sampling: [counts]
+</pre></details><details><summary>Saved output · cell 12</summary><pre>Output()</pre></details><details><summary>Saved output · cell 12</summary><pre>Sampling: [counts]
+</pre></details><details><summary>Saved output · cell 12</summary><pre>Output()</pre></details><details><summary>Saved output · cell 12</summary><pre>Sampling: [counts]
+</pre></details><details><summary>Saved output · cell 12</summary><pre>Output()</pre></details><details><summary>Saved output · cell 12</summary><pre>Sampling: [counts]
+</pre></details><details><summary>Saved output · cell 12</summary><pre>Output()</pre></details><details><summary>Saved output · cell 12</summary><pre>Sampling: [counts]
+</pre></details><details><summary>Saved output · cell 12</summary><pre>Output()</pre></details><details><summary>Saved output · cell 12</summary><pre>Sampling: [counts]
+</pre></details><details><summary>Saved output · cell 12</summary><pre>Output()</pre></details><details><summary>Saved output · cell 12</summary><pre>Sampling: [counts]
+</pre></details><details><summary>Saved output · cell 12</summary><pre>Output()</pre></details><details><summary>Saved output · cell 12</summary><pre>Sampling: [counts]
+</pre></details><details><summary>Saved output · cell 12</summary><pre>Output()</pre></details><img src="figures/cell-11-24.png" alt="Saved figure from cell 12" loading="lazy"><p>The posterior predictives seem to match okay with the observed data,
+as is expected. However, notice how the posterior predictives for each
+year consistently overestimates the higher scores (~1400-1500) and
+underestimates the lower scores (~600). This is likely due to the
+Normal’s limitations we discussed before. The mean is placed around
+1200, and the standard deviation is around 165, so the posterior
+predictive expects most of the data points to be within ~870 and ~1530
+even though the actual test scores are bounded at 1500. This causes the
+model to predict more scores in the upper range than observed. The lower
+test score counts are underestimated due to the thin tailed and
+symmetric nature of the Normal.</p>
+<p>Another noteworthy aspect visible in these plots is the seemingly
+flatter shapes in years 2023 and 2024. However, that is just a product
+of the different bins. The narrower bins in the later years divide the
+data more so it looks flatter in shape.</p>
+<h3 id="hierarchical-model-for-test-scores">Hierarchical Model for Test
+Scores</h3>
+<p>In this model, we assume that the test scores for each year are
+generated from a Normal distribution with year‐specific parameters.
+Rather than estimating each year’s parameters independently (no
+pooling), we assume that these parameters come from common
+(population-level) distributions. This hierarchical approach allows us
+to “borrow strength” across years.</p>
+<h4 id="priors">Priors</h4>
+<p>For each year
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>j</mi><annotation encoding="application/x-tex">j</annotation></semantics></math>,
+we assume that the test scores are distributed as</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>X</mi><mi>j</mi></msub><mo>∼</mo><mi>𝒩</mi><mo stretchy="false" form="prefix">(</mo><msub><mi>μ</mi><mi>j</mi></msub><mo>,</mo><msubsup><mi>σ</mi><mi>j</mi><mn>2</mn></msubsup><mo stretchy="false" form="postfix">)</mo><mi>.</mi></mrow><annotation encoding="application/x-tex">
+X_j \sim \mathcal{N}(\mu_j, \sigma_j^2).
+</annotation></semantics></math></p>
+<p><strong>Year-specific Means
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>μ</mi><mi>j</mi></msub><annotation encoding="application/x-tex">\mu_j</annotation></semantics></math>):</strong></p>
+<p>We assume that the individual year means come from a common
+population distribution:</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>μ</mi><mi>j</mi></msub><mo>∼</mo><mi>𝒩</mi><mo stretchy="false" form="prefix">(</mo><msub><mi>μ</mi><mrow><mi>p</mi><mi>o</mi><mi>p</mi></mrow></msub><mo>,</mo><msubsup><mi>σ</mi><mi>μ</mi><mn>2</mn></msubsup><mo stretchy="false" form="postfix">)</mo><mi>.</mi></mrow><annotation encoding="application/x-tex">
+\mu_j \sim \mathcal{N}(\mu_{pop}, \sigma_{\mu}^2).
+</annotation></semantics></math></p>
+<p>We set the following hyperpriors:</p>
+<ul>
+<li><p><strong>Population Mean:</strong></p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>μ</mi><mrow><mi>p</mi><mi>o</mi><mi>p</mi></mrow></msub><mo>∼</mo><mi>𝒩</mi><mo stretchy="false" form="prefix">(</mo><mn>1000</mn><mo>,</mo><msup><mn>212</mn><mn>2</mn></msup><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">
+\mu_{pop} \sim \mathcal{N}(1000, 212^2)
+</annotation></semantics></math></p></li>
+<li><p><strong>Between-Year Variability in Means:</strong></p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>σ</mi><mi>μ</mi></msub><mo>∼</mo><mtext mathvariant="normal">HalfNormal</mtext><mo stretchy="false" form="prefix">(</mo><mn>212</mn><mo stretchy="false" form="postfix">)</mo><mi>.</mi></mrow><annotation encoding="application/x-tex">
+\sigma_{\mu} \sim \text{HalfNormal}(212).
+</annotation></semantics></math></p></li>
+</ul>
+<p>212 was chosen because, marginally, each year’s mean has variance</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msubsup><mi>σ</mi><mtext mathvariant="normal">pop</mtext><mn>2</mn></msubsup><mo>+</mo><msubsup><mi>σ</mi><mi>μ</mi><mn>2</mn></msubsup><mo>≈</mo><msup><mn>212</mn><mn>2</mn></msup><mo>+</mo><msup><mn>212</mn><mn>2</mn></msup><mo>≈</mo><msup><mn>300</mn><mn>2</mn></msup><mo>,</mo></mrow><annotation encoding="application/x-tex">
+\sigma_{\text{pop}}^2 + \sigma_{\mu}^2 \approx 212^2 + 212^2 \approx 300^2,
+</annotation></semantics></math></p>
+<p>which is similar in flexibility to the no pooling model where</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>μ</mi><mi>j</mi></msub><mo>∼</mo><mi>𝒩</mi><mo stretchy="false" form="prefix">(</mo><mn>1000</mn><mo>,</mo><msup><mn>300</mn><mn>2</mn></msup><mo stretchy="false" form="postfix">)</mo><mi>.</mi></mrow><annotation encoding="application/x-tex">
+\mu_j \sim \mathcal{N}(1000, 300^2).
+</annotation></semantics></math></p>
+<p><strong>Year-specific Standard Deviations
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>σ</mi><mi>j</mi></msub><annotation encoding="application/x-tex">\sigma_j</annotation></semantics></math>):</strong></p>
+<p>We assume that the standard deviations for each year come from a
+common distribution:</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>σ</mi><mi>j</mi></msub><mo>∼</mo><mtext mathvariant="normal">HalfNormal</mtext><mo stretchy="false" form="prefix">(</mo><msub><mi>σ</mi><mi>σ</mi></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">
+\sigma_j \sim \text{HalfNormal}(\sigma_{\sigma})
+</annotation></semantics></math></p>
+<p>with hyperprior</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>σ</mi><mi>σ</mi></msub><mo>∼</mo><mtext mathvariant="normal">HalfNormal</mtext><mo stretchy="false" form="prefix">(</mo><mn>300</mn><mo stretchy="false" form="postfix">)</mo><mi>.</mi></mrow><annotation encoding="application/x-tex">
+\sigma_{\sigma} \sim \text{HalfNormal}(300).
+</annotation></semantics></math></p>
+<p>This choice ensures that the standard deviations remain positive and
+reflects our uncertainty about the variability in scores across
+years.</p>
+<h4 id="likelihood">Likelihood</h4>
+<p>The data for each year are provided as binned counts. Suppose the bin
+edges are given by</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>b</mi><mn>0</mn></msub><mo>,</mo><msub><mi>b</mi><mn>1</mn></msub><mo>,</mo><mi>…</mi><mo>,</mo><msub><mi>b</mi><mi>K</mi></msub><mo>,</mo></mrow><annotation encoding="application/x-tex">
+b_0, b_1, \dots, b_K,
+</annotation></semantics></math></p>
+<p>(for example,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>0</mn><mo>,</mo><mn>125</mn><mo>,</mo><mn>250</mn><mo>,</mo><mi>…</mi><mo>,</mo><mn>1500</mn></mrow><annotation encoding="application/x-tex">0, 125, 250, \dots, 1500</annotation></semantics></math>),
+and the observed counts in these bins are</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>y</mi><mn>1</mn></msub><mo>,</mo><msub><mi>y</mi><mn>2</mn></msub><mo>,</mo><mi>…</mi><mo>,</mo><msub><mi>y</mi><mi>K</mi></msub><mo>,</mo></mrow><annotation encoding="application/x-tex">
+y_1, y_2, \dots, y_K,
+</annotation></semantics></math></p>
+<p>with a total number of observations</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>N</mi><mo>=</mo><munderover><mo>∑</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>K</mi></munderover><msub><mi>y</mi><mi>i</mi></msub><mi>.</mi></mrow><annotation encoding="application/x-tex">
+N = \sum_{i=1}^{K} y_i.
+</annotation></semantics></math></p>
+<p>For a given year
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>j</mi><annotation encoding="application/x-tex">j</annotation></semantics></math>,
+the cumulative distribution function (CDF) of
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>𝒩</mi><mo stretchy="false" form="prefix">(</mo><msub><mi>μ</mi><mi>j</mi></msub><mo>,</mo><msub><mi>σ</mi><mi>j</mi></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\mathcal{N}(\mu_j, \sigma_j)</annotation></semantics></math>
+is</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>F</mi><mo stretchy="false" form="prefix">(</mo><mi>x</mi><mo>;</mo><msub><mi>μ</mi><mi>j</mi></msub><mo>,</mo><msub><mi>σ</mi><mi>j</mi></msub><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mi>P</mi><mo stretchy="false" form="prefix">(</mo><msub><mi>X</mi><mi>j</mi></msub><mo>≤</mo><mi>x</mi><mo stretchy="false" form="postfix">)</mo><mi>.</mi></mrow><annotation encoding="application/x-tex">
+F(x; \mu_j, \sigma_j) = P(X_j \le x).
+</annotation></semantics></math></p>
+<p>The probability mass in the
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>i</mi><annotation encoding="application/x-tex">i</annotation></semantics></math>-th
+bin is then</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>p</mi><mi>i</mi></msub><mo>=</mo><mi>F</mi><mo stretchy="false" form="prefix">(</mo><msub><mi>b</mi><mi>i</mi></msub><mo>;</mo><msub><mi>μ</mi><mi>j</mi></msub><mo>,</mo><msub><mi>σ</mi><mi>j</mi></msub><mo stretchy="false" form="postfix">)</mo><mo>−</mo><mi>F</mi><mo stretchy="false" form="prefix">(</mo><msub><mi>b</mi><mrow><mi>i</mi><mo>−</mo><mn>1</mn></mrow></msub><mo>;</mo><msub><mi>μ</mi><mi>j</mi></msub><mo>,</mo><msub><mi>σ</mi><mi>j</mi></msub><mo stretchy="false" form="postfix">)</mo><mi>.</mi></mrow><annotation encoding="application/x-tex">
+p_i = F(b_i; \mu_j, \sigma_j) - F(b_{i-1}; \mu_j, \sigma_j).
+</annotation></semantics></math></p>
+<p>Since the Normal distribution has unbounded support, there is some
+probability mass outside the range
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">[</mo><mn>0</mn><mo>,</mo><mn>1500</mn><mo stretchy="false" form="postfix">]</mo></mrow><annotation encoding="application/x-tex">[0, 1500]</annotation></semantics></math>.
+However, in our implementation we only evaluate the CDF at the bin edges
+(which include 0 and 1500) and then <strong>renormalize</strong> the
+vector</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>𝐩</mi><mo>=</mo><mo stretchy="false" form="prefix">(</mo><msub><mi>p</mi><mn>1</mn></msub><mo>,</mo><msub><mi>p</mi><mn>2</mn></msub><mo>,</mo><mi>…</mi><mo>,</mo><msub><mi>p</mi><mi>K</mi></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">
+\mathbf{p} = (p_1, p_2, \dots, p_K)
+</annotation></semantics></math></p>
+<p>so that</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><munderover><mo>∑</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>K</mi></munderover><msub><mi>p</mi><mi>i</mi></msub><mo>=</mo><mn>1</mn><mi>.</mi></mrow><annotation encoding="application/x-tex">
+\sum_{i=1}^K p_i = 1.
+</annotation></semantics></math></p>
+<p>This effectively conditions the model on scores lying within the
+observed range.</p>
+<p>Finally, given the total number of test takers
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>N</mi><annotation encoding="application/x-tex">N</annotation></semantics></math>,
+the observed binned counts are modeled as a draw from a Multinomial
+distribution:</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>𝐲</mi><mo>∼</mo><mtext mathvariant="normal">Multinomial</mtext><mo stretchy="false" form="prefix">(</mo><mi>N</mi><mo>,</mo><mi>𝐩</mi><mo stretchy="false" form="postfix">)</mo><mi>.</mi></mrow><annotation encoding="application/x-tex">
+\mathbf{y} \sim \text{Multinomial}(N, \mathbf{p}).
+</annotation></semantics></math></p>
+<p>By placing hyperpriors on
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>μ</mi><mi>j</mi></msub><annotation encoding="application/x-tex">\mu_j</annotation></semantics></math>
+and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>σ</mi><mi>j</mi></msub><annotation encoding="application/x-tex">\sigma_j</annotation></semantics></math>,
+we allow the information from all years to inform each individual year’s
+estimates. This partial pooling helps stabilize estimates, especially in
+years with less data. However, in this case, the number of test takers
+across years is relatively stable.</p>
+<details><summary>Show code · cell 15</summary><pre><code>import pymc as pm
+import pytensor.tensor as pt
+import numpy as np
+
+# A small constant to avoid zero probabilities in the tail
+eps = 1e-9
+
+# Number of years (each year in data_per_year gets its own parameters)
+n_years = len(data_per_year)
+
+with pm.Model() as hierarchical_model:
+    # Hyperpriors for the population-level means (μ)
+    mu_pop = pm.Normal(&quot;mu_pop&quot;, mu=1000, sigma=212)
+    sigma_mu = pm.HalfNormal(&quot;sigma_mu&quot;, sigma=212)
+    
+    # Hyperprior for the variability in standard deviations across years
+    # This reflects our uncertainty about how much each year’s standard deviation can vary.
+    sigma_sigma = pm.HalfNormal(&quot;sigma_sigma&quot;, sigma=300)
+    
+    # Year-specific parameters (partial pooling)
+    mu_year = pm.Normal(&quot;mu_year&quot;, mu=mu_pop, sigma=sigma_mu, shape=n_years)
+    sigma_year = pm.HalfNormal(&quot;sigma_year&quot;, sigma=sigma_sigma, shape=n_years)
+    
+    # Likelihood for each year
+    for i, d in enumerate(data_per_year):
+        bin_edges = d[&#x27;bin_edges&#x27;]
+        bin_counts = d[&#x27;bin_counts&#x27;]
+        total_counts = bin_counts.sum()
+        
+        # Compute the cumulative probability at each bin edge using the year-specific parameters.
+        cdfs = pm.math.exp(pm.logcdf(pm.Normal.dist(mu=mu_year[i], sigma=sigma_year[i]), bin_edges))
+        # The probability mass in each bin is the difference between successive CDF values.
+        p_raw = pt.extra_ops.diff(cdfs)
+        
+        # Avoid exactly zero probabilities by clipping and renormalizing.
+        p = pt.clip(p_raw, eps, 1)
+        p = p / pt.sum(p)
+        
+        # Likelihood: the observed bin counts for the year are modeled as a Multinomial draw.
+        pm.Multinomial(f&quot;counts_year_{d[&#x27;year&#x27;]}&quot;, n=total_counts, p=p, observed=bin_counts)
+    
+    # Sample from the posterior.
+    trace_hier = pm.sample(1000, tune=2000, target_accept=0.999, max_treedepth=15, return_inferencedata=True)
+</code></pre></details><details><summary>Saved output · cell 15</summary><pre>Initializing NUTS using jitter+adapt_diag...
+Multiprocess sampling (4 chains in 4 jobs)
+NUTS: [mu_pop, sigma_mu, sigma_sigma, mu_year, sigma_year]
+</pre></details><details><summary>Saved output · cell 15</summary><pre>Output()</pre></details><details><summary>Saved output · cell 15</summary><pre>Sampling 4 chains for 2_000 tune and 1_000 draw iterations (8_000 + 4_000 draws total) took 19 seconds.
+</pre></details><details><summary>Show code · cell 16</summary><pre><code>from matplotlib.lines import Line2D
+import matplotlib.pyplot as plt
+import arviz as az
+
+# Loop over each year using its index (i) to select the corresponding slice.
+for i, d in enumerate(data_per_year):
+    year = d[&#x27;year&#x27;]
+    # Use the correct dimension names for selection.
+    coords = {&quot;mu_year_dim_0&quot;: [i], &quot;sigma_year_dim_0&quot;: [i]}
+    
+    # Trace Plots for the year-specific parameters.
+    fig_trace = az.plot_trace(
+        trace_hier, 
+        var_names=[&quot;mu_year&quot;, &quot;sigma_year&quot;],
+        coords=coords,
+        figsize=(10, 6)
+    )
+    plt.tight_layout()
+    plt.suptitle(f&quot;Trace Plots for Year {year} (Hierarchical)&quot;, fontsize=14, y=1.02)
+    plt.show()
+    
+    # Posterior Distribution Plots for the year-specific parameters.
+    fig_post = az.plot_posterior(
+        trace_hier, 
+        var_names=[&quot;mu_year&quot;, &quot;sigma_year&quot;],
+        coords=coords,
+        figsize=(10, 4)
+    )
+    plt.tight_layout()
+    plt.suptitle(f&quot;Posterior Distributions for Year {year} (Hierarchical)&quot;, fontsize=14, y=1.02)
+    plt.show()
+    
+    # Summary statistics for the year-specific parameters.
+    print(f&quot;\n--- Summary Statistics for Year {year} (Hierarchical) ---&quot;)
+    summary = az.summary(trace_hier, var_names=[&quot;mu_year&quot;, &quot;sigma_year&quot;], coords=coords, round_to=3)
+    display(summary)
+</code></pre></details><img src="figures/cell-15-0.png" alt="Saved figure from cell 16" loading="lazy"><img src="figures/cell-15-1.png" alt="Saved figure from cell 16" loading="lazy"><details><summary>Saved output · cell 16</summary><pre>
+--- Summary Statistics for Year 2021 (Hierarchical) ---
+</pre></details><details><summary>Saved output · cell 16</summary><pre>                   mean     sd    hdi_3%   hdi_97%  mcse_mean  mcse_sd  \
+mu_year[0]     1207.144  1.930  1203.611  1210.808      0.033    0.024   
+sigma_year[0]   165.349  1.628   162.266   168.439      0.027    0.019   
+
+               ess_bulk  ess_tail  r_hat  
+mu_year[0]     3344.036  2817.021  1.002  
+sigma_year[0]  3551.731  2846.237  1.003  </pre></details><img src="figures/cell-15-4.png" alt="Saved figure from cell 16" loading="lazy"><img src="figures/cell-15-5.png" alt="Saved figure from cell 16" loading="lazy"><details><summary>Saved output · cell 16</summary><pre>
+--- Summary Statistics for Year 2022 (Hierarchical) ---
+</pre></details><details><summary>Saved output · cell 16</summary><pre>                   mean     sd    hdi_3%   hdi_97%  mcse_mean  mcse_sd  \
+mu_year[1]     1209.206  2.055  1205.553  1213.238      0.035    0.025   
+sigma_year[1]   166.731  1.678   163.770   170.030      0.029    0.020   
+
+               ess_bulk  ess_tail  r_hat  
+mu_year[1]     3508.665  3065.475  1.001  
+sigma_year[1]  3363.676  2941.386  1.000  </pre></details><img src="figures/cell-15-8.png" alt="Saved figure from cell 16" loading="lazy"><img src="figures/cell-15-9.png" alt="Saved figure from cell 16" loading="lazy"><details><summary>Saved output · cell 16</summary><pre>
+--- Summary Statistics for Year 2023 (Hierarchical) ---
+</pre></details><details><summary>Saved output · cell 16</summary><pre>                   mean     sd    hdi_3%   hdi_97%  mcse_mean  mcse_sd  \
+mu_year[2]     1263.992  2.244  1259.995  1268.268      0.041    0.029   
+sigma_year[2]   163.916  1.801   160.614   167.341      0.033    0.024   
+
+               ess_bulk  ess_tail  r_hat  
+mu_year[2]     2940.454  3051.578  1.001  
+sigma_year[2]  2919.294  2801.096  1.001  </pre></details><img src="figures/cell-15-12.png" alt="Saved figure from cell 16" loading="lazy"><img src="figures/cell-15-13.png" alt="Saved figure from cell 16" loading="lazy"><details><summary>Saved output · cell 16</summary><pre>
+--- Summary Statistics for Year 2024 (Hierarchical) ---
+</pre></details><details><summary>Saved output · cell 16</summary><pre>                   mean     sd    hdi_3%   hdi_97%  mcse_mean  mcse_sd  \
+mu_year[3]     1209.697  1.962  1206.147  1213.433      0.032    0.023   
+sigma_year[3]   165.435  1.610   162.591   168.547      0.028    0.020   
+
+               ess_bulk  ess_tail  r_hat  
+mu_year[3]     3745.754  2963.907  1.001  
+sigma_year[3]  3294.284  2874.405  1.001  </pre></details><p>The sampler also seems to have worked properly.</p>
+<details><summary>Show code · cell 18</summary><pre><code>from matplotlib.lines import Line2D
+import numpy as np
+import pymc as pm
+import matplotlib.pyplot as plt
+
+# Create a figure with a 2x2 grid of subplots
+fig, axes = plt.subplots(2, 2, figsize=(16, 12))
+
+# Define the order of years in the grid
+years_order = [2021, 2022, 2023, 2024]
+
+# To ensure consistent y-axis limits, determine the maximum y-value across all years
+max_y = 0
+for year in years_order:
+    # Find the data for this year
+    year_data = next(d for d in data_per_year if d[&#x27;year&#x27;] == year)
+    bin_counts = year_data[&#x27;bin_counts&#x27;]
+    # Get hierarchical posterior predictive for this year:
+    with hierarchical_model:
+        ppc_hier = pm.sample_posterior_predictive(
+            trace_hier, 
+            var_names=[f&quot;counts_year_{year}&quot;],
+            return_inferencedata=True
+        )
+    ppc_counts = ppc_hier.posterior_predictive[f&quot;counts_year_{year}&quot;].mean(dim=[&quot;chain&quot;, &quot;draw&quot;]).values
+    max_y = max(max_y, np.max(bin_counts), np.max(ppc_counts))
+max_y = max_y * 1.1  # add some padding
+
+# Define consistent tick positions for all plots
+common_ticks = np.array([0, 400, 800, 1000, 1200, 1400, 1500])
+
+# Plot each year in the grid
+for i, year in enumerate(years_order):
+    # Retrieve data for this year
+    year_data = next(d for d in data_per_year if d[&#x27;year&#x27;] == year)
+    bin_edges = year_data[&#x27;bin_edges&#x27;]
+    observed_counts = year_data[&#x27;bin_counts&#x27;]
+    
+    # For the hierarchical model, extract the year-specific parameter estimates.
+    # The hierarchical trace uses dimension names like &quot;mu_year_dim_0&quot; and &quot;sigma_year_dim_0&quot;.
+    mu_mean = trace_hier.posterior[&quot;mu_year&quot;].isel(mu_year_dim_0=i).mean().values
+    sigma_mean = trace_hier.posterior[&quot;sigma_year&quot;].isel(sigma_year_dim_0=i).mean().values
+    
+    # Get hierarchical posterior predictive for counts_year_{year}
+    with hierarchical_model:
+        ppc_hier = pm.sample_posterior_predictive(
+            trace_hier, 
+            var_names=[f&quot;counts_year_{year}&quot;],
+            return_inferencedata=True
+        )
+    ppc_counts = ppc_hier.posterior_predictive[f&quot;counts_year_{year}&quot;].mean(dim=[&quot;chain&quot;, &quot;draw&quot;]).values
+    
+    # Calculate x positions and bar widths based on bin edges
+    x_left = bin_edges[:-1]
+    bin_widths = np.diff(bin_edges)
+    
+    # Determine subplot position (row, col)
+    row = i // 2
+    col = i % 2
+    ax = axes[row, col]
+    
+    # Plot observed counts as bars (bars span the bin from left edge to next edge)
+    obs_bars = ax.bar(
+        x_left, 
+        observed_counts, 
+        width=bin_widths, 
+        align=&#x27;edge&#x27;, 
+        alpha=0.65, 
+        color=&#x27;#3498db&#x27;,
+        edgecolor=&#x27;#2980b9&#x27;,
+        linewidth=1,
+        label=&#x27;Observed&#x27;
+    )
+    
+    # Plot posterior predictive counts as bars using the same positions
+    pred_bars = ax.bar(
+        x_left, 
+        ppc_counts, 
+        width=bin_widths, 
+        align=&#x27;edge&#x27;, 
+        alpha=0.65, 
+        color=&#x27;#e74c3c&#x27;,
+        edgecolor=&#x27;#c0392b&#x27;,
+        linewidth=1,
+        label=&#x27;Posterior Predictive&#x27;
+    )
+    
+    # Set consistent axis limits and ticks
+    ax.set_xlim(0, 1500)
+    ax.set_ylim(0, max_y)
+    ax.set_xticks(common_ticks)
+    ax.set_xticklabels([str(tick) for tick in common_ticks], fontsize=10)
+    
+    # Add title and axis labels
+    ax.set_title(f&quot;Year {year}: Hierarchical Normal Distribution Model&quot;, fontsize=14, fontweight=&#x27;bold&#x27;)
+    if row == 1:
+        ax.set_xlabel(&quot;Score&quot;, fontsize=12, fontweight=&#x27;bold&#x27;)
+    if col == 0:
+        ax.set_ylabel(&quot;Number of Students&quot;, fontsize=12, fontweight=&#x27;bold&#x27;)
+    
+    # Add model parameter means to the plot as a text box
+    textstr = f&#x27;μ = {mu_mean:.1f}\nσ = {sigma_mean:.1f}&#x27;
+    props = dict(boxstyle=&#x27;round&#x27;, facecolor=&#x27;white&#x27;, alpha=0.7)
+    ax.text(0.05, 0.95, textstr, transform=ax.transAxes, fontsize=12,
+            verticalalignment=&#x27;top&#x27;, bbox=props)
+    
+# Create a common legend for the entire figure
+legend_elements = [
+    plt.Rectangle((0,0), 1, 1, fc=&#x27;#3498db&#x27;, ec=&#x27;#2980b9&#x27;, alpha=0.65),
+    plt.Rectangle((0,0), 1, 1, fc=&#x27;#e74c3c&#x27;, ec=&#x27;#c0392b&#x27;, alpha=0.65)
+]
+fig.legend(
+    legend_elements, 
+    [&#x27;Observed&#x27;, &#x27;Posterior Predictive&#x27;],
+    loc=&#x27;upper center&#x27;, ncol=2, fontsize=12, bbox_to_anchor=(0.5, 0.98)
+)
+
+# Overall figure title
+fig.suptitle(&quot;Observed vs. Posterior Predictive by Year (Hierarchical Normal Model)&quot;, fontsize=16, fontweight=&#x27;bold&#x27;, y=1.05)
+
+plt.tight_layout()
+plt.subplots_adjust(top=0.9)  # leave room for the suptitle
+plt.show()
+</code></pre></details><details><summary>Saved output · cell 18</summary><pre>Sampling: [counts_year_2021]
+</pre></details><details><summary>Saved output · cell 18</summary><pre>Output()</pre></details><details><summary>Saved output · cell 18</summary><pre>Sampling: [counts_year_2022]
+</pre></details><details><summary>Saved output · cell 18</summary><pre>Output()</pre></details><details><summary>Saved output · cell 18</summary><pre>Sampling: [counts_year_2023]
+</pre></details><details><summary>Saved output · cell 18</summary><pre>Output()</pre></details><details><summary>Saved output · cell 18</summary><pre>Sampling: [counts_year_2024]
+</pre></details><details><summary>Saved output · cell 18</summary><pre>Output()</pre></details><details><summary>Saved output · cell 18</summary><pre>Sampling: [counts_year_2021]
+</pre></details><details><summary>Saved output · cell 18</summary><pre>Output()</pre></details><details><summary>Saved output · cell 18</summary><pre>Sampling: [counts_year_2022]
+</pre></details><details><summary>Saved output · cell 18</summary><pre>Output()</pre></details><details><summary>Saved output · cell 18</summary><pre>Sampling: [counts_year_2023]
+</pre></details><details><summary>Saved output · cell 18</summary><pre>Output()</pre></details><details><summary>Saved output · cell 18</summary><pre>Sampling: [counts_year_2024]
+</pre></details><details><summary>Saved output · cell 18</summary><pre>Output()</pre></details><img src="figures/cell-17-24.png" alt="Saved figure from cell 18" loading="lazy"><p>The same issues discussed in the posterior predictives for the
+no-pooling model are also present here.</p>
+<details><summary>Show code · cell 20</summary><pre><code>import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Create lists to hold summary statistics for μ from both models.
+np_summary = []      # for no pooling estimates
+hier_summary = []    # for hierarchical estimates
+
+# Loop over each year&#x27;s data.
+for idx, d in enumerate(data_per_year):
+    year = d[&#x27;year&#x27;]
+    
+    # --- No pooling summary ---
+    trace_np = traces_no_pool[year].posterior
+    # Flatten the mu samples (combining chains and draws)
+    mu_np_samples = trace_np[&quot;mu&quot;].values.flatten()
+    lower_np = np.percentile(mu_np_samples, 2.5)
+    median_np = np.median(mu_np_samples)
+    upper_np = np.percentile(mu_np_samples, 97.5)
+    
+    np_summary.append({
+        &quot;year&quot;: year,
+        &quot;model&quot;: &quot;No Pooling&quot;,
+        &quot;median&quot;: median_np,
+        &quot;lower&quot;: lower_np,
+        &quot;upper&quot;: upper_np
+    })
+    
+    # --- Hierarchical model summary ---
+    # Use isel on the hierarchical trace to extract the samples for the i-th year.
+    mu_hier_samples = trace_hier.posterior[&quot;mu_year&quot;].isel(mu_year_dim_0=idx).values.flatten()
+    lower_hier = np.percentile(mu_hier_samples, 2.5)
+    median_hier = np.median(mu_hier_samples)
+    upper_hier = np.percentile(mu_hier_samples, 97.5)
+    
+    hier_summary.append({
+        &quot;year&quot;: year,
+        &quot;model&quot;: &quot;Hierarchical&quot;,
+        &quot;median&quot;: median_hier,
+        &quot;lower&quot;: lower_hier,
+        &quot;upper&quot;: upper_hier
+    })
+
+# Combine the summaries into a single DataFrame.
+summary_df = pd.DataFrame(np_summary + hier_summary)
+# Convert the year to a string for plotting.
+summary_df[&quot;year&quot;] = summary_df[&quot;year&quot;].astype(str)
+
+# Sort by year (optional)
+summary_df = summary_df.sort_values(&quot;year&quot;)
+
+# Plotting the forest plot:
+plt.figure(figsize=(8, 6))
+
+# Define colors for the two models.
+colors = {&quot;No Pooling&quot;: &quot;#e74c3c&quot;, &quot;Hierarchical&quot;: &quot;#3498db&quot;}
+
+# Plot each model&#x27;s estimates as error bars.
+for model in summary_df[&quot;model&quot;].unique():
+    df_model = summary_df[summary_df[&quot;model&quot;] == model]
+    plt.errorbar(
+        df_model[&quot;median&quot;], 
+        df_model[&quot;year&quot;],
+        xerr=[df_model[&quot;median&quot;] - df_model[&quot;lower&quot;], df_model[&quot;upper&quot;] - df_model[&quot;median&quot;]],
+        fmt=&#x27;o&#x27;, color=colors[model], capsize=5, label=model,
+        markersize=8 
+    )
+
+plt.xlabel(&quot;Estimated μ (Score Mean)&quot;, fontsize=12, fontweight=&#x27;bold&#x27;)
+plt.ylabel(&quot;Year&quot;, fontsize=12, fontweight=&#x27;bold&#x27;)
+plt.title(&quot;Comparison of μ Estimates: No Pooling vs. Hierarchical (Shrinkage)&quot;, fontsize=14, fontweight=&#x27;bold&#x27;)
+plt.legend()
+plt.tight_layout()
+plt.show()
+</code></pre></details><img src="figures/cell-19-0.png" alt="Saved figure from cell 20" loading="lazy"><p>The results look almost identical. This is likely due to the
+uninformative priors that match in overall variability and the data
+size. Each year had a large number of observations, so the likelihood
+dominates the prior. In addition, each year’s data point to similar
+means, so shrinkage is little. However, in 2023, you can see that the
+hierarchical model did pull the mean estimate to the left where the
+other years’ means are by a little. This shows some amount of
+shrinkage.</p>
+<details><summary>Show code · cell 22</summary><pre><code># Create a DataFrame to hold the differences for each year.
+diffs = []
+for year in summary_df[&quot;year&quot;].unique():
+    # Get no pooling and hierarchical summaries for the given year.
+    np_val = summary_df[(summary_df[&quot;year&quot;] == year) &amp; (summary_df[&quot;model&quot;] == &quot;No Pooling&quot;)].iloc[0]
+    hier_val = summary_df[(summary_df[&quot;year&quot;] == year) &amp; (summary_df[&quot;model&quot;] == &quot;Hierarchical&quot;)].iloc[0]
+    diff = hier_val[&quot;median&quot;] - np_val[&quot;median&quot;]
+    # For error bars, compute differences in lower and upper bounds.
+    lower_diff = hier_val[&quot;lower&quot;] - np_val[&quot;upper&quot;]  # worst-case lower difference
+    upper_diff = hier_val[&quot;upper&quot;] - np_val[&quot;lower&quot;]  # worst-case upper difference
+    diffs.append({
+        &quot;year&quot;: year,
+        &quot;difference&quot;: diff,
+        &quot;lower_diff&quot;: diff - lower_diff,  # error bar extent left
+        &quot;upper_diff&quot;: upper_diff - diff   # error bar extent right
+    })
+df_diff = pd.DataFrame(diffs)
+
+# Plot the differences as a bar chart with error bars.
+plt.figure(figsize=(8, 6))
+plt.errorbar(
+    df_diff[&quot;year&quot;], 
+    df_diff[&quot;difference&quot;],
+    yerr=[df_diff[&quot;lower_diff&quot;], df_diff[&quot;upper_diff&quot;]],
+    fmt=&#x27;o&#x27;, color=&#x27;purple&#x27;, capsize=5
+)
+plt.axhline(0, color=&#x27;gray&#x27;, linestyle=&#x27;--&#x27;)
+plt.xlabel(&quot;Year&quot;, fontsize=12, fontweight=&#x27;bold&#x27;)
+plt.ylabel(&quot;Hierarchical μ - No Pooling μ&quot;, fontsize=12, fontweight=&#x27;bold&#x27;)
+plt.title(&quot;Differences in μ Estimates (Hierarchical - No Pooling)&quot;, fontsize=14, fontweight=&#x27;bold&#x27;)
+plt.tight_layout()
+plt.show()
+</code></pre></details><img src="figures/cell-21-0.png" alt="Saved figure from cell 22" loading="lazy"><p>Here, you can see the slight difference more clearly. The difference
+is only visible in the year 2023.</p>
+<h3
+id="improved-hierarchical-model-for-test-scores-using-a-logitnormal-distribution">Improved
+Hierarchical Model for Test Scores Using a Logit‑Normal
+Distribution</h3>
+<p>In this model we assume that the underlying (scaled) test scores
+follow a Logit‑Normal distribution. Because test scores are bounded
+between 0 and 1500 and may exhibit skewness or ceiling effects—features
+that a standard Normal does not capture—we work on the logit scale and
+then transform back to the original score scale.</p>
+<p>For each year
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>j</mi><annotation encoding="application/x-tex">j</annotation></semantics></math>,
+we assume that the (scaled) score
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>X</mi><mi>j</mi></msub><annotation encoding="application/x-tex">X_j</annotation></semantics></math>
+(with
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>X</mi><mi>j</mi></msub><mo>∈</mo><mo stretchy="false" form="prefix">(</mo><mn>0</mn><mo>,</mo><mn>1</mn><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">X_j \in (0,1)</annotation></semantics></math>)
+is modeled on the logit scale as</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>logit</mi><mo>&#8289;</mo><mo stretchy="false" form="prefix">(</mo><msub><mi>X</mi><mi>j</mi></msub><mo stretchy="false" form="postfix">)</mo><mo>∼</mo><mi>𝒩</mi><mo stretchy="false" form="prefix">(</mo><msub><mi>μ</mi><mi>j</mi></msub><mo>,</mo><mspace width="0.167em"></mspace><msubsup><mi>σ</mi><mi>j</mi><mn>2</mn></msubsup><mo stretchy="false" form="postfix">)</mo><mi>.</mi></mrow><annotation encoding="application/x-tex">
+\operatorname{logit}(X_j) \sim \mathcal{N}(\mu_j,\,\sigma_j^2).
+</annotation></semantics></math></p>
+<p>The effective mean on the original score scale is defined as</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>μ</mi><mrow><mtext mathvariant="normal">effective</mtext><mo>,</mo><mi>j</mi></mrow></msub><mo>=</mo><mi>sigmoid</mi><mo>&#8289;</mo><mo stretchy="false" form="prefix">(</mo><msub><mi>μ</mi><mi>j</mi></msub><mo stretchy="false" form="postfix">)</mo><mo>×</mo><mn>1500</mn><mi>.</mi></mrow><annotation encoding="application/x-tex">
+\mu_{\text{effective},j} = \operatorname{sigmoid}(\mu_j) \times 1500.
+</annotation></semantics></math></p>
+<h4 id="priors">Priors</h4>
+<p><strong>Year-specific Parameters:</strong></p>
+<ul>
+<li><p><strong>Means:</strong></p>
+<p>For each year
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>j</mi><annotation encoding="application/x-tex">j</annotation></semantics></math>,
+the logit-scale mean is modeled hierarchically as</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>μ</mi><mi>j</mi></msub><mo>∼</mo><mi>𝒩</mi><mo stretchy="false" form="prefix">(</mo><msub><mi>μ</mi><mrow><mi>p</mi><mi>o</mi><mi>p</mi></mrow></msub><mo>,</mo><mspace width="0.167em"></mspace><msubsup><mi>σ</mi><mi>μ</mi><mn>2</mn></msubsup><mo stretchy="false" form="postfix">)</mo><mi>.</mi></mrow><annotation encoding="application/x-tex">
+\mu_j \sim \mathcal{N}(\mu_{pop},\,\sigma_{\mu}^2).
+</annotation></semantics></math></p>
+<p>We set the hyperpriors for the population-level means as</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>μ</mi><mrow><mi>p</mi><mi>o</mi><mi>p</mi></mrow></msub><mo>∼</mo><mi>𝒩</mi><mo stretchy="false" form="prefix">(</mo><mn>0.693</mn><mo>,</mo><mspace width="0.167em"></mspace><msup><mn>0.64</mn><mn>2</mn></msup><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">
+\mu_{pop} \sim \mathcal{N}(0.693,\,0.64^2)
+</annotation></semantics></math></p>
+<p>and</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>σ</mi><mi>μ</mi></msub><mo>∼</mo><mtext mathvariant="normal">HalfNormal</mtext><mo stretchy="false" form="prefix">(</mo><mn>0.64</mn><mo stretchy="false" form="postfix">)</mo><mi>.</mi></mrow><annotation encoding="application/x-tex">
+\sigma_{\mu} \sim \text{HalfNormal}(0.64).
+</annotation></semantics></math></p>
+<p>The value
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mn>0.693</mn><annotation encoding="application/x-tex">0.693</annotation></semantics></math>
+is chosen because</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>sigmoid</mi><mo>&#8289;</mo><mo stretchy="false" form="prefix">(</mo><mn>0.693</mn><mo stretchy="false" form="postfix">)</mo><mo>≈</mo><mn>0.667</mn><mo>,</mo></mrow><annotation encoding="application/x-tex">
+\operatorname{sigmoid}(0.693) \approx 0.667,
+</annotation></semantics></math></p>
+<p>and when we multiply by 1500, the effective mean becomes</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>0.667</mn><mo>×</mo><mn>1500</mn><mo>≈</mo><mn>1000</mn><mi>.</mi></mrow><annotation encoding="application/x-tex">
+0.667 \times 1500 \approx 1000.
+</annotation></semantics></math></p>
+<p>In other words, these priors are set on the logit scale so that,
+after applying the sigmoid transformation and scaling by 1500, the
+effective means are centered near 1000. A logit-scale standard deviation
+of
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mn>0.64</mn><annotation encoding="application/x-tex">0.64</annotation></semantics></math>
+for both
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>μ</mi><mrow><mi>p</mi><mi>o</mi><mi>p</mi></mrow></msub><annotation encoding="application/x-tex">\mu_{pop}</annotation></semantics></math>
+and the between-year variability (via
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>σ</mi><mi>μ</mi></msub><annotation encoding="application/x-tex">\sigma_{\mu}</annotation></semantics></math>)
+implies that typical deviations on the logit scale translate to an
+effective standard deviation on the score scale of roughly</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>0.64</mn><mo>×</mo><mi>sigmoid</mi><mo>&#8289;</mo><mo stretchy="false" form="prefix">(</mo><mn>0.693</mn><mo stretchy="false" form="postfix">)</mo><mspace width="0.167em"></mspace><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>−</mo><mi>sigmoid</mi><mo>&#8289;</mo><mo stretchy="false" form="prefix">(</mo><mn>0.693</mn><mo stretchy="false" form="postfix">)</mo><mo stretchy="false" form="postfix">)</mo><mo>×</mo><mn>1500</mn><mo>≈</mo><mn>0.64</mn><mo>×</mo><mn>0.222</mn><mo>×</mo><mn>1500</mn><mo>≈</mo><mn>213</mn><mi>.</mi></mrow><annotation encoding="application/x-tex">
+0.64 \times \operatorname{sigmoid}(0.693)\,(1-\operatorname{sigmoid}(0.693)) \times 1500 \approx 0.64 \times 0.222 \times 1500 \approx 213.
+</annotation></semantics></math></p>
+<p>This provides moderate variability in the effective means across
+years.</p></li>
+<li><p><strong>Standard Deviations:</strong></p>
+<p>For each year
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>j</mi><annotation encoding="application/x-tex">j</annotation></semantics></math>,
+we assume that the standard deviation (on the logit scale) is modeled
+as</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>σ</mi><mi>j</mi></msub><mo>∼</mo><mtext mathvariant="normal">HalfNormal</mtext><mo stretchy="false" form="prefix">(</mo><msub><mi>σ</mi><mi>σ</mi></msub><mo stretchy="false" form="postfix">)</mo><mo>,</mo></mrow><annotation encoding="application/x-tex">
+\sigma_j \sim \text{HalfNormal}(\sigma_{\sigma}),
+</annotation></semantics></math></p>
+<p>with the hyperprior</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>σ</mi><mi>σ</mi></msub><mo>∼</mo><mtext mathvariant="normal">HalfNormal</mtext><mo stretchy="false" form="prefix">(</mo><mn>0.9</mn><mo stretchy="false" form="postfix">)</mo><mi>.</mi></mrow><annotation encoding="application/x-tex">
+\sigma_{\sigma} \sim \text{HalfNormal}(0.9).
+</annotation></semantics></math></p>
+<p>Although
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mn>0.9</mn><annotation encoding="application/x-tex">0.9</annotation></semantics></math>
+might seem modest on the logit scale, the nonlinearity of the sigmoid
+function means that small differences on the logit scale can lead to
+substantial differences on the original score scale. This setup is
+intended to yield effective variability in the standard deviations that
+is comparable to the no pooling model (where the standard deviation was
+modeled as
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mtext mathvariant="normal">HalfNormal</mtext><mo stretchy="false" form="prefix">(</mo><mn>300</mn><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\text{HalfNormal}(300)</annotation></semantics></math>
+on the score scale).</p></li>
+</ul>
+<h4 id="likelihood">Likelihood</h4>
+<p>The data for each year are provided as binned counts. Suppose for a
+given year the bin edges are</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>b</mi><mn>0</mn></msub><mo>,</mo><mspace width="0.167em"></mspace><msub><mi>b</mi><mn>1</mn></msub><mo>,</mo><mspace width="0.167em"></mspace><mi>…</mi><mo>,</mo><mspace width="0.167em"></mspace><msub><mi>b</mi><mi>K</mi></msub><mo>,</mo></mrow><annotation encoding="application/x-tex">
+b_0,\,b_1,\,\dots,\,b_K,
+</annotation></semantics></math></p>
+<p>(e.g.,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>0</mn><mo>,</mo><mspace width="0.167em"></mspace><mn>125</mn><mo>,</mo><mspace width="0.167em"></mspace><mn>250</mn><mo>,</mo><mspace width="0.167em"></mspace><mi>…</mi><mo>,</mo><mspace width="0.167em"></mspace><mn>1500</mn></mrow><annotation encoding="application/x-tex">0,\,125,\,250,\,\dots,\,1500</annotation></semantics></math>)
+and the observed counts are</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>y</mi><mn>1</mn></msub><mo>,</mo><mspace width="0.167em"></mspace><msub><mi>y</mi><mn>2</mn></msub><mo>,</mo><mspace width="0.167em"></mspace><mi>…</mi><mo>,</mo><mspace width="0.167em"></mspace><msub><mi>y</mi><mi>K</mi></msub><mo>,</mo></mrow><annotation encoding="application/x-tex">
+y_1,\,y_2,\,\dots,\,y_K,
+</annotation></semantics></math></p>
+<p>with total observations</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>N</mi><mo>=</mo><munderover><mo>∑</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>K</mi></munderover><msub><mi>y</mi><mi>i</mi></msub><mi>.</mi></mrow><annotation encoding="application/x-tex">
+N = \sum_{i=1}^{K} y_i.
+</annotation></semantics></math></p>
+<p>We first scale the bin edges to the unit interval by computing</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msubsup><mi>b</mi><mi>i</mi><mo>*</mo></msubsup><mo>=</mo><mfrac><msub><mi>b</mi><mi>i</mi></msub><mn>1500</mn></mfrac><mi>.</mi></mrow><annotation encoding="application/x-tex">
+b_i^* = \frac{b_i}{1500}.
+</annotation></semantics></math></p>
+<p>Next, we compute the cumulative probability at each scaled bin edge
+using a differentiable Logit‑Normal CDF defined as</p>
+<p><span class="math display">$$
+\text{logit\_normal\_cdf}(x,\mu,\sigma) = 0.5\Bigl[1 +
+\operatorname{erf}\Bigl(\frac{\ln\frac{x}{1-x} -
+\mu}{\sigma\sqrt{2}}\Bigr)\Bigr].
+$$</span></p>
+<p>For a given year
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>j</mi><annotation encoding="application/x-tex">j</annotation></semantics></math>,
+the probability mass in the
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>i</mi><annotation encoding="application/x-tex">i</annotation></semantics></math>-th
+bin is</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>p</mi><mi>i</mi></msub><mo>=</mo><mi>F</mi><mo stretchy="false" form="prefix">(</mo><msubsup><mi>b</mi><mi>i</mi><mo>*</mo></msubsup><mo>;</mo><msub><mi>μ</mi><mi>j</mi></msub><mo>,</mo><msub><mi>σ</mi><mi>j</mi></msub><mo stretchy="false" form="postfix">)</mo><mo>−</mo><mi>F</mi><mo stretchy="false" form="prefix">(</mo><msubsup><mi>b</mi><mrow><mi>i</mi><mo>−</mo><mn>1</mn></mrow><mo>*</mo></msubsup><mo>;</mo><msub><mi>μ</mi><mi>j</mi></msub><mo>,</mo><msub><mi>σ</mi><mi>j</mi></msub><mo stretchy="false" form="postfix">)</mo><mo>,</mo></mrow><annotation encoding="application/x-tex">
+p_i = F(b_i^*;\mu_j,\sigma_j) - F(b_{i-1}^*;\mu_j,\sigma_j),
+</annotation></semantics></math></p>
+<p>where
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>F</mi><mo stretchy="false" form="prefix">(</mo><mi>x</mi><mo>;</mo><msub><mi>μ</mi><mi>j</mi></msub><mo>,</mo><msub><mi>σ</mi><mi>j</mi></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">F(x;\mu_j,\sigma_j)</annotation></semantics></math>
+is the Logit‑Normal CDF. Since there might be probability mass outside
+the observed range, we then renormalize the vector</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>𝐩</mi><mo>=</mo><mo stretchy="false" form="prefix">(</mo><msub><mi>p</mi><mn>1</mn></msub><mo>,</mo><msub><mi>p</mi><mn>2</mn></msub><mo>,</mo><mi>…</mi><mo>,</mo><msub><mi>p</mi><mi>K</mi></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">
+\mathbf{p} = (p_1, p_2, \dots, p_K)
+</annotation></semantics></math></p>
+<p>so that</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><munderover><mo>∑</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>K</mi></munderover><msub><mi>p</mi><mi>i</mi></msub><mo>=</mo><mn>1</mn><mi>.</mi></mrow><annotation encoding="application/x-tex">
+\sum_{i=1}^{K} p_i = 1.
+</annotation></semantics></math></p>
+<p>Finally, the observed bin counts are modeled as</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>𝐲</mi><mo>∼</mo><mtext mathvariant="normal">Multinomial</mtext><mo stretchy="false" form="prefix">(</mo><mi>N</mi><mo>,</mo><mi>𝐩</mi><mo stretchy="false" form="postfix">)</mo><mi>.</mi></mrow><annotation encoding="application/x-tex">
+\mathbf{y} \sim \text{Multinomial}(N, \mathbf{p}).
+</annotation></semantics></math></p>
+<details><summary>Show code · cell 25</summary><pre><code>import numpy as np
+
+# Compute sigmoid(0.693)
+sigmoid_value = 1 / (1 + np.exp(-0.64))
+print(&quot;sigmoid(0.693) =&quot;, sigmoid_value)
+
+# Multiply by 1500
+effective_mean = sigmoid_value * 1500
+print(&quot;Effective mean =&quot;, effective_mean)
+</code></pre></details><details><summary>Saved output · cell 25</summary><pre>sigmoid(0.693) = 0.6547534606063192
+Effective mean = 982.1301909094789
+</pre></details><details><summary>Show code · cell 26</summary><pre><code>import pymc as pm
+import pytensor.tensor as pt
+import numpy as np
+
+# A small constant to avoid zero probabilities in the tail
+eps = 1e-9
+
+# Number of years (each year in data_per_year gets its own parameters)
+n_years = len(data_per_year)
+scale = 1500  # maximum possible score
+
+with pm.Model() as logit_normal_hier_model:
+    # Hyperpriors for the population-level means (on the logit scale)
+    mu_pop = pm.Normal(&quot;mu_pop&quot;, mu=0.693, sigma=0.64)
+    sigma_mu = pm.HalfNormal(&quot;sigma_mu&quot;, sigma=0.64)
+    
+    # Hyperpriors for the standard deviations (on the logit scale)
+    sigma_sigma = pm.HalfNormal(&quot;sigma_sigma&quot;, sigma=0.9)
+    
+    # Year-specific parameters (partial pooling) on the logit scale:
+    mu_year = pm.Normal(&quot;mu_year&quot;, mu=mu_pop, sigma=sigma_mu, shape=n_years)
+    sigma_year = pm.HalfNormal(&quot;sigma_year&quot;, sigma=sigma_sigma, shape=n_years)
+    
+    # For reporting, define an effective mean on the score scale.
+    mu_effective = pm.Deterministic(&quot;mu_effective&quot;, pm.math.sigmoid(mu_year) * scale)
+    
+    # Likelihood: For each year, compute the probability mass in each bin.
+    # The differentiable logit-normal CDF:
+    def logit_normal_cdf(x, mu, sigma, eps=1e-6):
+        x_clipped = pm.math.clip(x, eps, 1-eps)
+        logit_x = pm.math.log(x_clipped/(1-x_clipped))
+        return 0.5 * (1 + pm.math.erf((logit_x - mu) / (sigma * pt.sqrt(2))))
+    
+    for i, d in enumerate(data_per_year):
+        bin_edges = d[&#x27;bin_edges&#x27;]
+        bin_counts = d[&#x27;bin_counts&#x27;]
+        total_counts = bin_counts.sum()
+        
+        # Scale bin edges to [0,1]
+        bin_edges_scaled = bin_edges / scale
+        
+        # Compute the logit-normal CDF at each bin edge using the year-specific parameters.
+        cdfs = logit_normal_cdf(bin_edges_scaled, mu_year[i], sigma_year[i])
+        p_raw = pt.extra_ops.diff(cdfs)
+        p = pt.clip(p_raw, eps, 1)
+        p = p / pt.sum(p)
+        
+        # Likelihood: observed counts are modeled as a draw from a Multinomial.
+        pm.Multinomial(f&quot;counts_year_{d[&#x27;year&#x27;]}&quot;, n=total_counts, p=p, observed=bin_counts)
+    
+    trace_lognormal_hier = pm.sample(1000, tune=1500, target_accept=0.999, return_inferencedata=True)
+</code></pre></details><details><summary>Saved output · cell 26</summary><pre>Initializing NUTS using jitter+adapt_diag...
+Multiprocess sampling (4 chains in 4 jobs)
+NUTS: [mu_pop, sigma_mu, sigma_sigma, mu_year, sigma_year]
+</pre></details><details><summary>Saved output · cell 26</summary><pre>Output()</pre></details><details><summary>Saved output · cell 26</summary><pre>Sampling 4 chains for 1_500 tune and 1_000 draw iterations (6_000 + 4_000 draws total) took 23 seconds.
+</pre></details><details><summary>Show code · cell 27</summary><pre><code>from matplotlib.lines import Line2D
+import matplotlib.pyplot as plt
+import arviz as az
+
+# Loop over each year using its index (i) to select the corresponding slice.
+for i, d in enumerate(data_per_year):
+    year = d[&#x27;year&#x27;]
+    # Use the correct dimension names for selection.
+    coords = {&quot;mu_year_dim_0&quot;: [i], &quot;sigma_year_dim_0&quot;: [i]}
+    
+    # Trace Plots for the year-specific parameters.
+    fig_trace = az.plot_trace(
+        trace_lognormal_hier, 
+        var_names=[&quot;mu_year&quot;, &quot;sigma_year&quot;],
+        coords=coords,
+        figsize=(10, 6)
+    )
+    plt.tight_layout()
+    plt.suptitle(f&quot;Trace Plots for Year {year} (Hierarchical Logit-Normal)&quot;, fontsize=14, y=1.02)
+    plt.show()
+    
+    # Posterior Distribution Plots for the year-specific parameters.
+    fig_post = az.plot_posterior(
+        trace_lognormal_hier, 
+        var_names=[&quot;mu_year&quot;, &quot;sigma_year&quot;],
+        coords=coords,
+        figsize=(10, 4)
+    )
+    plt.tight_layout()
+    plt.suptitle(f&quot;Posterior Distributions for Year {year} (Hierarchical Logit-Normal)&quot;, fontsize=14, y=1.02)
+    plt.show()
+    
+    # Summary statistics for the year-specific parameters.
+    print(f&quot;\n--- Summary Statistics for Year {year} (Hierarchical Logit-Normal) ---&quot;)
+    summary = az.summary(trace_lognormal_hier, var_names=[&quot;mu_year&quot;, &quot;sigma_year&quot;], coords=coords, round_to=3)
+    display(summary)
+</code></pre></details><img src="figures/cell-26-0.png" alt="Saved figure from cell 27" loading="lazy"><img src="figures/cell-26-1.png" alt="Saved figure from cell 27" loading="lazy"><details><summary>Saved output · cell 27</summary><pre>
+--- Summary Statistics for Year 2021 (Hierarchical Logit-Normal) ---
+</pre></details><details><summary>Saved output · cell 27</summary><pre>                mean     sd  hdi_3%  hdi_97%  mcse_mean  mcse_sd  ess_bulk  \
+mu_year[0]     1.465  0.007   1.452    1.478        0.0      0.0  5481.207   
+sigma_year[0]  0.638  0.005   0.629    0.648        0.0      0.0  4436.511   
+
+               ess_tail  r_hat  
+mu_year[0]     2970.551  1.005  
+sigma_year[0]  3116.852  1.000  </pre></details><img src="figures/cell-26-4.png" alt="Saved figure from cell 27" loading="lazy"><img src="figures/cell-26-5.png" alt="Saved figure from cell 27" loading="lazy"><details><summary>Saved output · cell 27</summary><pre>
+--- Summary Statistics for Year 2022 (Hierarchical Logit-Normal) ---
+</pre></details><details><summary>Saved output · cell 27</summary><pre>                mean     sd  hdi_3%  hdi_97%  mcse_mean  mcse_sd  ess_bulk  \
+mu_year[1]     1.469  0.007   1.457    1.482        0.0      0.0  4463.972   
+sigma_year[1]  0.640  0.005   0.631    0.651        0.0      0.0  4865.615   
+
+               ess_tail  r_hat  
+mu_year[1]     3004.307  1.003  
+sigma_year[1]  2787.115  1.000  </pre></details><img src="figures/cell-26-8.png" alt="Saved figure from cell 27" loading="lazy"><img src="figures/cell-26-9.png" alt="Saved figure from cell 27" loading="lazy"><details><summary>Saved output · cell 27</summary><pre>
+--- Summary Statistics for Year 2023 (Hierarchical Logit-Normal) ---
+</pre></details><details><summary>Saved output · cell 27</summary><pre>                mean     sd  hdi_3%  hdi_97%  mcse_mean  mcse_sd  ess_bulk  \
+mu_year[2]     1.684  0.007   1.671    1.697        0.0      0.0  4654.062   
+sigma_year[2]  0.677  0.005   0.667    0.687        0.0      0.0  5468.599   
+
+               ess_tail  r_hat  
+mu_year[2]     2622.377  1.000  
+sigma_year[2]  2936.209  1.001  </pre></details><img src="figures/cell-26-12.png" alt="Saved figure from cell 27" loading="lazy"><img src="figures/cell-26-13.png" alt="Saved figure from cell 27" loading="lazy"><details><summary>Saved output · cell 27</summary><pre>
+--- Summary Statistics for Year 2024 (Hierarchical Logit-Normal) ---
+</pre></details><details><summary>Saved output · cell 27</summary><pre>                mean     sd  hdi_3%  hdi_97%  mcse_mean  mcse_sd  ess_bulk  \
+mu_year[3]     1.474  0.007   1.462    1.486        0.0      0.0  4391.954   
+sigma_year[3]  0.654  0.005   0.645    0.663        0.0      0.0  4956.328   
+
+               ess_tail  r_hat  
+mu_year[3]     2860.260    1.0  
+sigma_year[3]  2789.851    1.0  </pre></details><p>The sampler looks good.</p>
+<details><summary>Show code · cell 29</summary><pre><code>from matplotlib.lines import Line2D
+import numpy as np
+import pymc as pm
+import matplotlib.pyplot as plt
+
+# Create a figure with a 2x2 grid of subplots
+fig, axes = plt.subplots(2, 2, figsize=(16, 12))
+
+# Define the order of years in the grid
+years_order = [2021, 2022, 2023, 2024]
+
+# To ensure consistent y-axis limits, determine the maximum y-value across all years
+max_y = 0
+for year in years_order:
+    # Find the data for this year
+    year_data = next(d for d in data_per_year if d[&#x27;year&#x27;] == year)
+    bin_counts = year_data[&#x27;bin_counts&#x27;]
+    # Get hierarchical posterior predictive for this year:
+    with logit_normal_hier_model:
+        ppc_hier = pm.sample_posterior_predictive(
+            trace_lognormal_hier, 
+            var_names=[f&quot;counts_year_{year}&quot;],
+            return_inferencedata=True
+        )
+    ppc_counts = ppc_hier.posterior_predictive[f&quot;counts_year_{year}&quot;].mean(dim=[&quot;chain&quot;, &quot;draw&quot;]).values
+    max_y = max(max_y, np.max(bin_counts), np.max(ppc_counts))
+max_y = max_y * 1.1  # add some padding
+
+# Define consistent tick positions for all plots
+common_ticks = np.array([0, 400, 800, 1000, 1200, 1400, 1500])
+
+# Plot each year in the grid
+for i, year in enumerate(years_order):
+    # Retrieve data for this year
+    year_data = next(d for d in data_per_year if d[&#x27;year&#x27;] == year)
+    bin_edges = year_data[&#x27;bin_edges&#x27;]
+    observed_counts = year_data[&#x27;bin_counts&#x27;]
+    
+    # For the hierarchical logit-normal model, extract the year-specific parameter estimates.
+    # The trace uses dimensions named &quot;mu_year_dim_0&quot; and &quot;sigma_year_dim_0&quot;.
+    mu_mean = trace_lognormal_hier.posterior[&quot;mu_year&quot;].isel(mu_year_dim_0=i).mean().values
+    sigma_mean = trace_lognormal_hier.posterior[&quot;sigma_year&quot;].isel(sigma_year_dim_0=i).mean().values
+    
+    # Get hierarchical posterior predictive for counts_year_{year}
+    with logit_normal_hier_model:
+        ppc_hier = pm.sample_posterior_predictive(
+            trace_lognormal_hier, 
+            var_names=[f&quot;counts_year_{year}&quot;],
+            return_inferencedata=True
+        )
+    ppc_counts = ppc_hier.posterior_predictive[f&quot;counts_year_{year}&quot;].mean(dim=[&quot;chain&quot;, &quot;draw&quot;]).values
+    
+    # Calculate x positions and bar widths based on bin edges
+    x_left = bin_edges[:-1]
+    bin_widths = np.diff(bin_edges)
+    
+    # Determine subplot position (row, col)
+    row = i // 2
+    col = i % 2
+    ax = axes[row, col]
+    
+    # Plot observed counts as bars (bars span the bin from left edge to next edge)
+    obs_bars = ax.bar(
+        x_left, 
+        observed_counts, 
+        width=bin_widths, 
+        align=&#x27;edge&#x27;, 
+        alpha=0.65, 
+        color=&#x27;#3498db&#x27;,
+        edgecolor=&#x27;#2980b9&#x27;,
+        linewidth=1,
+        label=&#x27;Observed&#x27;
+    )
+    
+    # Plot posterior predictive counts as bars using the same positions
+    pred_bars = ax.bar(
+        x_left, 
+        ppc_counts, 
+        width=bin_widths, 
+        align=&#x27;edge&#x27;, 
+        alpha=0.65, 
+        color=&#x27;#e74c3c&#x27;,
+        edgecolor=&#x27;#c0392b&#x27;,
+        linewidth=1,
+        label=&#x27;Posterior Predictive&#x27;
+    )
+    
+    # Set consistent axis limits and ticks
+    ax.set_xlim(0, 1500)
+    ax.set_ylim(0, max_y)
+    ax.set_xticks(common_ticks)
+    ax.set_xticklabels([str(tick) for tick in common_ticks], fontsize=10)
+    
+    # Add title and axis labels
+    ax.set_title(f&quot;Year {year}: Hierarchical Logit-Normal Distribution Model&quot;, fontsize=14, fontweight=&#x27;bold&#x27;)
+    if row == 1:
+        ax.set_xlabel(&quot;Score&quot;, fontsize=12, fontweight=&#x27;bold&#x27;)
+    if col == 0:
+        ax.set_ylabel(&quot;Number of Students&quot;, fontsize=12, fontweight=&#x27;bold&#x27;)
+    
+    # Add model parameter means to the plot as a text box
+    textstr = f&#x27;μ = {mu_mean:.1f}\nσ = {sigma_mean:.1f}&#x27;
+    props = dict(boxstyle=&#x27;round&#x27;, facecolor=&#x27;white&#x27;, alpha=0.7)
+    ax.text(0.05, 0.95, textstr, transform=ax.transAxes, fontsize=12,
+            verticalalignment=&#x27;top&#x27;, bbox=props)
+    
+# Create a common legend for the entire figure
+legend_elements = [
+    plt.Rectangle((0,0), 1, 1, fc=&#x27;#3498db&#x27;, ec=&#x27;#2980b9&#x27;, alpha=0.65),
+    plt.Rectangle((0,0), 1, 1, fc=&#x27;#e74c3c&#x27;, ec=&#x27;#c0392b&#x27;, alpha=0.65)
+]
+fig.legend(
+    legend_elements, 
+    [&#x27;Observed&#x27;, &#x27;Posterior Predictive&#x27;],
+    loc=&#x27;upper center&#x27;, ncol=2, fontsize=12, bbox_to_anchor=(0.5, 0.98)
+)
+
+# Overall figure title
+fig.suptitle(&quot;Observed vs. Posterior Predictive by Year (Hierarchical Logit-Normal Model)&quot;, fontsize=16, fontweight=&#x27;bold&#x27;, y=1.05)
+
+plt.tight_layout()
+plt.subplots_adjust(top=0.9)  # leave room for the suptitle
+plt.show()
+</code></pre></details><details><summary>Saved output · cell 29</summary><pre>Sampling: [counts_year_2021]
+</pre></details><details><summary>Saved output · cell 29</summary><pre>Output()</pre></details><details><summary>Saved output · cell 29</summary><pre>Sampling: [counts_year_2022]
+</pre></details><details><summary>Saved output · cell 29</summary><pre>Output()</pre></details><details><summary>Saved output · cell 29</summary><pre>Sampling: [counts_year_2023]
+</pre></details><details><summary>Saved output · cell 29</summary><pre>Output()</pre></details><details><summary>Saved output · cell 29</summary><pre>Sampling: [counts_year_2024]
+</pre></details><details><summary>Saved output · cell 29</summary><pre>Output()</pre></details><details><summary>Saved output · cell 29</summary><pre>Sampling: [counts_year_2021]
+</pre></details><details><summary>Saved output · cell 29</summary><pre>Output()</pre></details><details><summary>Saved output · cell 29</summary><pre>Sampling: [counts_year_2022]
+</pre></details><details><summary>Saved output · cell 29</summary><pre>Output()</pre></details><details><summary>Saved output · cell 29</summary><pre>Sampling: [counts_year_2023]
+</pre></details><details><summary>Saved output · cell 29</summary><pre>Output()</pre></details><details><summary>Saved output · cell 29</summary><pre>Sampling: [counts_year_2024]
+</pre></details><details><summary>Saved output · cell 29</summary><pre>Output()</pre></details><img src="figures/cell-28-24.png" alt="Saved figure from cell 29" loading="lazy"><details><summary>Show code · cell 30</summary><pre><code>import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+scale = 1500  # scaling factor for the logit-normal model
+
+# Create lists to hold summary statistics for μ from each model.
+np_summary   = []  # for no pooling estimates
+hier_summary = []  # for hierarchical (normal) estimates
+ln_summary   = []  # for logit-normal estimates
+
+# Loop over each year&#x27;s data.
+for idx, d in enumerate(data_per_year):
+    year = d[&#x27;year&#x27;]
+    
+    # --- No Pooling Summary ---
+    trace_np = traces_no_pool[year].posterior
+    mu_np_samples = trace_np[&quot;mu&quot;].values.flatten()
+    lower_np   = np.percentile(mu_np_samples, 2.5)
+    median_np  = np.median(mu_np_samples)
+    upper_np   = np.percentile(mu_np_samples, 97.5)
+    np_summary.append({
+        &quot;year&quot;: year,
+        &quot;model&quot;: &quot;No Pooling&quot;,
+        &quot;median&quot;: median_np,
+        &quot;lower&quot;: lower_np,
+        &quot;upper&quot;: upper_np
+    })
+    
+    # --- Hierarchical (Normal) Model Summary ---
+    mu_hier_samples = trace_hier.posterior[&quot;mu_year&quot;].isel(mu_year_dim_0=idx).values.flatten()
+    lower_hier = np.percentile(mu_hier_samples, 2.5)
+    median_hier = np.median(mu_hier_samples)
+    upper_hier = np.percentile(mu_hier_samples, 97.5)
+    hier_summary.append({
+        &quot;year&quot;: year,
+        &quot;model&quot;: &quot;Hierarchical&quot;,
+        &quot;median&quot;: median_hier,
+        &quot;lower&quot;: lower_hier,
+        &quot;upper&quot;: upper_hier
+    })
+    
+    # --- Logit Normal Model Summary ---
+    # For the logit-normal model, use the effective μ (mu_effective) which is already scaled.
+    # Use the correct dimension name, e.g., &quot;mu_effective_dim_0&quot;
+    mu_ln_samples = trace_lognormal_hier.posterior[&quot;mu_effective&quot;].isel(mu_effective_dim_0=idx).values.flatten()
+    lower_ln = np.percentile(mu_ln_samples, 2.5)
+    median_ln = np.median(mu_ln_samples)
+    upper_ln = np.percentile(mu_ln_samples, 97.5)
+    ln_summary.append({
+        &quot;year&quot;: year,
+        &quot;model&quot;: &quot;Logit Normal&quot;,
+        &quot;median&quot;: median_ln,
+        &quot;lower&quot;: lower_ln,
+        &quot;upper&quot;: upper_ln
+    })
+
+# Combine the summaries into a single DataFrame.
+summary_df = pd.DataFrame(np_summary + hier_summary + ln_summary)
+# Convert the year to numeric for ordering.
+summary_df[&quot;year&quot;] = summary_df[&quot;year&quot;].astype(int)
+summary_df = summary_df.sort_values(&quot;year&quot;)
+
+# Map each year to a numeric position (e.g., 2021 -&gt; 1, 2022 -&gt; 2, etc.).
+unique_years = sorted(summary_df[&quot;year&quot;].unique())
+year_to_pos = {year: pos for pos, year in enumerate(unique_years, start=1)}
+
+# Define vertical offsets so that the three models&#x27; points for each year don&#x27;t overlap.
+offsets = {&quot;No Pooling&quot;: -0.2, &quot;Hierarchical&quot;: 0.0, &quot;Logit Normal&quot;: 0.2}
+
+# Define colors for each model.
+colors = {
+    &quot;No Pooling&quot;: &quot;#e74c3c&quot;, 
+    &quot;Hierarchical&quot;: &quot;#3498db&quot;,
+    &quot;Logit Normal&quot;: &quot;#2ecc71&quot;
+}
+
+plt.figure(figsize=(8, 6))
+
+# Plot error bars for each model with vertical offsets.
+for model in summary_df[&quot;model&quot;].unique():
+    df_model = summary_df[summary_df[&quot;model&quot;] == model].copy()
+    # Compute the y-position for each year plus an offset.
+    df_model[&quot;ypos&quot;] = df_model[&quot;year&quot;].map(year_to_pos) + offsets[model]
+    plt.errorbar(
+        df_model[&quot;median&quot;],
+        df_model[&quot;ypos&quot;],
+        xerr=[df_model[&quot;median&quot;] - df_model[&quot;lower&quot;], df_model[&quot;upper&quot;] - df_model[&quot;median&quot;]],
+        fmt=&#x27;o&#x27;, color=colors[model], capsize=5, label=model, markersize=8
+    )
+
+plt.xlabel(&quot;Estimated μ (Score Mean)&quot;, fontsize=12, fontweight=&#x27;bold&#x27;)
+plt.ylabel(&quot;Year&quot;, fontsize=12, fontweight=&#x27;bold&#x27;)
+plt.title(&quot;Comparison of μ Estimates:\nNo Pooling vs. Hierarchical vs. Logit Normal&quot;, fontsize=14, fontweight=&#x27;bold&#x27;)
+# Set y-ticks at the base positions.
+plt.yticks(list(year_to_pos.values()), [str(year) for year in unique_years])
+plt.legend()
+plt.tight_layout()
+plt.show()
+</code></pre></details><img src="figures/cell-29-0.png" alt="Saved figure from cell 30" loading="lazy"><p>The Logit Normal model has smaller error bars. This may be because it
+is a better match for unbounded, potentially skewed data and therefore
+the posterior uncertainty is less. The model is locking in on a shape
+that the data strongly supports.</p>
+<p>It is also estimating higher score means for all years. Perhaps it is
+also due to how it captures the left skewness of the data. Ultimately,
+we need to compare the posterior predictives.</p>
+<p><img src="figures/attachment-31-1.png" alt="image-5.png" /> <img
+src="figures/attachment-31-2.png" alt="image-6.png" /> <img
+src="figures/attachment-31-0.png" alt="image-4.png" /></p>
+<p>The Logit‑Normal model appears to provide a better fit to the data
+than the previous no-pooling and hierarchical Normal models. Although it
+still slightly underestimates counts in the highest score bins and the
+mode bins are somewhat off, overall the posterior predictive plots align
+more closely with the observed data. Importantly, this improved model
+reinforces the evidence that 2021, 2022, and 2024 differ from 2023—with
+the 2023 scores showing a notably higher average performance.</p>
+</body></html>
