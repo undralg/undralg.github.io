@@ -637,5 +637,29 @@
     "role": "Team CS166 course project · Undral and Navneet",
     "chart": null,
     "company": ""
+  },
+  {
+    "slug": "ebike-survey",
+    "title": "Would cheaper e-bikes be enough?",
+    "category": [
+      "Market Research"
+    ],
+    "tags": [
+      "Survey research",
+      "Questionnaire design",
+      "Google Forms",
+      "Data cleaning",
+      "Descriptive statistics"
+    ],
+    "question": "Our team began with a rental subsidy proposal. A pretested street survey surfaced a broader question: what good is a cheaper ride if people cannot find a bike, or do not know the service exists?",
+    "method": "Pretested the questionnaire with 20 students, collected 35 responses, and screened the analysis to 30 San Francisco residents.",
+    "finding": "Cost was the most frequently selected listed barrier, followed by availability and awareness.",
+    "limit": "Exploratory convenience sample; reported barriers do not estimate the effect of a subsidy.",
+    "links": [],
+    "metric": "30",
+    "label": "resident responses",
+    "role": "Team NS51 course project · My work spanned questionnaire design, recruitment, cleaning, analysis, and writing · April 2023",
+    "chart": null,
+    "company": ""
   }
 ]
