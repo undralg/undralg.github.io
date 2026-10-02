@@ -1,0 +1,1063 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Predator Prey · Full analysis</title><style>body{max-width:1000px;margin:auto;padding:28px;font:18px/1.65 system-ui;color:#172b33}h1,h2{font-family:Georgia}a{color:#087d89}img{max-width:100%;height:auto;display:block;margin:25px auto}pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px;max-height:450px;overflow:auto;background:#f2f5f6;padding:16px}details{margin:12px 0;border:1px solid #dbe3e6;padding:12px}summary{cursor:pointer}.note{background:#edf5f6;padding:20px;border-left:4px solid #087d89}table{display:block;overflow:auto;border-collapse:collapse}td,th{padding:8px;border-bottom:1px solid #ddd}</style></head><body><a href="./">← Project overview</a><h1>Predator Prey: full analysis</h1><aside class="note">Saved implementation and outputs. This is a synthetic spatial density model; models have not been rerun. The linked report contains the narrative and derivations.</aside><figure><video controls loop muted playsinline preload="none" poster="../assets/videos/predator-prey-poster.png" style="width:100%;height:auto"><source src="../assets/videos/predator-prey.mp4" type="video/mp4"></video><figcaption>Local bunny and fox densities over simulation time. Synthetic simulation; use controls to play or pause.</figcaption></figure><h2 id="task-1">Task 1</h2>
+<details><summary>Show code · cell 2</summary><pre><code># Predator–Prey Ecosystem Simulation (Task 1)
+
+# - 2D grid with real-valued bunny density b ∈ [0, 100] and fox density F ≥ 0
+# - Update order per step:
+#   (1) bunny logistic growth → (2) bunny diffusion → (3) hunting/survival/reproduction + rare fox wipeout → (4) fox diffusion
+# - Diffusion: fraction d moves out, split equally to 4 neighbors (d/4 each); origin keeps (1-d)
+# - Initialize with small random populations
+# - Real-time visualization or save animation
+
+from __future__ import annotations
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib import animation
+
+
+# Parameters 
+
+GRID_H, GRID_W = 200, 200
+KB = 100.0                        # bunny carrying capacity (fixed, local cap)
+gb = 0.30                         # bunny growth rate
+db = 0.10                         # bunny diffusion rate
+cf = 0.10                         # fox consumption rate (bunnies needed per fox)
+gf = 0.10                         # fox growth rate (applied to surviving foxes)
+mf = 0.01                         # fox catastrophic mortality prob (per cell, per step)
+df = 0.10                         # fox diffusion rate
+T_STEPS = 600                     # number of steps to simulate
+SEED = 42                         # RNG seed for reproducibility
+
+
+# Utilities
+
+def init_grid(h: int, w: int, rng: np.random.Generator) -&gt; tuple[np.ndarray, np.ndarray]:
+    &quot;&quot;&quot;Initialize bunnies and foxes with small random densities.&quot;&quot;&quot;
+    b = rng.uniform(0.0, 5.0, size=(h, w))     # small bunny population
+    F = rng.uniform(0.0, 1.0, size=(h, w))     # small fox population
+    return b.astype(np.float32), F.astype(np.float32)
+
+def diffuse_four(field: np.ndarray, d: float) -&gt; np.ndarray:
+    &quot;&quot;&quot;
+    Conservative 4-neighbor diffusion on a torus (wrap boundaries).
+    A fraction d leaves each cell and is split equally to 4 neighbors (d/4 each).
+    The cell keeps (1-d) of its content.
+    &quot;&quot;&quot;
+    if d &lt;= 0.0:
+        return field
+    keep = (1.0 - d) * field
+    share = (d / 4.0) * field
+    # Wrap neighbors
+    up    = np.roll(share, +1, axis=0)
+    down  = np.roll(share, -1, axis=0)
+    left  = np.roll(share, +1, axis=1)
+    right = np.roll(share, -1, axis=1)
+    return keep + up + down + left + right
+
+def step(b: np.ndarray, F: np.ndarray, rng: np.random.Generator) -&gt; tuple[np.ndarray, np.ndarray]:
+    &quot;&quot;&quot;
+    One simulation step applying rules in the required order:
+    1) Bunny logistic growth with cap KB.
+    2) Bunny diffusion (rate db).
+    3) Hunting + fox survival + fox reproduction + rare wipeout (mf).
+    4) Fox diffusion (rate df).
+    &quot;&quot;&quot;
+    # 1) Bunny logistic growth: b &lt;- b + gb*b*(1 - b/KB), then clip to [0, KB]
+    b = b + gb * b * (1.0 - b / KB)
+    b = np.clip(b, 0.0, KB, out=b)
+
+    # 2) Bunny diffusion (4-neighbors)
+    b = diffuse_four(b, db)
+
+    # 3) Hunting &amp; fox update
+    # Bunnies hunted (cannot exceed available bunnies; foxes &quot;demand&quot; cf*F)
+    demanded = cf * F
+    H = np.minimum(b, demanded)         # hunted bunnies
+    b = b - H                           # remove hunted bunnies
+    # Surviving foxes equal H / cf (those who ate enough)
+    F_surv = H / cf                     # safe even if F=0 because then H=0
+    # Reproduction from survivors
+    F = F_surv * (1.0 + gf)
+    # Catastrophic mortality: per-cell wipeout with probability mf
+    if mf &gt; 0.0:
+        wipe_mask = rng.random(F.shape) &lt; mf
+        F[wipe_mask] = 0.0
+
+    # 4) Fox diffusion (4-neighbors)
+    F = diffuse_four(F, df)
+
+    # Safety: numerical hygiene
+    np.maximum(b, 0.0, out=b)
+    np.maximum(F, 0.0, out=F)
+    return b, F
+
+
+# Run loop + visualization
+_LIVE_ANIMS = []
+
+
+def run_simulation(
+    steps=T_STEPS, grid_h=GRID_H, grid_w=GRID_W, save_path=None, dpi=120,
+    *, gb=gb, KB=KB, db=db, cf=cf, gf=gf, mf=mf, df=df, seed=SEED,
+    return_history=False,
+):
+    &quot;&quot;&quot;
+    Run the predator-prey (bunnies-foxes) ecosystem simulation on a 2D grid.
+
+    This function implements all four update stages each timestep:
+        1. Bunny logistic growth with local carrying capacity (KB).
+        2. Bunny diffusion to neighboring cells.
+        3. Fox hunting, survival, reproduction, and random mortality.
+        4. Fox diffusion to neighboring cells.
+    
+    Parameters
+    ----------
+    steps : int
+        Number of simulation steps to run (default 600).
+    grid_h, grid_w : int
+        Height and width of the simulation grid.
+    save_path : str or None
+        Optional file path to save the animation (&#x27;.gif&#x27; or &#x27;.mp4&#x27;).
+        If None, the animation is displayed interactively.
+    dpi : int
+        Resolution for saved animation (only used if save_path is given).
+    gb : float
+        Bunny growth rate (fractional per step).
+    KB : float
+        Bunny carrying capacity.
+    db : float
+        Bunny diffusion rate (fraction of population that moves per step).
+    cf : float
+        Fox consumption rate (bunnies eaten per fox per step).
+    gf : float
+        Fox growth rate (offspring per surviving fox per step).
+    mf : float
+        Fox catastrophic mortality probability (per cell per step).
+    df : float
+        Fox diffusion rate.
+    seed : int
+        Random number generator seed for reproducibility.
+    return_history : bool
+        If True, also returns per-step mean bunny and fox densities.
+
+    Returns
+    -------
+    fig : matplotlib.figure.Figure
+        Figure object used for animation.
+    anim : matplotlib.animation.FuncAnimation
+        Animation object.
+    b, F : np.ndarray
+        Final 2D arrays of bunny and fox densities.
+    mean_b_hist, mean_F_hist : np.ndarray (optional)
+        Arrays of per-step mean densities if `return_history=True`.
+    &quot;&quot;&quot;
+    rng = np.random.default_rng(seed)
+    b, F = init_grid(grid_h, grid_w, rng)  # random initialization
+
+    # Create side-by-side visual panels for bunnies and foxes
+    fig, (ax_b, ax_f) = plt.subplots(1, 2, figsize=(10, 5), constrained_layout=True)
+    im_b = ax_b.imshow(b, vmin=0.0, vmax=KB, interpolation=&quot;nearest&quot;, cmap=&quot;Greens&quot;)
+    im_f = ax_f.imshow(F, vmin=0.0, vmax=max(1.0, F.max()), interpolation=&quot;nearest&quot;, cmap=&quot;Reds&quot;)
+    ax_b.set_title(&quot;Bunnies (density)&quot;)
+    ax_f.set_title(&quot;Foxes (density)&quot;)
+    ax_b.axis(&quot;off&quot;)
+    ax_f.axis(&quot;off&quot;)
+
+    # Arrays for tracking mean population densities over time
+    mean_b_hist, mean_F_hist = [], []
+
+    # Define update rule for each animation frame 
+    def update(_frame):
+        nonlocal b, F
+        # Apply full predator–prey step logic
+        b, F = step(b, F, rng, gb=gb, KB=KB, db=db, cf=cf, gf=gf, mf=mf, df=df)
+
+        # Record global mean densities (for plotting later)
+        mean_b_hist.append(float(b.mean()))
+        mean_F_hist.append(float(F.mean()))
+
+        # Update displayed grids
+        im_b.set_data(b)
+        im_f.set_clim(vmin=0.0, vmax=max(1.0, float(np.quantile(F, 0.995))))  # adaptive color range
+        im_f.set_data(F)
+        return (im_b, im_f)
+
+    # Create live animation 
+    anim = animation.FuncAnimation(fig, update, frames=steps, interval=30, blit=False)
+
+    # Handle output behavior
+    if save_path:
+        # Save as GIF or MP4 depending on file extension
+        if save_path.lower().endswith(&quot;.gif&quot;):
+            anim.save(save_path, writer=&quot;pillow&quot;, dpi=dpi)
+        else:
+            anim.save(save_path, writer=animation.FFMpegWriter(fps=30), dpi=dpi)
+        plt.close(fig)
+    else:
+        # Keep animation object alive for interactive rendering
+        _LIVE_ANIMS.append(anim)
+
+    # Return results, optionally with time-series data
+    if return_history:
+        return fig, anim, b, F, np.array(mean_b_hist), np.array(mean_F_hist)
+    return fig, anim, b, F</code></pre></details><details><summary>Show code · cell 3</summary><pre><code>fig, anim, b, F, mean_b, mean_F = run_simulation(
+    steps=1000,
+    save_path=&quot;./trial4.gif&quot;,
+    return_history=True
+)
+</code></pre></details><details><summary>Show code · cell 4</summary><pre><code># Plot the recorded means 
+plt.figure(figsize=(8,4))
+plt.plot(mean_b, label=&quot;Mean bunny density&quot;)
+plt.plot(mean_F, label=&quot;Mean fox density&quot;)
+plt.xlabel(&quot;Step&quot;); plt.ylabel(&quot;Mean density&quot;)
+plt.title(&quot;Population means over time&quot;)
+plt.legend(); plt.grid(alpha=0.3); plt.tight_layout()
+plt.show()</code></pre></details><img src="figures/cell-3-0.png" alt="Saved figure from cell 4" loading="lazy"><details><summary>Show code · cell 5</summary><pre><code>print(&quot;Final mean bunny density:&quot;, np.mean(b))
+print(&quot;Final mean fox density:&quot;, np.mean(F))
+</code></pre></details><details><summary>Saved output · cell 5</summary><pre>Final mean bunny density: 37.488525
+Final mean fox density: 24.081635
+</pre></details><h2 id="task-2">Task 2</h2>
+<details><summary>Show code · cell 7</summary><pre><code># Task 2: Parameter Study. Q1
+
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+def _pure_step(b, F, rng, *, gb, KB, db, cf, gf, mf, df):
+    &quot;&quot;&quot;
+    A pure, parameterized step function (duplicate of Task 1 logic)
+    that does not rely on global variables or animation.
+    &quot;&quot;&quot;
+    # 1) Bunny logistic growth: b &lt;- b + gb*b*(1 - b/KB), then clip to [0, KB]
+    b = b + gb * b * (1.0 - b / KB)
+    b = np.clip(b, 0.0, KB, out=b)
+
+    # 2) Bunny diffusion (4-neighbors, toroidal)
+    def diffuse_four(field, d):
+        if d &lt;= 0.0: 
+            return field
+        keep  = (1.0 - d) * field
+        share = (d / 4.0) * field
+        up    = np.roll(share, +1, axis=0)
+        down  = np.roll(share, -1, axis=0)
+        left  = np.roll(share, +1, axis=1)
+        right = np.roll(share, -1, axis=1)
+        return keep + up + down + left + right
+
+    b = diffuse_four(b, db)
+
+    # 3) Hunting + fox survival + reproduction + catastrophic mortality
+    demanded = cf * F
+    H = np.minimum(b, demanded)   # bunnies hunted
+    b = b - H
+    F_surv = H / cf               # survivors = H/cf
+    F = F_surv * (1.0 + gf)
+    if mf &gt; 0.0:
+        F = np.where(rng.random(F.shape) &lt; mf, 0.0, F)
+
+    # 4) Fox diffusion
+    F = diffuse_four(F, df)
+
+    np.maximum(b, 0.0, out=b)
+    np.maximum(F, 0.0, out=F)
+    return b, F
+
+
+def run_headless_once(
+    *,
+    grid_h=120, grid_w=120, seed=42,
+    steps=800, burn_in=300, avg_len=200,
+    gb=0.30, KB=100.0, db=0.10, cf=0.10, gf=0.10, mf=0.01, df=0.10,
+    init_b_range=(0.0, 5.0), init_F_range=(0.0, 1.0),
+):
+    &quot;&quot;&quot;
+    Run a single simulation without animation and return mean densities
+    averaged over the last `avg_len` steps (after `burn_in`).
+
+    Parameters
+    ----------
+    grid_h, grid_w : int
+        Grid dimensions.
+    seed : int
+        RNG seed for reproducibility.
+    steps : int
+        Total number of integration steps to perform (&gt;= burn_in + avg_len).
+    burn_in : int
+        Steps to discard before averaging (let transients die out).
+    avg_len : int
+        Number of final steps over which to average mean densities.
+    gb, KB, db, cf, gf, mf, df : float
+        Model parameters.
+    init_b_range, init_F_range : (float, float)
+        Uniform ranges for random initialization of bunnies and foxes.
+
+    Returns
+    -------
+    mean_b : float
+        Mean bunny density averaged over the last `avg_len` steps.
+    mean_F : float
+        Mean fox  density averaged over the last `avg_len` steps.
+    &quot;&quot;&quot;
+    assert steps &gt;= burn_in + avg_len, &quot;steps must be &gt;= burn_in + avg_len&quot;
+
+    rng = np.random.default_rng(seed)
+    b = rng.uniform(*init_b_range, size=(grid_h, grid_w)).astype(np.float32)
+    F = rng.uniform(*init_F_range, size=(grid_h, grid_w)).astype(np.float32)
+
+    # Burn-in
+    for _ in range(burn_in):
+        b, F = _pure_step(b, F, rng, gb=gb, KB=KB, db=db, cf=cf, gf=gf, mf=mf, df=df)
+
+    # Rolling average over the tail
+    mb = 0.0; mF = 0.0
+    for _ in range(avg_len):
+        b, F = _pure_step(b, F, rng, gb=gb, KB=KB, db=db, cf=cf, gf=gf, mf=mf, df=df)
+        mb += float(b.mean())
+        mF += float(F.mean())
+
+    mean_b = mb / avg_len
+    mean_F = mF / avg_len
+    return mean_b, mean_F
+
+
+def parameter_sweep_2d(
+    gf_values, df_values,
+    *,
+    grid_h=120, grid_w=120, seed=42,
+    steps=800, burn_in=300, avg_len=200,
+    gb=0.30, KB=100.0, db=0.10, cf=0.10, mf=0.01,
+    init_b_range=(0.0, 5.0), init_F_range=(0.0, 1.0),
+):
+    &quot;&quot;&quot;
+    Sweep two parameters (g_f on x-axis, d_f on y-axis) and collect
+    mean densities as a pair of heatmaps.
+
+    Returns
+    -------
+    mean_bunnies : (len(df_values), len(gf_values)) ndarray
+    mean_foxes   : (len(df_values), len(gf_values)) ndarray
+    &quot;&quot;&quot;
+    mean_bunnies = np.zeros((len(df_values), len(gf_values)), dtype=np.float32)
+    mean_foxes   = np.zeros((len(df_values), len(gf_values)), dtype=np.float32)
+
+    for i, d_f in enumerate(df_values):
+        for j, g_f in enumerate(gf_values):
+            mb, mF = run_headless_once(
+                grid_h=grid_h, grid_w=grid_w, seed=seed + 17*i + j,
+                steps=steps, burn_in=burn_in, avg_len=avg_len,
+                gb=gb, KB=KB, db=db, cf=cf, gf=g_f, mf=mf, df=d_f,
+                init_b_range=init_b_range, init_F_range=init_F_range,
+            )
+            mean_bunnies[i, j] = mb
+            mean_foxes[i, j]   = mF
+            # Optional progress print:
+            # print(f&quot;gf={g_f:.3f}, df={d_f:.3f} -&gt; mean b={mb:.2f}, F={mF:.2f}&quot;)
+
+    return mean_bunnies, mean_foxes
+
+
+def plot_sweep_heatmaps(mean_bunnies, mean_foxes, gf_values, df_values):
+    &quot;&quot;&quot;
+    Heatmaps for mean densities vs (g_f, d_f).
+    &quot;&quot;&quot;
+    fig, axes = plt.subplots(1, 2, figsize=(12, 5), constrained_layout=True)
+
+    # Bunnies
+    im0 = axes[0].imshow(
+        mean_bunnies, origin=&quot;lower&quot;, aspect=&quot;auto&quot;, cmap=&quot;Greens&quot;,
+        extent=[gf_values.min(), gf_values.max(), df_values.min(), df_values.max()],
+    )
+    axes[0].set_title(&quot;Mean Bunny Density&quot;)
+    axes[0].set_xlabel(&quot;Fox Growth Rate (g_f)&quot;)
+    axes[0].set_ylabel(&quot;Fox Diffusion Rate (d_f)&quot;)
+    c0 = fig.colorbar(im0, ax=axes[0], label=&quot;Mean bunnies&quot;)
+
+    # Foxes
+    im1 = axes[1].imshow(
+        mean_foxes, origin=&quot;lower&quot;, aspect=&quot;auto&quot;, cmap=&quot;Reds&quot;,
+        extent=[gf_values.min(), gf_values.max(), df_values.min(), df_values.max()],
+    )
+    axes[1].set_title(&quot;Mean Fox Density&quot;)
+    axes[1].set_xlabel(&quot;Fox Growth Rate (g_f)&quot;)
+    axes[1].set_ylabel(&quot;Fox Diffusion Rate (d_f)&quot;)
+    c1 = fig.colorbar(im1, ax=axes[1], label=&quot;Mean foxes&quot;)
+
+    plt.show()
+    return fig
+
+
+</code></pre></details><details><summary>Show code · cell 8</summary><pre><code># Run the Task 2 experiment
+
+# Choose two parameters to sweep
+gf_values = np.linspace(0.00, 0.60, 30)   # fox growth 0.00 → 0.60
+df_values = np.linspace(0.00, 0.30, 30)   # fox diffusion 0.00 → 0.30
+
+
+mean_bunnies, mean_foxes = parameter_sweep_2d(
+    gf_values, df_values,
+    grid_h=200, grid_w=200,
+    steps=1000, burn_in=650, avg_len=350,
+    gb=gb, KB=KB, db=db, cf=cf, mf=mf,
+    
+    init_b_range=(0.0, 5.0),   # b in [0,5]
+    init_F_range=(0.0, 1.0),   # F in [0,1]
+)
+
+fig = plot_sweep_heatmaps(mean_bunnies, mean_foxes, gf_values, df_values)</code></pre></details><img src="figures/cell-7-0.png" alt="Saved figure from cell 8" loading="lazy"><details><summary>Show code · cell 9</summary><pre><code>import numpy as np
+import matplotlib.pyplot as plt
+
+
+gf_list = np.linspace(0.00, 0.60, 100) 
+
+mean_b_vals = []
+mean_F_vals = []
+
+for gf_val in gf_list:
+    mb, mF = run_headless_once(
+        grid_h=200, grid_w=200, seed=123,          # same seed -&gt; identical initial state each run
+        steps=1000, burn_in=650, avg_len=350,      # use all post-burn-in steps
+        gb=0.30, KB=100.0, db=0.10, cf=0.10, gf=gf_val, mf=0.01, df=0.10,
+        init_b_range=(0.0, 5.0), init_F_range=(0.0, 1.0),
+    )
+    mean_b_vals.append(mb)
+    mean_F_vals.append(mF)
+
+gf_arr   = np.array(gf_list, float)
+mean_b   = np.array(mean_b_vals, float)
+mean_F   = np.array(mean_F_vals, float)</code></pre></details><details><summary>Show code · cell 10</summary><pre><code>threshold = 1e-2  # fox extinction threshold
+
+# find indices where fox density &lt; threshold after g_f = 0.02
+mask_after = gf_arr &gt; 0.02
+valid_idxs = np.where(mask_after &amp; (mean_F &lt; threshold))[0]
+
+# pick the first such index
+collapse_idx = valid_idxs[0] if len(valid_idxs) &gt; 0 else None
+collapse_gf = gf_arr[collapse_idx] if collapse_idx is not None else None
+
+# Plot 
+plt.figure(figsize=(8,4.6))
+plt.plot(gf_arr, mean_b, &#x27;o-&#x27;, lw=2, markersize=1, label=&#x27;Mean bunny density (post burn-in)&#x27;)
+plt.plot(gf_arr, mean_F, &#x27;s-&#x27;, lw=2, markersize=1, label=&#x27;Mean fox density (post burn-in)&#x27;)
+
+# add red threshold line
+if collapse_gf is not None:
+    plt.axvline(collapse_gf, color=&#x27;red&#x27;, linestyle=&#x27;--&#x27;, lw=2,
+                label=f&#x27;Fox extinction threshold (g_f ≈ {collapse_gf:.2f})&#x27;)
+
+plt.xlabel(r&#x27;Fox growth rate $g_f$&#x27;)
+plt.ylabel(&#x27;Converged mean density&#x27;)
+plt.title(&#x27;Converged populations vs fox growth rate $g_f$&#x27;)
+plt.grid(alpha=0.3)
+plt.legend()
+plt.tight_layout()
+plt.show()
+</code></pre></details><img src="figures/cell-9-0.png" alt="Saved figure from cell 10" loading="lazy"><details><summary>Show code · cell 11</summary><pre><code>gf_list = np.linspace(0.00, 0.02, 100) 
+
+mean_b_vals = []
+mean_F_vals = []
+
+for gf_val in gf_list:
+    mb, mF = run_headless_once(
+        grid_h=200, grid_w=200, seed=123,          # same seed -&gt; identical initial state each run
+        steps=1000, burn_in=650, avg_len=350,      # use all post-burn-in steps
+        gb=0.30, KB=100.0, db=0.10, cf=0.10, gf=gf_val, mf=0.01, df=0.10,
+        init_b_range=(0.0, 5.0), init_F_range=(0.0, 1.0),
+    )
+    mean_b_vals.append(mb)
+    mean_F_vals.append(mF)
+
+gf_arr   = np.array(gf_list, float)
+mean_b   = np.array(mean_b_vals, float)
+mean_F   = np.array(mean_F_vals, float)</code></pre></details><details><summary>Show code · cell 12</summary><pre><code>import numpy as np
+import matplotlib.pyplot as plt
+
+# Identify extinction threshold 
+# Define extinction tolerance (below this, foxes considered extinct)
+extinction_tol = 1e-2 
+
+# Find first g_f value where fox mean density exceeds tolerance
+nonzero_idx = np.where(mean_F &gt; extinction_tol)[0]
+gf_threshold = gf_arr[nonzero_idx[0]] if len(nonzero_idx) &gt; 0 else np.nan
+
+
+plt.figure(figsize=(8, 4.6))
+plt.plot(gf_arr, mean_b, &#x27;o-&#x27;, lw=2, markersize=1, color=&#x27;green&#x27;, label=&#x27;Mean bunny density (post burn-in)&#x27;)
+plt.plot(gf_arr, mean_F, &#x27;s-&#x27;, lw=2, markersize=1, color=&#x27;orange&#x27;, label=&#x27;Mean fox density (post burn-in)&#x27;)
+
+# Add extinction threshold line
+if not np.isnan(gf_threshold):
+    plt.axvline(gf_threshold, color=&#x27;red&#x27;, linestyle=&#x27;--&#x27;, lw=1.8,
+                label=fr&#x27;Extinction threshold $g_f \approx {gf_threshold:.3f}$&#x27;)
+
+plt.xlim(0.0, 0.02)
+plt.ylim(bottom=0)
+plt.xlabel(r&#x27;Fox growth rate $g_f$&#x27;)
+plt.ylabel(&#x27;Converged mean density&#x27;)
+plt.title(&#x27;Fox extinction threshold at low growth rates&#x27;)
+plt.grid(alpha=0.3)
+plt.legend()
+plt.tight_layout()
+plt.show()
+
+print(f&quot;Estimated extinction threshold: g_f ≈ {gf_threshold:.3f}&quot;)
+</code></pre></details><img src="figures/cell-11-0.png" alt="Saved figure from cell 12" loading="lazy"><details><summary>Saved output · cell 12</summary><pre>Estimated extinction threshold: g_f ≈ 0.005
+</pre></details><details><summary>Show code · cell 13</summary><pre><code>import numpy as np
+import matplotlib.pyplot as plt
+
+# Sweep db vs df 
+
+def diffusion_sweep_2d(
+    db_values, df_values,
+    *,
+    grid_h=200, grid_w=200, seed=42,
+    steps=1000, burn_in=650, avg_len=350,
+    gb=0.30, KB=100.0, cf=0.10, gf=0.10, mf=0.01,
+    init_b_range=(0.0,5.0), init_F_range=(0.0,1.0),
+):
+    &quot;&quot;&quot;
+    Sweep bunny diffusion (db) on the x-axis and fox diffusion (df) on the y-axis.
+    Returns mean density heatmaps and the ratio matrix r = db/df for downstream plots.
+    &quot;&quot;&quot;
+    mean_bunnies = np.zeros((len(df_values), len(db_values)), dtype=np.float32)
+    mean_foxes   = np.zeros((len(df_values), len(db_values)), dtype=np.float32)
+    ratio_db_df  = np.zeros_like(mean_bunnies, dtype=np.float32)
+
+    for i, d_f in enumerate(df_values):
+        for j, d_b in enumerate(db_values):
+            mb, mF = run_headless_once(
+                grid_h=grid_h, grid_w=grid_w, seed=seed + 17*i + j,
+                steps=steps, burn_in=burn_in, avg_len=avg_len,
+                gb=gb, KB=KB, db=d_b, cf=cf, gf=gf, mf=mf, df=d_f,
+                init_b_range=init_b_range, init_F_range=init_F_range,
+            )
+            mean_bunnies[i, j] = mb
+            mean_foxes[i, j]   = mF
+            ratio_db_df[i, j]  = np.inf if d_f == 0 else (d_b / d_f)
+
+    return mean_bunnies, mean_foxes, ratio_db_df
+
+def plot_diffusion_heatmaps(mean_bunnies, mean_foxes, db_values, df_values):
+    &quot;&quot;&quot;
+    Heatmaps with db on x-axis and df on y-axis.
+    &quot;&quot;&quot;
+    fig, axes = plt.subplots(1, 2, figsize=(12,5), constrained_layout=True)
+
+    im0 = axes[0].imshow(
+        mean_bunnies, origin=&quot;lower&quot;, aspect=&quot;auto&quot;, cmap=&quot;Greens&quot;,
+        extent=[db_values.min(), db_values.max(), df_values.min(), df_values.max()],
+    )
+    axes[0].set_title(&quot;Mean Bunny Density&quot;)
+    axes[0].set_xlabel(&quot;Bunny diffusion $d_b$&quot;)
+    axes[0].set_ylabel(&quot;Fox diffusion $d_f$&quot;)
+    fig.colorbar(im0, ax=axes[0], label=&quot;Mean bunnies&quot;)
+
+    im1 = axes[1].imshow(
+        mean_foxes, origin=&quot;lower&quot;, aspect=&quot;auto&quot;, cmap=&quot;Reds&quot;,
+        extent=[db_values.min(), db_values.max(), df_values.min(), df_values.max()],
+    )
+    axes[1].set_title(&quot;Mean Fox Density&quot;)
+    axes[1].set_xlabel(&quot;Bunny diffusion $d_b$&quot;)
+    axes[1].set_ylabel(&quot;Fox diffusion $d_f$&quot;)
+    fig.colorbar(im1, ax=axes[1], label=&quot;Mean foxes&quot;)
+
+    plt.show()
+    return fig
+
+# Plot densities vs the ratio r = db/df 
+
+def plot_vs_ratio(mean_bunnies, mean_foxes, ratio_db_df, nbins=20, r_max=10.0):
+    &quot;&quot;&quot;
+    Flatten the (db, df) grid, bin by r = db/df, and plot mean densities vs ratio.
+    r_max truncates extreme ratios to keep the x-axis readable (e.g., when df≈0).
+    &quot;&quot;&quot;
+    r = ratio_db_df.ravel()
+    b = mean_bunnies.ravel()
+    F = mean_foxes.ravel()
+
+    # keep finite ratios and within cap
+    m = np.isfinite(r) &amp; (r &gt;= 0) &amp; (r &lt;= r_max)
+    r, b, F = r[m], b[m], F[m]
+
+    # bin edges and indices
+    edges = np.linspace(0, r_max, nbins+1)
+    idx   = np.digitize(r, edges) - 1
+    # bin centers
+    centers = 0.5*(edges[:-1] + edges[1:])
+
+    b_avg = np.full(nbins, np.nan, float)
+    F_avg = np.full(nbins, np.nan, float)
+
+    for k in range(nbins):
+        mk = idx == k
+        if mk.any():
+            b_avg[k] = np.mean(b[mk])
+            F_avg[k] = np.mean(F[mk])
+
+    plt.figure(figsize=(8,4.5))
+    plt.plot(centers, b_avg, &#x27;o-&#x27;, lw=2, label=&quot;Mean bunnies (binned by $d_b/d_f$)&quot;)
+    plt.plot(centers, F_avg, &#x27;s-&#x27;, lw=2, label=&quot;Mean foxes (binned by $d_b/d_f$)&quot;)
+    plt.xlabel(&quot;Diffusion ratio $d_b/d_f$&quot;)
+    plt.ylabel(&quot;Converged mean density&quot;)
+    plt.title(&quot;Converged populations vs diffusion ratio $d_b/d_f$&quot;)
+    plt.grid(alpha=0.3)
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
+
+
+</code></pre></details><details><summary>Show code · cell 14</summary><pre><code>db_values = np.linspace(0.00, 0.40, 30)   # sweep bunny diffusion
+df_values = np.linspace(0.00, 0.40, 30)   # sweep fox diffusion
+
+mean_b_dbdf, mean_F_dbdf, ratio_dbdf = diffusion_sweep_2d(
+    db_values, df_values,
+    grid_h=200, grid_w=200,
+    steps=1000, burn_in=650, avg_len=350,
+    gb=gb, KB=KB, cf=cf, gf=0.10, mf=mf,
+    init_b_range=(0.0,5.0), init_F_range=(0.0,1.0),
+)
+</code></pre></details><details><summary>Show code · cell 15</summary><pre><code>_ = plot_diffusion_heatmaps(mean_b_dbdf, mean_F_dbdf, db_values, df_values)</code></pre></details><img src="figures/cell-14-0.png" alt="Saved figure from cell 15" loading="lazy"><details><summary>Show code · cell 16</summary><pre><code>plot_vs_ratio(mean_b_dbdf, mean_F_dbdf, ratio_dbdf, nbins=30, r_max=50.0)</code></pre></details><img src="figures/cell-15-0.png" alt="Saved figure from cell 16" loading="lazy"><details><summary>Show code · cell 17</summary><pre><code>import numpy as np
+import matplotlib.pyplot as plt
+
+# Pick the row closest to df_target
+df_target = 0.10
+i = np.argmin(np.abs(df_values - df_target))
+
+db_axis = db_values
+b_row   = mean_b_dbdf[i, :]   # bunnies at df ≈ 0.10
+F_row   = mean_F_dbdf[i, :]   # foxes  at df ≈ 0.10
+
+plt.figure(figsize=(8,4.6))
+plt.plot(db_axis, b_row, &#x27;o-&#x27;, lw=2, markersize=4, label=&#x27;Mean bunnies (post burn-in)&#x27;)
+plt.plot(db_axis, F_row, &#x27;s-&#x27;, lw=2, markersize=4, label=&#x27;Mean foxes (post burn-in)&#x27;)
+
+plt.axvline(0.10, color=&#x27;gray&#x27;, lw=1.2, ls=&#x27;--&#x27;, alpha=0.7, label=r&#x27;$d_b=0.10$&#x27;)
+plt.xlabel(r&#x27;Bunny diffusion $d_b$  (with $d_f \approx 0.10$)&#x27;)
+plt.ylabel(&#x27;Converged mean density&#x27;)
+plt.title(r&#x27;Converged densities vs $d_b$ at fixed $d_f \approx 0.10$&#x27;)
+plt.grid(alpha=0.3)
+plt.legend()
+plt.tight_layout()
+plt.show()
+
+print(f&quot;Plotted row index i={i}, using df_values[i]={df_values[i]:.3f}&quot;)
+</code></pre></details><img src="figures/cell-16-0.png" alt="Saved figure from cell 17" loading="lazy"><details><summary>Saved output · cell 17</summary><pre>Plotted row index i=7, using df_values[i]=0.097
+</pre></details><details><summary>Show code · cell 18</summary><pre><code># Warning: Took 45 minutes to run on my laptop!
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+
+grid_h, grid_w = 200, 200
+steps, burn_in, avg_len = 1000, 650, 350
+gb_values = np.linspace(0.00, 1.00, 1000)      
+R = 5                                        # replicates per gb to gauge stability
+
+# Fixed params 
+KB = 100.0
+cf = 0.10
+gf = 0.10
+mf = 0.01
+db = 0.10
+df = 0.10
+init_b_range = (0.0, 5.0)
+init_F_range = (0.0, 1.0)
+
+rows = []
+rng = np.random.default_rng(123)
+
+for gb in gb_values:
+    b_runs = []
+    F_runs = []
+    for r in range(R):
+        # different seed per replicate but deterministic overall
+        seed = int(rng.integers(0, 2**31 - 1))
+        mb, mF = run_headless_once(
+            grid_h=grid_h, grid_w=grid_w, seed=seed,
+            steps=steps, burn_in=burn_in, avg_len=avg_len,
+            gb=gb, KB=KB, db=db, cf=cf, gf=gf, mf=mf, df=df,
+            init_b_range=init_b_range, init_F_range=init_F_range,
+        )
+        b_runs.append(mb)
+        F_runs.append(mF)
+    b_runs = np.array(b_runs)
+    F_runs = np.array(F_runs)
+
+    rows.append({
+        &quot;gb&quot;: gb,
+        &quot;b_mean&quot;: b_runs.mean(),
+        &quot;b_std&quot;:  b_runs.std(ddof=1),
+        &quot;F_mean&quot;: F_runs.mean(),
+        &quot;F_std&quot;:  F_runs.std(ddof=1),
+        # quick extinction flags 
+        &quot;b_ext_frac&quot;: (b_runs &lt; 1e-3).mean(),
+        &quot;F_ext_frac&quot;: (F_runs &lt; 1e-3).mean(),
+    })
+
+df_gb = pd.DataFrame(rows)
+df_gb.head()
+</code></pre></details><details><summary>Saved output · cell 18</summary><pre>         gb  b_mean  b_std  F_mean  F_std  b_ext_frac  F_ext_frac
+0  0.000000     0.0    0.0     0.0    0.0         1.0         1.0
+1  0.001001     0.0    0.0     0.0    0.0         1.0         1.0
+2  0.002002     0.0    0.0     0.0    0.0         1.0         1.0
+3  0.003003     0.0    0.0     0.0    0.0         1.0         1.0
+4  0.004004     0.0    0.0     0.0    0.0         1.0         1.0</pre></details><details><summary>Show code · cell 19</summary><pre><code>plt.figure(figsize=(8,5))
+
+# Bunny curve (blue)
+plt.plot(df_gb[&quot;gb&quot;], df_gb[&quot;b_mean&quot;], color=&quot;tab:blue&quot;, label=&quot;Bunny mean density&quot;)
+plt.fill_between(df_gb[&quot;gb&quot;],
+                 df_gb[&quot;b_mean&quot;] - df_gb[&quot;b_std&quot;],
+                 df_gb[&quot;b_mean&quot;] + df_gb[&quot;b_std&quot;],
+                 color=&quot;tab:blue&quot;, alpha=0.25)
+
+# Fox curve (orange)
+plt.plot(df_gb[&quot;gb&quot;], df_gb[&quot;F_mean&quot;], color=&quot;tab:orange&quot;, label=&quot;Fox mean density&quot;)
+plt.fill_between(df_gb[&quot;gb&quot;],
+                 df_gb[&quot;F_mean&quot;] - df_gb[&quot;F_std&quot;],
+                 df_gb[&quot;F_mean&quot;] + df_gb[&quot;F_std&quot;],
+                 color=&quot;tab:orange&quot;, alpha=0.25)
+
+plt.xlabel(&quot;gb (bunny growth rate)&quot;)
+plt.ylabel(&quot;Converged mean density&quot;)
+plt.title(&quot;Stability of Populations vs Bunny Growth Rate&quot;)
+plt.grid(True, alpha=0.3)
+plt.legend()
+plt.show()
+</code></pre></details><img src="figures/cell-18-0.png" alt="Saved figure from cell 19" loading="lazy"><details><summary>Show code · cell 20</summary><pre><code>plt.figure(figsize=(7,4))
+plt.plot(df_gb[&quot;gb&quot;], df_gb[&quot;b_ext_frac&quot;], label=&quot;Bunny extinction fraction&quot;)
+plt.plot(df_gb[&quot;gb&quot;], df_gb[&quot;F_ext_frac&quot;], label=&quot;Fox extinction fraction&quot;)
+plt.xlabel(&quot;gb (bunny growth rate)&quot;)
+plt.ylabel(&quot;Extinction fraction across replicates&quot;)
+plt.title(&quot;Extinction risk vs gb&quot;)
+plt.grid(True, alpha=0.3)
+plt.legend()
+plt.show()
+</code></pre></details><img src="figures/cell-19-0.png" alt="Saved figure from cell 20" loading="lazy"><details><summary>Show code · cell 21</summary><pre><code>def debug_check_bunny_balance(
+    *, steps=40, burn_in=10, tail=20,
+    grid_h=30, grid_w=30, seed=42,
+    gb=0.5, KB=100.0, db=0.10, cf=0.10, gf=0.1, mf=0.01, df=0.10,
+    init_b_range=(0.0,5.0), init_F_range=(0.0,1.0)
+):
+    import numpy as np
+
+    def diffuse_four(field, d):
+        if d &lt;= 0.0: return field
+        keep  = (1.0 - d) * field
+        share = (d / 4.0) * field
+        up    = np.roll(share, +1, axis=0)
+        down  = np.roll(share, -1, axis=0)
+        left  = np.roll(share, +1, axis=1)
+        right = np.roll(share, -1, axis=1)
+        return keep + up + down + left + right
+
+    assert steps &gt;= burn_in + tail, f&quot;steps({steps}) must be &gt;= burn_in({burn_in}) + tail({tail})&quot;
+
+    rng = np.random.default_rng(seed)
+    b = rng.uniform(*init_b_range, size=(grid_h, grid_w)).astype(np.float32)
+    F = rng.uniform(*init_F_range, size=(grid_h, grid_w)).astype(np.float32)
+
+    print(f&quot;INIT  -&gt; mean b={b.mean():.3f}, mean F={F.mean():.3f}&quot;)
+
+    # testing
+    growth0 = gb * b * (1 - b/KB)
+    b0 = np.clip(b + growth0, 0, KB)
+    H0 = np.minimum(b0, cf*F)
+    F0 = (1 - mf) * (H0/cf) * (1 + gf)
+    print(f&quot;DRY   -&gt; mean growth={growth0.mean():.4f}, mean H={H0.mean():.4f}, mean F_next={F0.mean():.4f}&quot;)
+
+    # burn in
+    for _ in range(burn_in):
+        growth = gb * b * (1 - b/KB)
+        b = np.clip(b + growth, 0, KB)
+        b = diffuse_four(b, db)
+        H = np.minimum(b, cf*F)
+        b = b - H
+        F = (1 - mf) * (H/cf) * (1 + gf)
+        F = diffuse_four(F, df)
+
+    print(f&quot;AFTER BURN-IN -&gt; mean b={b.mean():.3f}, mean F={F.mean():.3f}&quot;)
+
+    # tail averages
+    growth_sum = 0.0
+    hunt_sum   = 0.0
+    for t in range(tail):
+        growth = gb * b * (1 - b/KB)
+        b = np.clip(b + growth, 0, KB)
+        b = diffuse_four(b, db)
+        H = np.minimum(b, cf*F)
+        b = b - H
+        F = (1 - mf) * (H/cf) * (1 + gf)
+        F = diffuse_four(F, df)
+
+        if t == 0:
+            print(f&quot;TAIL t=0 -&gt; mean growth={growth.mean():.4f}, mean H={H.mean():.4f}, mean b={b.mean():.3f}, mean F={F.mean():.3f}&quot;)
+
+        growth_sum += float(growth.mean())
+        hunt_sum   += float(H.mean())
+
+    avg_growth = growth_sum / tail
+    avg_hunt   = hunt_sum   / tail
+    print(f&quot;RESULT -&gt; Avg bunny growth: {avg_growth:.6f}  Avg hunted: {avg_hunt:.6f}  Δ: {avg_growth - avg_hunt:.6f}&quot;)
+    return avg_growth, avg_hunt
+
+# Run the debug with modest sizes to see live numbers:
+debug_check_bunny_balance(
+    steps=40, burn_in=10, tail=20,
+    grid_h=30, grid_w=30,
+    gb=0.5, KB=100.0, db=0.10, cf=0.10, gf=0.1, mf=0.01, df=0.10,
+    init_b_range=(0.0,5.0), init_F_range=(0.0,1.0)
+)
+</code></pre></details><details><summary>Saved output · cell 21</summary><pre>INIT  -&gt; mean b=2.482, mean F=0.508
+DRY   -&gt; mean growth=1.1996, mean H=0.0506, mean F_next=0.5515
+AFTER BURN-IN -&gt; mean b=64.359, mean F=1.193
+TAIL t=0 -&gt; mean growth=10.9977, mean H=0.1193, mean b=75.237, mean F=1.299
+RESULT -&gt; Avg bunny growth: 2.027582  Avg hunted: 0.301697  Δ: 1.725885
+</pre></details><details><summary>Saved output · cell 21</summary><pre>(2.027581882476807, 0.30169683024287225)</pre></details><details><summary>Show code · cell 22</summary><pre><code>def check_trend(
+    *, steps=200, burn_in=100,
+    grid_h=60, grid_w=60, seed=42,
+    gb=0.5, KB=100.0, db=0.10, cf=0.10, gf=0.1, mf=0.01, df=0.10,
+    init_b_range=(0.0,5.0), init_F_range=(0.0,1.0)
+):
+    import numpy as np
+
+    def diffuse_four(field, d):
+        if d &lt;= 0.0: return field
+        keep  = (1.0 - d) * field
+        share = (d / 4.0) * field
+        up    = np.roll(share, +1, axis=0)
+        down  = np.roll(share, -1, axis=0)
+        left  = np.roll(share, +1, axis=1)
+        right = np.roll(share, -1, axis=1)
+        return keep + up + down + left + right
+
+    rng = np.random.default_rng(seed)
+    b = rng.uniform(*init_b_range, size=(grid_h, grid_w)).astype(np.float32)
+    F = rng.uniform(*init_F_range, size=(grid_h, grid_w)).astype(np.float32)
+
+    # burn-in (stochastic wipeouts, like Task 1)
+    for _ in range(burn_in):
+        growth = gb * b * (1 - b/KB)
+        b = np.clip(b + growth, 0, KB)
+        b = diffuse_four(b, db)
+        H = np.minimum(b, cf*F)
+        b = b - H
+        F = (H / cf) * (1 + gf)
+        wipe = rng.random(F.shape) &lt; mf
+        F[wipe] = 0.0
+        F = diffuse_four(F, df)
+
+    # tail means
+    means_b, means_F = [], []
+    for _ in range(steps):
+        growth = gb * b * (1 - b/KB)
+        b = np.clip(b + growth, 0, KB)
+        b = diffuse_four(b, db)
+        H = np.minimum(b, cf*F)
+        b = b - H
+        F = (H / cf) * (1 + gf)
+        wipe = rng.random(F.shape) &lt; mf
+        F[wipe] = 0.0
+        F = diffuse_four(F, df)
+        means_b.append(float(b.mean()))
+        means_F.append(float(F.mean()))
+
+    # simple trend: last - first
+    db_mean = means_b[-1] - means_b[0]
+    dF_mean = means_F[-1] - means_F[0]
+    print(f&quot;tail Δ mean b ≈ {db_mean:.3f}, Δ mean F ≈ {dF_mean:.3f}&quot;)
+    return np.array(means_b), np.array(means_F)
+</code></pre></details><details><summary>Show code · cell 23</summary><pre><code>def check_bunny_balance_stochastic(
+    *, steps=1200, burn_in=400, tail=400,
+    grid_h=120, grid_w=120, seed=42,
+    gb=0.5, KB=100.0, db=0.10, cf=0.10, gf=0.1, mf=0.01, df=0.10,
+    init_b_range=(0.0,5.0), init_F_range=(0.0,1.0)
+):
+    import numpy as np
+
+    def diffuse_four(field, d):
+        if d &lt;= 0.0: return field
+        keep  = (1.0 - d) * field
+        share = (d / 4.0) * field
+        up    = np.roll(share, +1, axis=0)
+        down  = np.roll(share, -1, axis=0)
+        left  = np.roll(share, +1, axis=1)
+        right = np.roll(share, -1, axis=1)
+        return keep + up + down + left + right
+
+    rng = np.random.default_rng(seed)
+    b = rng.uniform(*init_b_range, size=(grid_h, grid_w)).astype(np.float32)
+    F = rng.uniform(*init_F_range, size=(grid_h, grid_w)).astype(np.float32)
+
+    # burn-in (stochastic)
+    for _ in range(burn_in):
+        growth = gb * b * (1 - b/KB)
+        b = np.clip(b + growth, 0, KB)
+        b = diffuse_four(b, db)
+        H = np.minimum(b, cf*F)
+        b = b - H
+        F = (H / cf) * (1 + gf)
+        wipe = rng.random(F.shape) &lt; mf
+        F[wipe] = 0.0
+        F = diffuse_four(F, df)
+
+    growth_sum = 0.0
+    hunt_sum   = 0.0
+    for _ in range(tail):
+        growth = gb * b * (1 - b/KB)
+        b = np.clip(b + growth, 0, KB)
+        b = diffuse_four(b, db)
+        H = np.minimum(b, cf*F)
+        b = b - H
+        F = (H / cf) * (1 + gf)
+        wipe = rng.random(F.shape) &lt; mf
+        F[wipe] = 0.0
+        F = diffuse_four(F, df)
+
+        growth_sum += float(growth.mean())
+        hunt_sum   += float(H.mean())
+
+    avg_growth = growth_sum / tail
+    avg_hunt   = hunt_sum / tail
+    print(f&quot;[stochastic] Avg growth={avg_growth:.4f}  Avg hunted={avg_hunt:.4f}  Δ={avg_growth-avg_hunt:.4f}&quot;)
+    return avg_growth, avg_hunt
+</code></pre></details><details><summary>Show code · cell 24</summary><pre><code>avg_growth, avg_hunt = check_bunny_balance_stochastic(
+    gb=0.3, cf=0.3, gf=0.0101, mf=0.01, db=0.1, df=0.1,
+    burn_in=1000, tail=1000, steps=2000
+)
+</code></pre></details><details><summary>Saved output · cell 24</summary><pre>[stochastic] Avg growth=0.1532  Avg hunted=0.1532  Δ=-0.0000
+</pre></details><details><summary>Show code · cell 25</summary><pre><code>import numpy as np
+import matplotlib.pyplot as plt
+
+def plot_balance_trace_stochastic(
+    *, steps=2000, burn_in=1000, tail=800,
+    grid_h=120, grid_w=120, seed=42,
+    gb=0.30, KB=100.0, db=0.10, cf=0.30, gf=0.0101, mf=0.01, df=0.10,
+    init_b_range=(0.0,5.0), init_F_range=(0.0,1.0)
+):
+    assert steps &gt;= burn_in + tail, &quot;steps must be ≥ burn_in + tail&quot;
+
+    def diffuse_four(X, d):
+        if d &lt;= 0.0: return X
+        keep  = (1.0 - d) * X
+        share = (d / 4.0) * X
+        return keep + np.roll(share,+1,0)+np.roll(share,-1,0)+np.roll(share,+1,1)+np.roll(share,-1,1)
+
+    rng = np.random.default_rng(seed)
+    b = rng.uniform(*init_b_range, size=(grid_h,grid_w)).astype(np.float32)
+    F = rng.uniform(*init_F_range, size=(grid_h,grid_w)).astype(np.float32)
+
+    # burn-in (use exact Task-1 stochastic wipeout rule)
+    for _ in range(burn_in):
+        growth = gb * b * (1 - b/KB)
+        b = np.clip(b + growth, 0, KB);  b = diffuse_four(b, db)
+        H = np.minimum(b, cf*F);         b = b - H
+        F = (H/cf) * (1 + gf)
+        wipe = rng.random(F.shape) &lt; mf
+        F[wipe] = 0.0
+        F = diffuse_four(F, df)
+
+    # tail running averages
+    g_run, h_run = [], []
+    g_cum = 0.0; h_cum = 0.0
+    for t in range(1, tail+1):
+        growth = gb * b * (1 - b/KB)
+        b = np.clip(b + growth, 0, KB);  b = diffuse_four(b, db)
+        H = np.minimum(b, cf*F);         b = b - H
+        F = (H/cf) * (1 + gf)
+        wipe = rng.random(F.shape) &lt; mf
+        F[wipe] = 0.0
+        F = diffuse_four(F, df)
+
+        g_cum += float(growth.mean())
+        h_cum += float(H.mean())
+        g_run.append(g_cum / t)
+        h_run.append(h_cum / t)
+
+    # plot
+    t = np.arange(1, tail+1)
+    plt.figure(figsize=(7,4.2))
+    plt.plot(t, g_run, label=&quot;Running avg: logistic growth ⟨gb·b(1-b/KB)⟩&quot;, lw=2)
+    plt.plot(t, h_run, label=&quot;Running avg: hunted ⟨H⟩&quot;, lw=2)
+    plt.xlabel(&quot;Tail step&quot;)
+    plt.ylabel(&quot;Per-step mean&quot;)
+    plt.title(&quot;Theory vs Empirical (time averages): growth ≈ hunted at stationarity&quot;)
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
+</code></pre></details><details><summary>Show code · cell 26</summary><pre><code>plot_balance_trace_stochastic(
+    gb=0.30, cf=0.30, gf=0.0101, mf=0.01, db=0.10, df=0.10,
+    steps=2000, burn_in=1000, tail=800
+)
+</code></pre></details><img src="figures/cell-25-0.png" alt="Saved figure from cell 26" loading="lazy"><details><summary>Show code · cell 27</summary><pre><code>def plot_theory_vs_empirical_curve(
+    cf_values,
+    *,
+    gb=0.30, KB=100.0, db=0.10, gf=0.0101, mf=0.01, df=0.10,
+    grid_h=100, grid_w=100, steps=1600, burn_in=800, tail=600,
+    seeds=(0,1,2),
+    init_b_range=(0.0,5.0), init_F_range=(0.0,1.0)
+):
+    def diffuse_four(X, d):
+        if d &lt;= 0.0: return X
+        keep  = (1.0 - d) * X
+        share = (d / 4.0) * X
+        return keep + np.roll(share,+1,0)+np.roll(share,-1,0)+np.roll(share,+1,1)+np.roll(share,-1,1)
+
+    g_means = []; h_means = []
+
+    for cf in cf_values:
+        g_acc = 0.0; h_acc = 0.0; n = 0
+        for sd in seeds:
+            rng = np.random.default_rng(42+sd)
+            b = rng.uniform(*init_b_range, size=(grid_h,grid_w)).astype(np.float32)
+            F = rng.uniform(*init_F_range, size=(grid_h,grid_w)).astype(np.float32)
+
+            # burn-in
+            for _ in range(burn_in):
+                growth = gb * b * (1 - b/KB)
+                b = np.clip(b + growth, 0, KB);  b = diffuse_four(b, db)
+                H = np.minimum(b, cf*F);         b = b - H
+                F = (H/cf) * (1 + gf)
+                wipe = rng.random(F.shape) &lt; mf
+                F[wipe] = 0.0
+                F = diffuse_four(F, df)
+
+            # tail averages
+            g_sum = 0.0; h_sum = 0.0
+            for _ in range(tail):
+                growth = gb * b * (1 - b/KB)
+                b = np.clip(b + growth, 0, KB);  b = diffuse_four(b, db)
+                H = np.minimum(b, cf*F);         b = b - H
+                F = (H/cf) * (1 + gf)
+                wipe = rng.random(F.shape) &lt; mf
+                F[wipe] = 0.0
+                F = diffuse_four(F, df)
+
+                g_sum += float(growth.mean())
+                h_sum += float(H.mean())
+            g_acc += g_sum / tail
+            h_acc += h_sum / tail
+            n += 1
+        g_means.append(g_acc / n)
+        h_means.append(h_acc / n)
+
+    g_means = np.array(g_means); h_means = np.array(h_means)
+
+    # plot
+    plt.figure(figsize=(7,4.2))
+    plt.plot(cf_values, g_means, &#x27;o-&#x27;, lw=2, label=&quot;Empirical ⟨growth⟩&quot;)
+    plt.plot(cf_values, h_means, &#x27;s-&#x27;, lw=2, label=&quot;Empirical ⟨hunted⟩&quot;)
+    plt.xlabel(&quot;Fox consumption rate $c_f$&quot;)
+    plt.ylabel(&quot;Tail-time average per step&quot;)
+    plt.title(&quot;Theory (balance) vs Empirical across $c_f$&quot;)
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
+
+    # return the arrays for a numeric table
+    return cf_values, g_means, h_means
+</code></pre></details><details><summary>Show code · cell 28</summary><pre><code>cf_vals = np.linspace(0.1, 0.5, 9)
+_ = plot_theory_vs_empirical_curve(
+    cf_vals,
+    gb=0.30, gf=0.0101, mf=0.01, db=0.10, df=0.10,
+    steps=1600, burn_in=800, tail=600, seeds=(0,1,2)
+)
+</code></pre></details><img src="figures/cell-27-0.png" alt="Saved figure from cell 28" loading="lazy"></body></html>

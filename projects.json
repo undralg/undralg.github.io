@@ -1,7 +1,7 @@
 [
   {
     "slug": "dna-inference",
-    "title": "Inferring family relationships from DNA",
+    "title": "A novel Bayesian approach to reconnecting families through DNA",
     "category": [
       "Statistics & ML"
     ],
@@ -11,7 +11,7 @@
       "Simulation",
       "Genetics"
     ],
-    "question": "How can we assess distant kinship when only limited relatives are available?",
+    "question": "Distant relatives can be difficult to distinguish from unrelated individuals using limited genetic evidence. I developed a workflow that simulates competing relationship hypotheses and estimates their support, then evaluated it across eleven pedigrees using repeated cross-validation and shuffled-label checks.",
     "method": "Developed an Approximate Bayesian Computation pipeline that simulates DNA-sharing patterns under competing pedigree hypotheses, summarizes shared segments and estimates support for related versus unrelated models. The capstone examines 11 pedigrees and includes repeated cross-validation and label-permutation checks.",
     "finding": "The framework makes the relationship hypothesis, reference populations and uncertainty explicit. It was motivated by humanitarian identification work in Argentina, where ambiguous genetic evidence has consequences for families.",
     "limit": "Internal cross-validation measures performance within the constructed reference banks. It is not a real-world identification accuracy estimate, and should not be directly compared with STR detection power as though the metrics were interchangeable.",
@@ -32,7 +32,8 @@
     "metric": "11",
     "label": "pedigrees examined",
     "role": "Capstone research · Institute of Calculus, University of Buenos Aires",
-    "chart": null
+    "chart": null,
+    "company": ""
   },
   {
     "slug": "vinyl",
@@ -47,7 +48,7 @@
       "Regression",
       "Web data collection"
     ],
-    "question": "Streaming made physical albums optional. Why did vinyl grow while CDs declined?",
+    "question": "National sales showed vinyl growing while CDs declined. Did individual albums tell the same story? I constructed a dataset from scattered public sales reports, compared formats at launch and later dates, and investigated the older recordings behind the market totals.",
     "method": "Combined RIAA market trends, publicly reported album sales and industry catalog breakdowns.",
     "finding": "Older recordings account for a larger share of vinyl purchases than CD purchases.",
     "limit": "",
@@ -55,11 +56,12 @@
     "metric": "132",
     "label": "albums in the opening-week dataset",
     "role": "Independent analysis",
-    "chart": null
+    "chart": null,
+    "company": ""
   },
   {
     "slug": "huzur",
-    "title": "Huzur: AI with hidden information",
+    "title": "Huzur: a Mongolian card game platform",
     "category": [
       "Software & AI"
     ],
@@ -69,7 +71,7 @@
       "Cloudflare",
       "Game AI"
     ],
-    "question": "Can an AI opponent play a traditional Mongolian card game without seeing the other players’ cards?",
+    "question": "Can an AI opponent play a traditional Mongolian card game better than I do? I’ve been playing since I was six! I built this platform to keep playing with friends after graduation took us to different countries.",
     "method": "Built a browser game for 2–5 players, with local human and AI seats, multiplayer lobbies and persistent match records. AI decisions combine strategic heuristics, lookahead and exact two-player endgame search. Offline self-play supports policy comparisons.",
     "finding": "The project connects a playable product with an evaluation loop: log decisions, simulate opponents, compare policies and revise the strategy. Fairness guards keep hidden opponent cards and deck order out of bot decision inputs.",
     "limit": "Simulated match results do not establish performance against human players. The documented multiplayer roadmap still includes server-side rules validation.",
@@ -86,11 +88,12 @@
     "metric": "2–5",
     "label": "players supported",
     "role": "Independent software project",
-    "chart": null
+    "chart": null,
+    "company": ""
   },
   {
     "slug": "causal-inference",
-    "title": "Finding a credible comparison",
+    "title": "Same trainees. Different controls. Opposite conclusions.",
     "category": [
       "Statistics & ML"
     ],
@@ -100,7 +103,7 @@
       "Matching",
       "Synthetic control"
     ],
-    "question": "How much does the choice of comparison group change an estimated effect?",
+    "question": "Can observational methods recover an experimental result? I tested matching methods against a randomized job-training benchmark, then explored synthetic control in a separate application.",
     "method": "Analyzed job-training outcomes using experimental and observational data, propensity-score and genetic matching, and instrumental variables. A second application uses synthetic control and placebo diagnostics to examine California’s 2011–2015 drought and crime.",
     "finding": "The job-training exercise illustrates why treatment selection matters: a naive observational comparison can reverse the direction of the randomized comparison. Matching is assessed against the experimental benchmark; the drought analysis makes the counterfactual and placebo evidence explicit.",
     "limit": "These are course analyses, not new randomized experiments. Causal interpretations depend on balance, identification assumptions and the credibility of the comparison group.",
@@ -113,11 +116,12 @@
     "metric": "",
     "label": "",
     "role": "Individual course project",
-    "chart": null
+    "chart": null,
+    "company": ""
   },
   {
     "slug": "bayesian-housing",
-    "title": "Pricing homes when outliers matter",
+    "title": "What makes an expensive home an outlier?",
     "category": [
       "Statistics & ML"
     ],
@@ -126,7 +130,7 @@
       "Regression",
       "Model comparison"
     ],
-    "question": "How sensitive is a housing model to unusual properties and heavy-tailed errors?",
+    "question": "I compared three Bayesian models of Buenos Aires property prices to investigate how assumptions about unusual observations change the results.",
     "method": "Compared Normal, Student-t and outlier-aware Bayesian regression specifications for Buenos Aires property pricing.",
     "finding": "Treating the likelihood as a modeling decision makes the influence of unusual observations visible. The report compares specifications rather than relying on a single error model.",
     "limit": "Results describe the project dataset and modeling assumptions; they are not a deployed appraisal system.",
@@ -143,11 +147,12 @@
     "metric": "",
     "label": "",
     "role": "Individual course project",
-    "chart": null
+    "chart": null,
+    "company": ""
   },
   {
     "slug": "social-networks",
-    "title": "Modeling social isolation",
+    "title": "I simulated the male loneliness epidemic",
     "category": [
       "Statistics & ML"
     ],
@@ -156,7 +161,7 @@
       "Networks",
       "Monte Carlo"
     ],
-    "question": "What happens when social isolation and algorithmic exposure reinforce each other?",
+    "question": "Isolation, algorithmic exposure, and weakening friendships can reinforce each other. I built an agent-based simulation to explore that feedback loop, then compared interventions targeting the algorithm, social support, and friendship influence.",
     "method": "Built an agent-based Monte Carlo simulation on weighted friendship networks. Isolation, exposure, ideological drift and friendship decay interact; intervention scenarios change amplification and social support.",
     "finding": "The model provides a way to explore feedback loops and compare interventions under a common set of assumptions. Network dynamics reveal behavior that a static average would hide.",
     "limit": "These are simulated outcomes. The model does not establish empirical causal effects of recommendation systems or real interventions.",
@@ -173,11 +178,12 @@
     "metric": "",
     "label": "",
     "role": "Course simulation project",
-    "chart": null
+    "chart": null,
+    "company": ""
   },
   {
     "slug": "multilevel-scores",
-    "title": "Recovering distributions from histograms",
+    "title": "No individual scores. Different bins. Still comparable?",
     "category": [
       "Statistics & ML"
     ],
@@ -186,7 +192,7 @@
       "Partial pooling",
       "Bayesian inference"
     ],
-    "question": "Can we compare student cohorts when their score histograms use different bins?",
+    "question": "All I had were score ranges and counts, and even the ranges changed between years! I built Bayesian models that worked directly with each histogram’s bin boundaries, allowing me to compare underlying score distributions without pretending I had individual records. The project uses synthetic data inspired by inconsistent reporting of test scores.",
     "method": "Modeled latent test-score distributions from grouped observations, comparing pooling choices across years while retaining the information represented by each histogram bin.",
     "finding": "The analysis tackles a common practical problem: the raw records are unavailable, yet a comparison is still needed. Probabilistic modeling expresses uncertainty instead of pretending the bin midpoints are individual observations.",
     "limit": "The conclusions depend on distributional assumptions and the information retained in the published histograms.",
@@ -199,11 +205,12 @@
     "metric": "",
     "label": "",
     "role": "Course modeling project",
-    "chart": null
+    "chart": null,
+    "company": ""
   },
   {
     "slug": "movie-preferences",
-    "title": "Do more modalities mean better predictions?",
+    "title": "I turned my IMDb ratings into a machine-learning experiment",
     "category": [
       "Statistics & ML"
     ],
@@ -213,7 +220,7 @@
       "PCA",
       "Multimodal modeling"
     ],
-    "question": "Do movie posters and text add useful signal beyond structured metadata?",
+    "question": "Using 615 ratings I’d collected over the years, I explored what genres, plots, and posters reveal about my movie preferences. Can a model figure out my taste?",
     "method": "Aligned 568 titles from 615 collected IMDb ratings. Compared 36 metadata features with ResNet-50 poster embeddings and TF-IDF/SVD text representations using dimensionality reduction, classification and modality ablations.",
     "finding": "The exploratory run suggested that adding high-dimensional poster and text features did not automatically improve on metadata. The public notebook replaces the primary comparison with fold-local preprocessing pipelines.",
     "limit": "The original evaluation fitted preprocessing before the train/test split. A leakage-free rerun is still needed; historical performance estimates are not presented as validated generalization results.",
@@ -226,11 +233,12 @@
     "metric": "568",
     "label": "aligned movie titles",
     "role": "Exploratory course project",
-    "chart": null
+    "chart": null,
+    "company": ""
   },
   {
     "slug": "forum",
-    "title": "Forum AI Notetaker",
+    "title": "Forum: AI notes and a database for Minerva classes",
     "category": [
       "Software & AI"
     ],
@@ -243,7 +251,7 @@
       "Transcription",
       "Testing"
     ],
-    "question": "How can class recordings become searchable transcripts and useful notes?",
+    "question": "A team-built platform that turns class recordings into searchable transcripts and notes. My contribution focused on the relational database and data-integrity testing.",
     "method": "Worked on a team-built course platform that connects recording uploads, FFmpeg audio extraction, Whisper transcription and AI-generated summaries, topics and action items. The application uses Flask, React and SQLite, with course membership controlling access.",
     "finding": "The platform brings recordings, transcripts and notes into one searchable workflow. My contribution focused on the relational database and data-integrity testing. The project includes session-processing states and preserves transcripts when note generation fails.",
     "limit": "Team course project, not a claim of sole authorship. The public repository documents the implementation and setup; the linked video demonstrates the application.",
@@ -260,7 +268,8 @@
     "metric": "",
     "label": "",
     "role": "Team software project",
-    "chart": null
+    "chart": null,
+    "company": ""
   },
   {
     "slug": "wrigley",
@@ -274,7 +283,7 @@
       "WACC",
       "Sensitivity analysis"
     ],
-    "question": "Does a $3 billion debt-funded payout create value once financial distress enters the picture?",
+    "question": "A $3 billion debt-funded payout looks attractive when you count the tax shield. What happens when you count financial distress too? I combined valuation scenarios with interest-coverage constraints to assess how much debt the company could reasonably take on.",
     "method": "Compared tax-shield value, post-recapitalization borrowing costs, interest coverage and expected distress costs. Examined dividends versus repurchases and the difference between EPS mechanics and shareholder value.",
     "finding": "The report’s no-distress tax shield is $1.2 billion. Its B-rated base scenario reduces net value creation to $732 million; a higher conditional distress loss reduces it to $576 million. The recommendation is sensitive to the debt capacity and distress assumptions.",
     "limit": "The linked report is labeled a working draft. Values are case-model estimates, not realized outcomes; the distress scenarios depend on assumed conditional losses.",
@@ -304,11 +313,12 @@
         "Net value: higher loss",
         576
       ]
-    ]
+    ],
+    "company": "Wrigley"
   },
   {
     "slug": "coreweave",
-    "title": "CoreWeave: valuing capital-intensive AI",
+    "title": "An AI boom is easier to forecast than to value",
     "category": [
       "Finance"
     ],
@@ -318,7 +328,7 @@
       "Comparables",
       "Sensitivity analysis"
     ],
-    "question": "How much of a fast-growing infrastructure company’s valuation depends on distant cash flows?",
+    "question": "Our team valued CoreWeave using discounted cash flow, public comparables, and precedent transactions. The methods disagreed substantially. Why?",
     "method": "The team combined a DCF, public comparables and precedent transactions, with sensitivity analysis around financing costs, terminal growth, investment and working capital.",
     "finding": "The April 2025 report presents a $10-per-share base DCF estimate and a $22 synthesis across methods. The important analytical issue is the spread between methods and the sensitivity to long-run assumptions.",
     "limit": "This is a dated team case analysis, not a current price target. Segment-based comparables and terminal-value assumptions require particular care.",
@@ -335,7 +345,8 @@
     "metric": "",
     "label": "",
     "role": "Team course project · Undral Ganbaatar, Shazil Farukh & Anne Behme",
-    "chart": null
+    "chart": null,
+    "company": "CoreWeave"
   },
   {
     "slug": "toyota",
@@ -348,7 +359,7 @@
       "Ratio analysis",
       "Currency exposure"
     ],
-    "question": "How do production location, liquidity and currency exposure shape financial policy?",
+    "question": "How do production location, currency exposure, and financial subsidiaries change the way we interpret an automaker’s balance sheet?",
     "method": "Compared Toyota’s financial ratios with automaker peers, then examined domestic production, international competitiveness and financial policy in the case’s 2010–2011 setting.",
     "finding": "The case connects balance-sheet decisions to operating geography. A consolidated ratio alone can obscure the different funding needs of manufacturing and financial services.",
     "limit": "Historical peer comparisons depend on consistent segment definitions. The case is not a statement about Toyota’s current financial position.",
@@ -365,11 +376,12 @@
     "metric": "",
     "label": "",
     "role": "Historical course case study",
-    "chart": null
+    "chart": null,
+    "company": "Toyota"
   },
   {
     "slug": "aditya-birla",
-    "title": "Aditya Birla: allocating capital internationally",
+    "title": "Two investments look profitable. What has to go right?",
     "category": [
       "Finance"
     ],
@@ -378,7 +390,7 @@
       "Capital allocation",
       "Global finance"
     ],
-    "question": "Which international investments fit a diversified group’s existing capabilities?",
+    "question": "For Aditya Birla’s proposed international investments, project profits were only part of the story. I adjusted cash flows for ownership and remittances to value what the parent company would receive, then examined how much depended on terminal value.",
     "method": "Developed an India–UAE SME payments and working-capital proposal and an UltraTech investment proposal. Built parent-level cash-flow forecasts, ownership adjustments and valuation scenarios.",
     "finding": "The base models produce positive parent NPVs for both proposals. Their attractiveness depends on execution, volume, terminal value and the group’s ability to apply existing capabilities.",
     "limit": "These are proposed investments and assumption-based forecasts, not projects implemented by the company.",
@@ -395,11 +407,12 @@
     "metric": "",
     "label": "",
     "role": "Historical course case study",
-    "chart": null
+    "chart": null,
+    "company": "Aditya Birla"
   },
   {
     "slug": "astral",
-    "title": "Astral Records: growth needs financing",
+    "title": "A profitable investment. An uncomfortable financing problem.",
     "category": [
       "Finance"
     ],
@@ -408,7 +421,7 @@
       "Working capital",
       "Capital budgeting"
     ],
-    "question": "Can a growing company fund expansion while margins weaken?",
+    "question": "Astral Records’ equipment investment had a small positive modeled NPV and a much larger funding requirement. I examined whether the company could finance the decision.",
     "method": "Reviewed historical profitability and leverage, then forecast 1994–1995 financial statements with and without capital expenditure. Connected operating performance to financing requirements.",
     "finding": "Revenue growth alone does not answer the funding question. The case brings margin pressure, debt servicing and capital spending into the same forecast.",
     "limit": "Historical classroom case; projections depend on the case inputs and operating assumptions.",
@@ -425,11 +438,12 @@
     "metric": "",
     "label": "",
     "role": "Historical course case study",
-    "chart": null
+    "chart": null,
+    "company": "Astral Records"
   },
   {
     "slug": "science-technology",
-    "title": "Science Technology: growth versus cash",
+    "title": "Sales up. Profits up. Where’s the cash?",
     "category": [
       "Finance"
     ],
@@ -438,7 +452,7 @@
       "Working capital",
       "Scenario analysis"
     ],
-    "question": "What must improve for a 30% growth plan to be financeable?",
+    "question": "Science Technology planned rapid growth while improving efficiency. I connected its income forecast to receivables, inventory, and financing needs, showing why a shorter cash cycle could still leave the company needing substantially more working capital.",
     "method": "Examined a plan that accelerates sales growth beyond the historical rate. Reconstructed the cash conversion cycle, working-capital needs and reliance on short-term borrowing.",
     "finding": "The forecast illustrates how rising accounting income can coexist with cash pressure. Inventory and receivables become central to the credibility of the growth plan.",
     "limit": "Forecast improvements in inventory management are assumptions, not observed achievements.",
@@ -455,11 +469,12 @@
     "metric": "",
     "label": "",
     "role": "Historical course case study",
-    "chart": null
+    "chart": null,
+    "company": "Science Technology"
   },
   {
     "slug": "rvd-ai",
-    "title": "RVD.AI: financing an early-stage venture",
+    "title": "Raise another million. How much of the company is left?",
     "category": [
       "Finance"
     ],
@@ -469,7 +484,7 @@
       "Dilution",
       "Scenario analysis"
     ],
-    "question": "How does the size of an initial investment change the ownership bargain?",
+    "question": "I used a venture valuation model to compare how two funding amounts change the ownership bargain for RVD.AI.",
     "method": "Built a market-sizing and revenue scenario, applied a venture-capital valuation method and compared $2.5 million and $3.5 million funding cases. Examined sensitivity to market share and required returns.",
     "finding": "In the report’s fixed post-money valuation scenario, larger funding sharply increases the investor’s ownership requirement. The case makes the growth-versus-dilution tradeoff explicit.",
     "limit": "Market share, exit multiples and future margins are scenario assumptions. This is a historical academic analysis, not a completed financing.",
@@ -486,11 +501,12 @@
     "metric": "",
     "label": "",
     "role": "Historical course case study",
-    "chart": null
+    "chart": null,
+    "company": "RVD.AI"
   },
   {
     "slug": "optiguard",
-    "title": "Optiguard: what a term sheet changes",
+    "title": "Same exit. Different fine print. Millions apart.",
     "category": [
       "Finance"
     ],
@@ -499,7 +515,7 @@
       "Cap tables",
       "Liquidation preferences"
     ],
-    "question": "Why can two financing offers with similar headline valuations produce different outcomes?",
+    "question": "Two financing structures can divide the same exit proceeds very differently. I modeled Optiguard’s capitalization and payout waterfalls to quantify how liquidation preferences and antidilution terms change what investors and founders receive.",
     "method": "Modeled ownership and option reserves, a hypothetical Series B, antidilution adjustments and conventional versus participating liquidation preferences.",
     "finding": "Valuation is only one part of the bargain. Exit payouts, dilution and control provisions change the economics for founders and investors.",
     "limit": "Hypothetical case scenarios; the analysis does not describe an executed investment.",
@@ -516,11 +532,12 @@
     "metric": "",
     "label": "",
     "role": "Historical course case study",
-    "chart": null
+    "chart": null,
+    "company": "Optiguard"
   },
   {
     "slug": "freddo",
-    "title": "Freddo: growth under inflation",
+    "title": "Before opening another ice cream shop, follow the cash",
     "category": [
       "Finance"
     ],
@@ -529,7 +546,7 @@
       "Expansion strategy",
       "Scenario analysis"
     ],
-    "question": "How can an expanding business manage cash when inflation and shipping complicate the cycle?",
+    "question": "A Freddo expansion analysis connecting marketing, inventory, payment terms, and working-capital requirements.",
     "method": "Examined receivables, inventory and payables, then developed operational and expansion scenarios including local production and changes in payment terms.",
     "finding": "The proposal connects expansion with cash discipline: faster collections and shorter inventory cycles can matter as much as new locations.",
     "limit": "Shipping costs, target cash-cycle days and expansion benefits are estimates. They are not verified cost savings or realized outcomes.",
@@ -546,6 +563,79 @@
     "metric": "",
     "label": "",
     "role": "Historical course case study",
-    "chart": null
+    "chart": null,
+    "company": "Freddo"
+  },
+  {
+    "slug": "predator-prey",
+    "title": "Can predators be too successful?",
+    "category": [
+      "Statistics & ML"
+    ],
+    "tags": [
+      "Python",
+      "Simulation",
+      "Spatial modeling",
+      "Dynamical systems"
+    ],
+    "question": "I built a spatial bunny–fox ecosystem, then varied reproduction and movement to explore when predators coexist with their prey and when the system collapses. Comparing local patterns with mean-field theory reveals what population averages can miss.",
+    "method": "Simulated local population densities on a toroidal grid, conducted parameter sweeps, and compared stationary balances with theory.",
+    "finding": "Spatial structure and model parameters change coexistence and collapse outcomes.",
+    "limit": "Synthetic density model; ecological conclusions are conditional on its rules.",
+    "links": [
+      [
+        "Read full analysis",
+        "analysis.html"
+      ],
+      [
+        "Read report",
+        "https://github.com/undralg/Data-Science-Projects/blob/main/predator-prey-simulation/report.pdf"
+      ],
+      [
+        "View simulation code",
+        "https://github.com/undralg/Data-Science-Projects/blob/main/predator-prey-simulation/simulation.ipynb"
+      ]
+    ],
+    "metric": "",
+    "label": "",
+    "role": "Individual CS166 course project",
+    "chart": null,
+    "company": ""
+  },
+  {
+    "slug": "airport-security",
+    "title": "More security lanes. Same bottleneck?",
+    "category": [
+      "Statistics & ML"
+    ],
+    "tags": [
+      "Python",
+      "Simulation",
+      "Queueing theory",
+      "Discrete-event simulation"
+    ],
+    "question": "Airport queues do not behave like independent service stations when they share a senior screening officer. I implemented a discrete-event simulation and compared it with queueing approximations to examine the hidden bottleneck.",
+    "method": "Modeled shortest-queue routing, shared secondary screening, and repeated simulation runs.",
+    "finding": "The report compares congestion and utilization across station counts.",
+    "limit": "Scenario results, not measured airport outcomes; no staffing cost optimization.",
+    "links": [
+      [
+        "Read full analysis",
+        "analysis.html"
+      ],
+      [
+        "Read report",
+        "https://github.com/undralg/Data-Science-Projects/blob/main/airport-security-simulation/report.pdf"
+      ],
+      [
+        "View code",
+        "https://github.com/undralg/Data-Science-Projects/blob/main/airport-security-simulation/analysis.ipynb"
+      ]
+    ],
+    "metric": "",
+    "label": "",
+    "role": "Team CS166 course project · Undral and Navneet",
+    "chart": null,
+    "company": ""
   }
 ]

@@ -1,0 +1,74 @@
+{
+  "social-networks": {
+    "title": "I simulated the male loneliness epidemic",
+    "question": "Isolation, algorithmic exposure, and weakening friendships can reinforce each other. I built an agent-based simulation to explore that feedback loop, then compared interventions targeting the algorithm, social support, and friendship influence."
+  },
+  "dna-inference": {
+    "title": "A novel Bayesian approach to reconnecting families through DNA",
+    "question": "Distant relatives can be difficult to distinguish from unrelated individuals using limited genetic evidence. I developed a workflow that simulates competing relationship hypotheses and estimates their support, then evaluated it across eleven pedigrees using repeated cross-validation and shuffled-label checks."
+  },
+  "causal-inference": {
+    "title": "Same trainees. Different controls. Opposite conclusions.",
+    "question": "Can observational methods recover an experimental result? I tested matching methods against a randomized job-training benchmark, then explored synthetic control in a separate application."
+  },
+  "bayesian-housing": {
+    "title": "What makes an expensive home an outlier?",
+    "question": "I compared three Bayesian models of Buenos Aires property prices to investigate how assumptions about unusual observations change the results."
+  },
+  "multilevel-scores": {
+    "title": "No individual scores. Different bins. Still comparable?",
+    "question": "All I had were score ranges and counts, and even the ranges changed between years! I built Bayesian models that worked directly with each histogram’s bin boundaries, allowing me to compare underlying score distributions without pretending I had individual records. The project uses synthetic data inspired by inconsistent reporting of test scores."
+  },
+  "movie-preferences": {
+    "title": "I turned my IMDb ratings into a machine-learning experiment",
+    "question": "Using 615 ratings I’d collected over the years, I explored what genres, plots, and posters reveal about my movie preferences. Can a model figure out my taste?"
+  },
+  "huzur": {
+    "title": "Huzur: a Mongolian card game platform",
+    "question": "Can an AI opponent play a traditional Mongolian card game better than I do? I’ve been playing since I was six! I built this platform to keep playing with friends after graduation took us to different countries."
+  },
+  "forum": {
+    "title": "Forum: AI notes and a database for Minerva classes",
+    "question": "A team-built platform that turns class recordings into searchable transcripts and notes. My contribution focused on the relational database and data-integrity testing."
+  },
+  "vinyl": {
+    "title": "Vinyl beyond release week",
+    "question": "National sales showed vinyl growing while CDs declined. Did individual albums tell the same story? I constructed a dataset from scattered public sales reports, compared formats at launch and later dates, and investigated the older recordings behind the market totals."
+  },
+  "wrigley": {
+    "title": "Wrigley: the price of leverage",
+    "question": "A $3 billion debt-funded payout looks attractive when you count the tax shield. What happens when you count financial distress too? I combined valuation scenarios with interest-coverage constraints to assess how much debt the company could reasonably take on."
+  },
+  "coreweave": {
+    "title": "An AI boom is easier to forecast than to value",
+    "question": "Our team valued CoreWeave using discounted cash flow, public comparables, and precedent transactions. The methods disagreed substantially. Why?"
+  },
+  "toyota": {
+    "title": "Toyota: financial policy across borders",
+    "question": "How do production location, currency exposure, and financial subsidiaries change the way we interpret an automaker’s balance sheet?"
+  },
+  "aditya-birla": {
+    "title": "Two investments look profitable. What has to go right?",
+    "question": "For Aditya Birla’s proposed international investments, project profits were only part of the story. I adjusted cash flows for ownership and remittances to value what the parent company would receive, then examined how much depended on terminal value."
+  },
+  "astral": {
+    "title": "A profitable investment. An uncomfortable financing problem.",
+    "question": "Astral Records’ equipment investment had a small positive modeled NPV and a much larger funding requirement. I examined whether the company could finance the decision."
+  },
+  "science-technology": {
+    "title": "Sales up. Profits up. Where’s the cash?",
+    "question": "Science Technology planned rapid growth while improving efficiency. I connected its income forecast to receivables, inventory, and financing needs, showing why a shorter cash cycle could still leave the company needing substantially more working capital."
+  },
+  "rvd-ai": {
+    "title": "Raise another million. How much of the company is left?",
+    "question": "I used a venture valuation model to compare how two funding amounts change the ownership bargain for RVD.AI."
+  },
+  "optiguard": {
+    "title": "Same exit. Different fine print. Millions apart.",
+    "question": "Two financing structures can divide the same exit proceeds very differently. I modeled Optiguard’s capitalization and payout waterfalls to quantify how liquidation preferences and antidilution terms change what investors and founders receive."
+  },
+  "freddo": {
+    "title": "Before opening another ice cream shop, follow the cash",
+    "question": "A Freddo expansion analysis connecting marketing, inventory, payment terms, and working-capital requirements."
+  }
+}
