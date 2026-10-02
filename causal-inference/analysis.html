@@ -1,0 +1,2639 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Causal inference · Full notebook</title><style>body{max-width:1000px;margin:auto;padding:28px;font:18px/1.65 system-ui;color:#172b33}h1,h2{font-family:Georgia}a{color:#087d89}img{max-width:100%;height:auto;display:block;margin:25px auto}pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px;max-height:500px;overflow:auto;background:#f2f5f6;padding:16px}details{margin:12px 0;border:1px solid #dbe3e6;padding:12px}summary{cursor:pointer}.note{background:#edf5f6;padding:20px;border-left:4px solid #087d89}</style><a href="./">← Project overview</a><h1>Causal inference: full notebook</h1><aside class="note"><strong>About this notebook preview</strong><p>This is a static rendering of the original course notebook and its saved outputs; models have not been rerun. Code and lengthy logs are collapsed. The project overview provides a revised interpretation.</p><p>Reading corrections: the randomized estimate is a benchmark, not the known true effect; p = 0.071 does not meet a 5% significance threshold. The property-crime spread of 102.39 is the standard deviation across five annual gaps, not a standard error. Quantile differences describe outcome distributions, not effects for people ranked by their original income. The treatment-only quantile regression does not adjust for baseline covariates.</p></aside><div data-align="center">
+<p>To: Alexis Diamond</p>
+<p>From: Undral Ganbaatar</p>
+</div>
+<h1 id="introduction">Introduction</h1>
+<p>This project explores two distinct applications of causal inference
+methods. The first part analyzes the effects of federally funded job
+training programs on earnings and employment using randomized
+experiments, observational data, matching techniques, and instrumental
+variables. The second part applies the synthetic control method to
+estimate the causal impact of California’s 2011–2015 drought on property
+and violent crime rates by constructing a counterfactual from unaffected
+U.S. states.</p>
+<h1 id="original-lalonde-dataset">Original Lalonde Dataset</h1>
+<h2 id="treatment-effect">Treatment Effect</h2>
+<p>Since this is a randomized control trial (RCT), we can estimate the
+Average Treatment Effect on the Treated (ATT) by simply calculating the
+difference in mean outcomes between the treatment and control groups.
+While the true treatment effect, as defined by the Rubin Causal Model,
+is the difference between potential outcomes for each individual
+(treated vs. untreated), we can’t observe both for the same person. This
+is known as the fundamental problem of causal inference.</p>
+<p>Instead, we rely on randomization to ensure that the treatment and
+control groups are statistically equivalent, so any difference in
+outcomes can be attributed to the treatment. In this setup, the control
+group serves as a stand-in for the counterfactual outcomes the treated
+group would have experienced without the program. Therefore, what we’re
+estimating is the ATT, not the ATE.</p>
+<p>We can run a linear regression on the outcome variable (re78, real
+earnings in 1978) with only the treatment variable (treat, participation
+in the National Supported Work program) as a predictor. The treatment
+effect is the coefficient of the treatment variable.</p>
+<details><summary>Show R code · cell 4</summary><pre><code># Load required packages
+library(Matching)  
+library(dplyr)      
+library(quantreg)   
+library(ggplot2)    
+
+# Load the Lalonde experimental data
+data(lalonde)
+str(lalonde)
+head(lalonde)
+
+lm &lt;- lm(re78 ~ treat, data = lalonde)
+summary(lm)
+confint(lm)</code></pre></details><details><summary>Show saved output · cell 4</summary><pre>&#x27;data.frame&#x27;:	445 obs. of  12 variables:
+ $ age    : int  37 22 30 27 33 22 23 32 22 33 ...
+ $ educ   : int  11 9 12 11 8 9 12 11 16 12 ...
+ $ black  : int  1 0 1 1 1 1 1 1 1 0 ...
+ $ hisp   : int  0 1 0 0 0 0 0 0 0 0 ...
+ $ married: int  1 0 0 0 0 0 0 0 0 1 ...
+ $ nodegr : int  1 1 0 1 1 1 0 1 0 0 ...
+ $ re74   : num  0 0 0 0 0 0 0 0 0 0 ...
+ $ re75   : num  0 0 0 0 0 0 0 0 0 0 ...
+ $ re78   : num  9930 3596 24910 7506 290 ...
+ $ u74    : int  1 1 1 1 1 1 1 1 1 1 ...
+ $ u75    : int  1 1 1 1 1 1 1 1 1 1 ...
+ $ treat  : int  1 1 1 1 1 1 1 1 1 1 ...
+</pre></details><details><summary>Show saved output · cell 4</summary><pre>  age educ black hisp married nodegr re74 re75 re78     u74 u75 treat
+1 37  11   1     0    1       1      0    0     9930.05 1   1   1    
+2 22   9   0     1    0       1      0    0     3595.89 1   1   1    
+3 30  12   1     0    0       0      0    0    24909.50 1   1   1    
+4 27  11   1     0    0       1      0    0     7506.15 1   1   1    
+5 33   8   1     0    0       1      0    0      289.79 1   1   1    
+6 22   9   1     0    0       1      0    0     4056.49 1   1   1    </pre></details><details><summary>Show saved output · cell 4</summary><pre>
+Call:
+lm(formula = re78 ~ treat, data = lalonde)
+
+Residuals:
+   Min     1Q Median     3Q    Max 
+ -6349  -4555  -1829   2917  53959 
+
+Coefficients:
+            Estimate Std. Error t value Pr(&gt;|t|)    
+(Intercept)   4554.8      408.0  11.162  &lt; 2e-16 ***
+treat         1794.3      632.9   2.835  0.00479 ** 
+---
+Signif. codes:  0 &#x27;***&#x27; 0.001 &#x27;**&#x27; 0.01 &#x27;*&#x27; 0.05 &#x27;.&#x27; 0.1 &#x27; &#x27; 1
+
+Residual standard error: 6580 on 443 degrees of freedom
+Multiple R-squared:  0.01782,	Adjusted R-squared:  0.01561 
+F-statistic: 8.039 on 1 and 443 DF,  p-value: 0.004788
+</pre></details><details><summary>Show saved output · cell 4</summary><pre>            2.5 %     97.5 %  
+(Intercept) 3752.8559 5356.749
+treat        550.5749 3038.111</pre></details><p>The point estimate of the treatment effect is 1794.3, with a
+confidence interval between 550.6 and 3038.1. We are 95% confident that
+the true average effect of the job training program lies within this
+range. The p-value of the coefficient is quite small (statistically
+significant, represents the probability of observing this extreme of a
+treatment effect by random chance).</p>
+<p>The results indicate that getting the treatment leads to 1794.3
+dollars more in earnings.</p>
+<h2 id="quantiles">Quantiles</h2>
+<details><summary>Show R code · cell 7</summary><pre><code># Quantile treatment effects [1%, 99%]
+taus &lt;- seq(0.01, 0.99, by = 0.01)
+
+qte_list &lt;- suppressWarnings(lapply(taus, function(tau) {
+  rq_mod &lt;- rq(re78 ~ treat, tau = tau, data = lalonde)
+  rq_sum &lt;- summary(rq_mod, se = &quot;boot&quot;, R = 1000)
+  coef_est &lt;- rq_sum$coefficients[&quot;treat&quot;, &quot;Value&quot;]
+  se_est   &lt;- rq_sum$coefficients[&quot;treat&quot;, &quot;Std. Error&quot;]
+  data.frame(
+    tau      = tau,
+    estimate = coef_est,
+    ci_lower = coef_est - 1.96 * se_est,
+    ci_upper = coef_est + 1.96 * se_est
+  )
+}))
+
+
+qte_df &lt;- bind_rows(qte_list)
+
+# Compute the mean treatment effect for reference
+mean_te &lt;- with(lalonde,
+  mean(re78[treat == 1]) - mean(re78[treat == 0])
+)
+
+# Create a new data frame for the horizontal line so it can be mapped
+mean_te_df &lt;- data.frame(y = mean_te)
+
+# Separate treated and control groups
+treated  &lt;- lalonde$re78[lalonde$treat == 1]
+control  &lt;- lalonde$re78[lalonde$treat == 0]
+
+# Compute unconditional quantile differences
+uncond_qte &lt;- data.frame(
+  tau = taus,
+  estimate = quantile(treated, taus) - quantile(control, taus)
+)</code></pre></details><details><summary>Show R code · cell 8</summary><pre><code>qte_df$ci_label &lt;- &quot;95% CI (True QTE)&quot;
+
+ggplot(qte_df, aes(x = tau, y = estimate)) +
+  geom_ribbon(aes(ymin = ci_lower, ymax = ci_upper, fill = ci_label), alpha = 0.2) +
+  geom_line(aes(color = &quot;Conditional QTE&quot;), size = 1) +
+  geom_line(data = uncond_qte, aes(x = tau, y = estimate, color = &quot;Unconditional QTE&quot;), size = 1, linetype = &quot;dotted&quot;) +
+  geom_hline(
+    data = mean_te_df,
+    aes(yintercept = y, color = &quot;Mean TE&quot;),
+    linetype = &quot;dashed&quot;,
+    size = 1
+  ) +
+  scale_color_manual(
+    values = c(
+      &quot;Conditional QTE&quot; = &quot;black&quot;,
+      &quot;Unconditional QTE&quot; = &quot;orange&quot;,
+      &quot;Mean TE&quot; = &quot;red&quot;
+    ),
+    guide = guide_legend(title = NULL)
+  ) +
+  scale_fill_manual(
+    values = c(&quot;95% CI (True QTE)&quot; = &quot;grey70&quot;),
+    guide = guide_legend(title = NULL)
+  ) +
+  scale_x_continuous(labels = scales::percent_format(accuracy = 1)) +
+  scale_y_continuous(labels = scales::dollar_format()) +
+  labs(
+    x = &quot;Quantile&quot;,
+    y = &quot;Quantile Treatment Effect ($)&quot;,
+    title = &quot;Quantile Treatment Effects for Job Training (Lalonde 1986)&quot;
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = c(0.05, 0.95),
+    legend.justification = c(0, 1),
+    legend.background = element_rect(fill = &quot;white&quot;, color = NA),
+    legend.box.background = element_blank()
+  )
+</code></pre></details><img src="figures/cell-7-0.png" alt="Saved plot from notebook cell 8" loading="lazy"><p>In the bottom quartile (0–25%), the estimated treatment effect is
+close to zero, with little uncertainty, suggesting the program had no
+measurable impact on the lowest earners. Around the 25th percentile, the
+effect begins to rise and fluctuates near the average treatment effect
+through the middle of the distribution. Starting around the 88th
+percentile, the effect increases sharply and reaches its highest impact
+near the top of the earnings distribution. However, this region also
+shows greater uncertainty, as indicated by the wider confidence bands.
+The treatment seems to not work at all for the poor and work the best
+for the rich.</p>
+<details><summary>Show R code · cell 10</summary><pre><code>ggplot(qte_df, aes(x = tau, y = estimate)) +
+  geom_ribbon(aes(ymin = ci_lower, ymax = ci_upper, fill = ci_label), alpha = 0.2) +
+  geom_line(aes(color = &quot;Conditional QTE&quot;), size = 1) +
+  geom_line(data = uncond_qte, aes(x = tau, y = estimate, color = &quot;Unconditional QTE&quot;), size = 1, linetype = &quot;dotted&quot;) +
+  geom_hline(
+    data = mean_te_df,
+    aes(yintercept = y, color = &quot;Mean TE&quot;),
+    linetype = &quot;dashed&quot;,
+    size = 1
+  ) +
+  scale_color_manual(
+    values = c(
+      &quot;Conditional QTE&quot; = &quot;black&quot;,
+      &quot;Unconditional QTE&quot; = &quot;orange&quot;,
+      &quot;Mean TE&quot; = &quot;red&quot;
+    ),
+    guide = guide_legend(title = NULL)
+  ) +
+  scale_fill_manual(
+    values = c(&quot;95% CI (True QTE)&quot; = &quot;grey70&quot;),
+    guide = guide_legend(title = NULL)
+  ) +
+  scale_x_continuous(labels = scales::percent_format(accuracy = 1)) +
+  scale_y_continuous(labels = scales::dollar_format()) +
+  coord_cartesian(ylim = c(-1000, 16000)) +
+  labs(
+    x = &quot;Quantile&quot;,
+    y = &quot;Quantile Treatment Effect ($)&quot;,
+    title = &quot;Quantile Treatment Effects for Job Training (Lalonde 1986)&quot;
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = c(0.05, 0.95),
+    legend.justification = c(0, 1),
+    legend.background = element_rect(fill = &quot;white&quot;, color = NA),
+    legend.box.background = element_blank()
+  )
+</code></pre></details><img src="figures/cell-9-0.png" alt="Saved plot from notebook cell 10" loading="lazy"><p>This version of the plot clips the Y-axis to make variation easier to
+see. It compares conditional quantile treatment effects (from quantile
+regression, which models the effect of treatment at each conditional
+quantile of the outcome) with unconditional QTEs (the raw difference in
+quantiles between treated and control groups). The two curves appear
+quite similar, suggesting that conditioning on covariates doesn’t
+meaningfully change the estimated treatment effect across the earnings
+distribution.</p>
+<h1 id="matching">Matching</h1>
+<p>In this section, we will use the observational version of the lalonde
+dataset.</p>
+<details><summary>Show R code · cell 13</summary><pre><code>library(haven)
+
+url &lt;- &quot;https://drive.google.com/uc?export=download&amp;id=14jObEXThKXgpAXTY7c_3dc3xNucBZvd8&quot;
+cps2 &lt;- read_dta(url)</code></pre></details><h2 id="combine-the-datasets">Combine the datasets</h2>
+<details><summary>Show R code · cell 15</summary><pre><code># The datasets don&#x27;t match exactly. I&#x27;m making sure they match by renaming some variables and adding u74 and u75.
+
+cps2$u74 &lt;- ifelse(cps2$re74 == 0, 1, 0)
+cps2$u75 &lt;- ifelse(cps2$re75 == 0, 1, 0)
+
+# Uncomment these lines to rename the variables if you&#x27;re running on a local computer
+
+#cps2 &lt;- cps2 %&gt;%
+#  rename(
+#    educ   = education,
+#    hisp   = hispanic,
+#    nodegr = nodegree
+#  )
+
+head(cps2)
+#str(cps2)</code></pre></details><details><summary>Show saved output · cell 15</summary><pre>  treat age educ black hisp married nodegr re74      re75      re78      u74
+1 0     45  11   0     0    1       1      21516.670 25243.551 25564.670 0  
+2 0     21  14   0     0    0       0       3175.971  5852.565 13496.080 0  
+3 0     38  12   0     0    1       0      23039.020 25130.760 25564.670 0  
+4 0     48   6   0     0    1       1      24994.369 25243.551 25564.670 0  
+5 0     18   8   0     0    1       1       1669.295 10727.610  9860.869 0  
+6 0     22  11   0     0    1       1      16365.760 18449.270 25564.670 0  
+  u75
+1 0  
+2 0  
+3 0  
+4 0  
+5 0  
+6 0  </pre></details><details><summary>Show saved output · cell 15</summary><pre>tibble [15,992 x 12] (S3: tbl_df/tbl/data.frame)
+ $ treat  : num [1:15992] 0 0 0 0 0 0 0 0 0 0 ...
+  ..- attr(*, &quot;format.stata&quot;)= chr &quot;%9.0g&quot;
+ $ age    : num [1:15992] 45 21 38 48 18 22 48 18 48 45 ...
+  ..- attr(*, &quot;format.stata&quot;)= chr &quot;%9.0g&quot;
+ $ educ   : num [1:15992] 11 14 12 6 8 11 10 11 9 12 ...
+  ..- attr(*, &quot;format.stata&quot;)= chr &quot;%9.0g&quot;
+ $ black  : num [1:15992] 0 0 0 0 0 0 0 0 0 0 ...
+  ..- attr(*, &quot;format.stata&quot;)= chr &quot;%9.0g&quot;
+ $ hisp   : num [1:15992] 0 0 0 0 0 0 0 0 0 0 ...
+  ..- attr(*, &quot;format.stata&quot;)= chr &quot;%9.0g&quot;
+ $ married: num [1:15992] 1 0 1 1 1 1 1 0 1 1 ...
+  ..- attr(*, &quot;format.stata&quot;)= chr &quot;%9.0g&quot;
+ $ nodegr : num [1:15992] 1 0 0 1 1 1 1 1 1 0 ...
+  ..- attr(*, &quot;format.stata&quot;)= chr &quot;%9.0g&quot;
+ $ re74   : num [1:15992] 21517 3176 23039 24994 1669 ...
+  ..- attr(*, &quot;format.stata&quot;)= chr &quot;%9.0g&quot;
+ $ re75   : num [1:15992] 25244 5853 25131 25244 10728 ...
+  ..- attr(*, &quot;format.stata&quot;)= chr &quot;%9.0g&quot;
+ $ re78   : num [1:15992] 25565 13496 25565 25565 9861 ...
+  ..- attr(*, &quot;format.stata&quot;)= chr &quot;%9.0g&quot;
+ $ u74    : num [1:15992] 0 0 0 0 0 0 0 0 0 0 ...
+ $ u75    : num [1:15992] 0 0 0 0 0 0 0 0 0 1 ...
+</pre></details><details><summary>Show R code · cell 16</summary><pre><code># Filter for treated units only
+lalonde_treat &lt;- subset(lalonde, treat == 1)
+
+# Combine CPS-2 controls and Lalonde treated group
+combined_data &lt;- rbind(lalonde_treat, cps2)</code></pre></details><details><summary>Show R code · cell 17</summary><pre><code>str(combined_data)
+head(combined_data)</code></pre></details><details><summary>Show saved output · cell 17</summary><pre>&#x27;data.frame&#x27;:	16177 obs. of  12 variables:
+ $ age    : num  37 22 30 27 33 22 23 32 22 33 ...
+ $ educ   : num  11 9 12 11 8 9 12 11 16 12 ...
+ $ black  : num  1 0 1 1 1 1 1 1 1 0 ...
+ $ hisp   : num  0 1 0 0 0 0 0 0 0 0 ...
+ $ married: num  1 0 0 0 0 0 0 0 0 1 ...
+ $ nodegr : num  1 1 0 1 1 1 0 1 0 0 ...
+ $ re74   : num  0 0 0 0 0 0 0 0 0 0 ...
+ $ re75   : num  0 0 0 0 0 0 0 0 0 0 ...
+ $ re78   : num  9930 3596 24910 7506 290 ...
+ $ u74    : num  1 1 1 1 1 1 1 1 1 1 ...
+ $ u75    : num  1 1 1 1 1 1 1 1 1 1 ...
+ $ treat  : num  1 1 1 1 1 1 1 1 1 1 ...
+</pre></details><details><summary>Show saved output · cell 17</summary><pre>  age educ black hisp married nodegr re74 re75 re78     u74 u75 treat
+1 37  11   1     0    1       1      0    0     9930.05 1   1   1    
+2 22   9   0     1    0       1      0    0     3595.89 1   1   1    
+3 30  12   1     0    0       0      0    0    24909.50 1   1   1    
+4 27  11   1     0    0       1      0    0     7506.15 1   1   1    
+5 33   8   1     0    0       1      0    0      289.79 1   1   1    
+6 22   9   1     0    0       1      0    0     4056.49 1   1   1    </pre></details><h2 id="selection-bias">Selection Bias</h2>
+<details><summary>Show R code · cell 19</summary><pre><code>library(scales)
+predata &lt;- bind_rows(
+  lalonde_treat %&gt;% mutate(group = &quot;Treated&quot;),       
+  cps2          %&gt;% mutate(group = &quot;CPS-2 Control&quot;) 
+)
+predata %&gt;% 
+  group_by(group) %&gt;% 
+  summarise(
+    n             = n(),
+    mean_re74     = mean(re74, na.rm = TRUE),
+    mean_re75     = mean(re75, na.rm = TRUE),
+    pct_zero_re74 = mean(re74 == 0) * 100,
+    pct_zero_re75 = mean(re75 == 0) * 100,
+    .groups = &quot;drop&quot;
+  )
+
+t.test(re74 ~ group, data = predata)   
+t.test(re75 ~ group, data = predata)
+ggplot(predata, aes(re74, fill = group)) +
+  geom_density(alpha = 0.45) +
+  scale_x_continuous(labels = dollar_format()) +
+  labs(
+    title = &quot;Pre-Program Earnings (1974)&quot;,
+    x     = &quot;Real earnings in 1974&quot;,
+    fill  = NULL
+  ) +
+  theme_minimal()</code></pre></details><details><summary>Show saved output · cell 19</summary><pre>  group         n     mean_re74 mean_re75 pct_zero_re74 pct_zero_re75
+1 CPS-2 Control 15992 14016.800 13650.804 11.96223      10.93047     
+2 Treated         185  2095.574  1532.056 70.81081      60.00000     </pre></details><details><summary>Show saved output · cell 19</summary><pre>
+	Welch Two Sample t-test
+
+data:  re74 by group
+t = 32.469, df = 200.68, p-value &lt; 2.2e-16
+alternative hypothesis: true difference in means between group CPS-2 Control and group Treated is not equal to 0
+95 percent confidence interval:
+ 11197.25 12645.20
+sample estimates:
+mean in group CPS-2 Control       mean in group Treated 
+                  14016.800                    2095.574 
+</pre></details><details><summary>Show saved output · cell 19</summary><pre>
+	Welch Two Sample t-test
+
+data:  re75 by group
+t = 48.91, df = 220.97, p-value &lt; 2.2e-16
+alternative hypothesis: true difference in means between group CPS-2 Control and group Treated is not equal to 0
+95 percent confidence interval:
+ 11630.44 12607.06
+sample estimates:
+mean in group CPS-2 Control       mean in group Treated 
+                  13650.804                    1532.056 
+</pre></details><img src="figures/cell-18-3.png" alt="Saved plot from notebook cell 19" loading="lazy"><p>The comparison between the NSW treatment group and the CPS‑2 controls
+reveals strong evidence of selection bias, as expected. The CPS-2
+controls come from the higher‑earning part of the population while the
+trainees are economically worse off up front. This asymmetry produces a
+negative selection bias in the estimated program effect: any simple
+comparison will understate, or even reverse, the true impact of the
+job‑training program because the “healthy” controls would have earned
+more even without training.</p>
+<h2 id="prima-facie-treatment-effect">Prima Facie Treatment Effect</h2>
+<details><summary>Show R code · cell 22</summary><pre><code>mean_treat  &lt;- mean(lalonde_treat$re78, na.rm = TRUE)
+mean_cps2   &lt;- mean(cps2$re78,         na.rm = TRUE)
+naive_diff  &lt;- mean_treat - mean_cps2 
+
+cat(&quot;Estimated mean earnings in 1978:\n&quot;)
+cat(&quot;  NSW Treated Group      :&quot;, round(mean_treat, 2), &quot;\n&quot;)
+cat(&quot;  CPS-2 Control Group     :&quot;, round(mean_cps2, 2), &quot;\n&quot;)
+cat(&quot;  Naive Difference (Treated - Control):&quot;, round(naive_diff, 2), &quot;\n&quot;)
+</code></pre></details><details><summary>Show saved output · cell 22</summary><pre>Estimated mean earnings in 1978:
+  NSW Treated Group      : 6349.15 
+  CPS-2 Control Group     : 14846.66 
+  Naive Difference (Treated - Control): -8497.51 
+</pre></details><p>The estimated mean earnings in 1978 for the NSW treated group is
+$6,349.15, while the CPS‑2 control group has a much higher mean of
+$14,846.66. The naive difference between the two groups is -$8,497.51.
+This is very different from the result in Part I where we used
+experimental controls and found a positive treatment effect. It also
+connects to what we saw in Part 2 which was that the CPS‑2 controls had
+much higher earnings before the program. The negative effect here is
+likely due to that selection bias.</p>
+<h2 id="propensity-score-matching">Propensity Score Matching</h2>
+<details><summary>Show R code · cell 25</summary><pre><code>## Fit a propensity score model on combined_data
+ps_mod &lt;- glm(
+  treat ~ educ + age + married + black + hisp + nodegr + re74 + re75 + u74 + u75,
+  data   = combined_data,
+  family = binomial
+)
+
+## Match on the log‑odds (link scale)
+ps_link    &lt;- predict(ps_mod, type = &quot;link&quot;)
+match_link &lt;- Match(
+  Tr = combined_data$treat,
+  X  = ps_link,
+  Y  = combined_data$re78
+)
+summary(match_link)
+</code></pre></details><details><summary>Show saved output · cell 25</summary><pre>
+Estimate...  1043.2 
+AI SE......  944.87 
+T-stat.....  1.1041 
+p.val......  0.26955 
+
+Original number of observations..............  16177 
+Original number of treated obs...............  185 
+Matched number of observations...............  185 
+Matched number of observations  (unweighted).  878 
+
+</pre></details><details><summary>Show R code · cell 26</summary><pre><code>## Match on the response (probability) scale
+ps_resp    &lt;- predict(ps_mod, type = &quot;response&quot;)
+match_resp &lt;- Match(
+  Tr = combined_data$treat,
+  X  = ps_resp,
+  Y  = combined_data$re78
+)
+summary(match_resp)</code></pre></details><details><summary>Show saved output · cell 26</summary><pre>
+Estimate...  1322.1 
+AI SE......  943.41 
+T-stat.....  1.4014 
+p.val......  0.16108 
+
+Original number of observations..............  16177 
+Original number of treated obs...............  185 
+Matched number of observations...............  185 
+Matched number of observations  (unweighted).  5180 
+
+</pre></details><p>I used a logistic regression model to estimate propensity scores
+using all baseline covariates. I performed matching twice: once on the
+linear logit scale and once on the predicted response probabilities. The
+link scale uses the raw log-odds from the logistic regression, while the
+response scale uses the predicted probability of treatment. In both
+cases I used Sekhon’s Match() function and estimated the Average
+Treatment Effect on the Treated (ATT). Controls are used just to
+estimate what the treated units would have earned without treatment,
+therefore the result is an estimate of ATT, not ATE.</p>
+<p>The ATT estimate using the logit scale was $1,043.20 with a p-value
+of 0.27. The ATT from matching on the response scale was $1,322.10 with
+a p-value of 0.16. They both underestimate the true ATT from the RCT,
+but matching on the response scale gave a slightly larger and more
+statistically significant result. It also matched a lot more control
+observations (5180 vs 878).</p>
+<details><summary>Show R code · cell 28</summary><pre><code>## Balance check for link match
+mb_link &lt;- invisible(MatchBalance(
+  treat ~ educ + age + married + black + hisp + nodegr + re74 + re75 + u74 + u75,
+  data      = combined_data,
+  match.out = match_link,
+  nboots    = 1000
+))
+
+#mb_link$AMsmallest.p.value
+#mb_link$AMsmallestVarName
+#head(data.frame(
+#  Variable = mb_link$AMsmallestVarName,
+#  P_Value  = mb_link$AMsmallest.p.value
+#), 5)</code></pre></details><details><summary>Show saved output · cell 28</summary><pre>
+***** (V1) educ *****
+                       Before Matching 	 	 After Matching
+mean treatment........     10.346 	 	     10.346 
+mean control..........     12.028 	 	     10.481 
+std mean diff.........    -83.633 	 	    -6.7123 
+
+mean raw eQQ diff.....     1.7351 	 	    0.63554 
+med  raw eQQ diff.....          2 	 	          0 
+max  raw eQQ diff.....          4 	 	          4 
+
+mean eCDF diff........   0.090791 	 	   0.033449 
+med  eCDF diff........   0.037581 	 	   0.018223 
+max  eCDF diff........    0.41227 	 	    0.11276 
+
+var ratio (Tr/Co).....    0.49052 	 	    0.56177 
+T-test p-value........ &lt; 2.22e-16 	 	    0.53076 
+KS Bootstrap p-value.. &lt; 2.22e-16 	 	 &lt; 2.22e-16 
+KS Naive p-value...... &lt; 2.22e-16 	 	 2.8383e-05 
+KS Statistic..........    0.41227 	 	    0.11276 
+
+
+***** (V2) age *****
+                       Before Matching 	 	 After Matching
+mean treatment........     25.816 	 	     25.816 
+mean control..........     33.225 	 	     25.335 
+std mean diff.........    -103.55 	 	     6.7296 
+
+mean raw eQQ diff.....     7.4865 	 	     2.4567 
+med  raw eQQ diff.....          6 	 	          1 
+max  raw eQQ diff.....         16 	 	         13 
+
+mean eCDF diff........    0.18628 	 	   0.061418 
+med  eCDF diff........    0.19692 	 	    0.05467 
+max  eCDF diff........    0.34274 	 	    0.14123 
+
+var ratio (Tr/Co).....    0.41964 	 	    0.57198 
+T-test p-value........ &lt; 2.22e-16 	 	    0.54309 
+KS Bootstrap p-value.. &lt; 2.22e-16 	 	 &lt; 2.22e-16 
+KS Naive p-value...... &lt; 2.22e-16 	 	 4.9595e-08 
+KS Statistic..........    0.34274 	 	    0.14123 
+
+
+***** (V3) married *****
+                       Before Matching 	 	 After Matching
+mean treatment........    0.18919 	 	    0.18919 
+mean control..........    0.71173 	 	    0.17295 
+std mean diff.........    -133.06 	 	     4.1352 
+
+mean raw eQQ diff.....    0.51892 	 	   0.028474 
+med  raw eQQ diff.....          1 	 	          0 
+max  raw eQQ diff.....          1 	 	          1 
+
+mean eCDF diff........    0.26127 	 	   0.014237 
+med  eCDF diff........    0.26127 	 	   0.014237 
+max  eCDF diff........    0.52254 	 	   0.028474 
+
+var ratio (Tr/Co).....    0.75167 	 	     1.0724 
+T-test p-value........ &lt; 2.22e-16 	 	    0.65161 
+
+
+***** (V4) black *****
+                       Before Matching 	 	 After Matching
+mean treatment........    0.84324 	 	    0.84324 
+mean control..........   0.073537 	 	    0.85087 
+std mean diff.........     211.13 	 	    -2.0933 
+
+mean raw eQQ diff.....    0.76757 	 	  0.0079727 
+med  raw eQQ diff.....          1 	 	          0 
+max  raw eQQ diff.....          1 	 	          1 
+
+mean eCDF diff........    0.38485 	 	  0.0039863 
+med  eCDF diff........    0.38485 	 	  0.0039863 
+max  eCDF diff........    0.76971 	 	  0.0079727 
+
+var ratio (Tr/Co).....     1.9506 	 	     1.0417 
+T-test p-value........ &lt; 2.22e-16 	 	    0.76573 
+
+
+***** (V5) hisp *****
+                       Before Matching 	 	 After Matching
+mean treatment........   0.059459 	 	   0.059459 
+mean control..........   0.072036 	 	   0.061443 
+std mean diff.........    -5.3038 	 	   -0.83653 
+
+mean raw eQQ diff.....   0.016216 	 	   0.085421 
+med  raw eQQ diff.....          0 	 	          0 
+max  raw eQQ diff.....          1 	 	          1 
+
+mean eCDF diff........  0.0062883 	 	   0.042711 
+med  eCDF diff........  0.0062883 	 	   0.042711 
+max  eCDF diff........   0.012577 	 	   0.085421 
+
+var ratio (Tr/Co).....    0.84109 	 	    0.96976 
+T-test p-value........    0.47458 	 	    0.93518 
+
+
+***** (V6) nodegr *****
+                       Before Matching 	 	 After Matching
+mean treatment........    0.70811 	 	    0.70811 
+mean control..........    0.29584 	 	    0.69528 
+std mean diff.........     90.437 	 	     2.8137 
+
+mean raw eQQ diff.....    0.41081 	 	  0.0045558 
+med  raw eQQ diff.....          0 	 	          0 
+max  raw eQQ diff.....          1 	 	          1 
+
+mean eCDF diff........    0.20614 	 	  0.0022779 
+med  eCDF diff........    0.20614 	 	  0.0022779 
+max  eCDF diff........    0.41227 	 	  0.0045558 
+
+var ratio (Tr/Co).....    0.99753 	 	    0.97558 
+T-test p-value........ &lt; 2.22e-16 	 	    0.72408 
+
+
+***** (V7) re74 *****
+                       Before Matching 	 	 After Matching
+mean treatment........     2095.6 	 	     2095.6 
+mean control..........      14017 	 	     2520.4 
+std mean diff.........    -243.96 	 	     -8.694 
+
+mean raw eQQ diff.....      12014 	 	      682.5 
+med  raw eQQ diff.....      13276 	 	     21.094 
+max  raw eQQ diff.....      23256 	 	     9177.8 
+
+mean eCDF diff........    0.45909 	 	   0.023775 
+med  eCDF diff........    0.50014 	 	   0.015945 
+max  eCDF diff........    0.60309 	 	   0.095672 
+
+var ratio (Tr/Co).....    0.26074 	 	    0.86358 
+T-test p-value........ &lt; 2.22e-16 	 	     0.3612 
+KS Bootstrap p-value.. &lt; 2.22e-16 	 	 &lt; 2.22e-16 
+KS Naive p-value...... &lt; 2.22e-16 	 	 0.00064691 
+KS Statistic..........    0.60309 	 	   0.095672 
+
+
+***** (V8) re75 *****
+                       Before Matching 	 	 After Matching
+mean treatment........     1532.1 	 	     1532.1 
+mean control..........      13651 	 	     1688.6 
+std mean diff.........    -376.45 	 	    -4.8614 
+
+mean raw eQQ diff.....      12112 	 	        564 
+med  raw eQQ diff.....      13837 	 	     101.35 
+max  raw eQQ diff.....      22438 	 	     6252.5 
+
+mean eCDF diff........     0.4751 	 	   0.029596 
+med  eCDF diff........    0.51249 	 	   0.028474 
+max  eCDF diff........     0.6509 	 	   0.079727 
+
+var ratio (Tr/Co).....    0.12059 	 	    0.75427 
+T-test p-value........ &lt; 2.22e-16 	 	    0.62486 
+KS Bootstrap p-value.. &lt; 2.22e-16 	 	      0.005 
+KS Naive p-value...... &lt; 2.22e-16 	 	  0.0075386 
+KS Statistic..........     0.6509 	 	   0.079727 
+
+
+***** (V9) u74 *****
+                       Before Matching 	 	 After Matching
+mean treatment........    0.70811 	 	    0.70811 
+mean control..........    0.11962 	 	    0.68344 
+std mean diff.........     129.09 	 	      5.412 
+
+mean raw eQQ diff.....    0.58378 	 	   0.070615 
+med  raw eQQ diff.....          1 	 	          0 
+max  raw eQQ diff.....          1 	 	          1 
+
+mean eCDF diff........    0.29424 	 	   0.035308 
+med  eCDF diff........    0.29424 	 	   0.035308 
+max  eCDF diff........    0.58849 	 	   0.070615 
+
+var ratio (Tr/Co).....     1.9732 	 	    0.95535 
+T-test p-value........ &lt; 2.22e-16 	 	    0.47767 
+
+
+***** (V10) u75 *****
+                       Before Matching 	 	 After Matching
+mean treatment........        0.6 	 	        0.6 
+mean control..........     0.1093 	 	    0.54664 
+std mean diff.........     99.892 	 	     10.862 
+
+mean raw eQQ diff.....    0.48649 	 	   0.075171 
+med  raw eQQ diff.....          0 	 	          0 
+max  raw eQQ diff.....          1 	 	          1 
+
+mean eCDF diff........    0.24535 	 	   0.037585 
+med  eCDF diff........    0.24535 	 	   0.037585 
+max  eCDF diff........     0.4907 	 	   0.075171 
+
+var ratio (Tr/Co).....     2.4784 	 	    0.96843 
+T-test p-value........ &lt; 2.22e-16 	 	    0.21435 
+
+
+Before Matching Minimum p.value: &lt; 2.22e-16 
+Variable Name(s): educ age married black nodegr re74 re75 u74 u75  Number(s): 1 2 3 4 6 7 8 9 10 
+
+After Matching Minimum p.value: &lt; 2.22e-16 
+Variable Name(s): educ age re74  Number(s): 1 2 7 
+
+</pre></details><details><summary>Show saved output · cell 28</summary><pre>[1] &quot;MatchBalance computed.&quot;</pre></details><details><summary>Show R code · cell 29</summary><pre><code>## Balance check for response match
+mb_resp &lt;- MatchBalance(
+  treat ~ educ + age + married + black + hisp + nodegr + re74 + re75 + u74 + u75,
+  data      = combined_data,
+  match.out = match_resp,
+  nboots    = 1000
+)
+mb_resp$AMsmallest.p.value
+mb_resp$AMsmallestVarName</code></pre></details><details><summary>Show saved output · cell 29</summary><pre>
+***** (V1) educ *****
+                       Before Matching 	 	 After Matching
+mean treatment........     10.346 	 	     10.346 
+mean control..........     12.028 	 	     10.445 
+std mean diff.........    -83.633 	 	    -4.9393 
+
+mean raw eQQ diff.....     1.7351 	 	      1.445 
+med  raw eQQ diff.....          2 	 	          1 
+max  raw eQQ diff.....          4 	 	          8 
+
+mean eCDF diff........   0.090791 	 	   0.076052 
+med  eCDF diff........   0.037581 	 	   0.051931 
+max  eCDF diff........    0.41227 	 	    0.20174 
+
+var ratio (Tr/Co).....    0.49052 	 	    0.53949 
+T-test p-value........ &lt; 2.22e-16 	 	      0.651 
+KS Bootstrap p-value.. &lt; 2.22e-16 	 	 &lt; 2.22e-16 
+KS Naive p-value...... &lt; 2.22e-16 	 	 &lt; 2.22e-16 
+KS Statistic..........    0.41227 	 	    0.20174 
+
+
+***** (V2) age *****
+                       Before Matching 	 	 After Matching
+mean treatment........     25.816 	 	     25.816 
+mean control..........     33.225 	 	     25.452 
+std mean diff.........    -103.55 	 	     5.0972 
+
+mean raw eQQ diff.....     7.4865 	 	     6.2014 
+med  raw eQQ diff.....          6 	 	          4 
+max  raw eQQ diff.....         16 	 	         20 
+
+mean eCDF diff........    0.18628 	 	    0.15503 
+med  eCDF diff........    0.19692 	 	    0.16322 
+max  eCDF diff........    0.34274 	 	    0.28224 
+
+var ratio (Tr/Co).....    0.41964 	 	     0.5301 
+T-test p-value........ &lt; 2.22e-16 	 	    0.65929 
+KS Bootstrap p-value.. &lt; 2.22e-16 	 	 &lt; 2.22e-16 
+KS Naive p-value...... &lt; 2.22e-16 	 	 &lt; 2.22e-16 
+KS Statistic..........    0.34274 	 	    0.28224 
+
+
+***** (V3) married *****
+                       Before Matching 	 	 After Matching
+mean treatment........    0.18919 	 	    0.18919 
+mean control..........    0.71173 	 	    0.17257 
+std mean diff.........    -133.06 	 	      4.232 
+
+mean raw eQQ diff.....    0.51892 	 	   0.032239 
+med  raw eQQ diff.....          1 	 	          0 
+max  raw eQQ diff.....          1 	 	          1 
+
+mean eCDF diff........    0.26127 	 	    0.01612 
+med  eCDF diff........    0.26127 	 	    0.01612 
+max  eCDF diff........    0.52254 	 	   0.032239 
+
+var ratio (Tr/Co).....    0.75167 	 	     1.0743 
+T-test p-value........ &lt; 2.22e-16 	 	    0.63931 
+
+
+***** (V4) black *****
+                       Before Matching 	 	 After Matching
+mean treatment........    0.84324 	 	    0.84324 
+mean control..........   0.073537 	 	    0.84847 
+std mean diff.........     211.13 	 	    -1.4335 
+
+mean raw eQQ diff.....    0.76757 	 	   0.028378 
+med  raw eQQ diff.....          1 	 	          0 
+max  raw eQQ diff.....          1 	 	          1 
+
+mean eCDF diff........    0.38485 	 	   0.014189 
+med  eCDF diff........    0.38485 	 	   0.014189 
+max  eCDF diff........    0.76971 	 	   0.028378 
+
+var ratio (Tr/Co).....     1.9506 	 	     1.0281 
+T-test p-value........ &lt; 2.22e-16 	 	    0.83829 
+
+
+***** (V5) hisp *****
+                       Before Matching 	 	 After Matching
+mean treatment........   0.059459 	 	   0.059459 
+mean control..........   0.072036 	 	   0.063133 
+std mean diff.........    -5.3038 	 	    -1.5494 
+
+mean raw eQQ diff.....   0.016216 	 	   0.038224 
+med  raw eQQ diff.....          0 	 	          0 
+max  raw eQQ diff.....          1 	 	          1 
+
+mean eCDF diff........  0.0062883 	 	   0.019112 
+med  eCDF diff........  0.0062883 	 	   0.019112 
+max  eCDF diff........   0.012577 	 	   0.038224 
+
+var ratio (Tr/Co).....    0.84109 	 	     0.9455 
+T-test p-value........    0.47458 	 	    0.88207 
+
+
+***** (V6) nodegr *****
+                       Before Matching 	 	 After Matching
+mean treatment........    0.70811 	 	    0.70811 
+mean control..........    0.29584 	 	    0.70355 
+std mean diff.........     90.437 	 	    0.99889 
+
+mean raw eQQ diff.....    0.41081 	 	    0.18147 
+med  raw eQQ diff.....          0 	 	          0 
+max  raw eQQ diff.....          1 	 	          1 
+
+mean eCDF diff........    0.20614 	 	   0.090734 
+med  eCDF diff........    0.20614 	 	   0.090734 
+max  eCDF diff........    0.41227 	 	    0.18147 
+
+var ratio (Tr/Co).....    0.99753 	 	    0.99101 
+T-test p-value........ &lt; 2.22e-16 	 	    0.89678 
+
+
+***** (V7) re74 *****
+                       Before Matching 	 	 After Matching
+mean treatment........     2095.6 	 	     2095.6 
+mean control..........      14017 	 	     2485.8 
+std mean diff.........    -243.96 	 	    -7.9854 
+
+mean raw eQQ diff.....      12014 	 	     2832.5 
+med  raw eQQ diff.....      13276 	 	     1415.1 
+max  raw eQQ diff.....      23256 	 	      11202 
+
+mean eCDF diff........    0.45909 	 	    0.10561 
+med  eCDF diff........    0.50014 	 	   0.095174 
+max  eCDF diff........    0.60309 	 	    0.26081 
+
+var ratio (Tr/Co).....    0.26074 	 	    0.87248 
+T-test p-value........ &lt; 2.22e-16 	 	    0.40273 
+KS Bootstrap p-value.. &lt; 2.22e-16 	 	 &lt; 2.22e-16 
+KS Naive p-value...... &lt; 2.22e-16 	 	 &lt; 2.22e-16 
+KS Statistic..........    0.60309 	 	    0.26081 
+
+
+***** (V8) re75 *****
+                       Before Matching 	 	 After Matching
+mean treatment........     1532.1 	 	     1532.1 
+mean control..........      13651 	 	     1629.1 
+std mean diff.........    -376.45 	 	    -3.0151 
+
+mean raw eQQ diff.....      12112 	 	     1498.8 
+med  raw eQQ diff.....      13837 	 	     1079.7 
+max  raw eQQ diff.....      22438 	 	     8108.6 
+
+mean eCDF diff........     0.4751 	 	   0.076006 
+med  eCDF diff........    0.51249 	 	   0.075676 
+max  eCDF diff........     0.6509 	 	    0.20097 
+
+var ratio (Tr/Co).....    0.12059 	 	    0.80356 
+T-test p-value........ &lt; 2.22e-16 	 	     0.7582 
+KS Bootstrap p-value.. &lt; 2.22e-16 	 	 &lt; 2.22e-16 
+KS Naive p-value...... &lt; 2.22e-16 	 	 &lt; 2.22e-16 
+KS Statistic..........     0.6509 	 	    0.20097 
+
+
+***** (V9) u74 *****
+                       Before Matching 	 	 After Matching
+mean treatment........    0.70811 	 	    0.70811 
+mean control..........    0.11962 	 	    0.67921 
+std mean diff.........     129.09 	 	     6.3395 
+
+mean raw eQQ diff.....    0.58378 	 	   0.017375 
+med  raw eQQ diff.....          1 	 	          0 
+max  raw eQQ diff.....          1 	 	          1 
+
+mean eCDF diff........    0.29424 	 	  0.0086873 
+med  eCDF diff........    0.29424 	 	  0.0086873 
+max  eCDF diff........    0.58849 	 	   0.017375 
+
+var ratio (Tr/Co).....     1.9732 	 	    0.94863 
+T-test p-value........ &lt; 2.22e-16 	 	    0.41187 
+
+
+***** (V10) u75 *****
+                       Before Matching 	 	 After Matching
+mean treatment........        0.6 	 	        0.6 
+mean control..........     0.1093 	 	    0.54526 
+std mean diff.........     99.892 	 	     11.143 
+
+mean raw eQQ diff.....    0.48649 	 	   0.076641 
+med  raw eQQ diff.....          0 	 	          0 
+max  raw eQQ diff.....          1 	 	          1 
+
+mean eCDF diff........    0.24535 	 	    0.03832 
+med  eCDF diff........    0.24535 	 	    0.03832 
+max  eCDF diff........     0.4907 	 	   0.076641 
+
+var ratio (Tr/Co).....     2.4784 	 	    0.96793 
+T-test p-value........ &lt; 2.22e-16 	 	    0.20316 
+
+
+Before Matching Minimum p.value: &lt; 2.22e-16 
+Variable Name(s): educ age married black nodegr re74 re75 u74 u75  Number(s): 1 2 3 4 6 7 8 9 10 
+
+After Matching Minimum p.value: &lt; 2.22e-16 
+Variable Name(s): educ age re74 re75  Number(s): 1 2 7 8 
+
+</pre></details><details><summary>Show saved output · cell 29</summary><pre>[1] 0</pre></details><details><summary>Show saved output · cell 29</summary><pre>[1] &quot;educ&quot; &quot;age&quot;  &quot;re74&quot; &quot;re75&quot;</pre></details><p>In terms of balance, both methods failed to fully balance the
+non-binary variables. The minimum p-values after matching were below
+2.22e-16 in both cases, and the worst-matched covariates included educ,
+age, re74, and re75. The balance checks rely on the KS
+(Kolmogorov-Smirnov) bootstrap p-value, not the usual t-test p-value for
+the non-binary variables. KS is more sensitive to differences in the
+shape of the distribution, not just the mean. That’s helpful here
+because matching should ideally balance the full distribution of each
+covariate, not just its average, which is why we care more about the KS
+result when assessing covariate balance.</p>
+<details><summary>Show R code · cell 31</summary><pre><code>pairs_link &lt;- data.frame(
+  treated = match_link$index.treated,
+  control = match_link$index.control
+)
+pairs_resp &lt;- data.frame(
+  treated = match_resp$index.treated,
+  control = match_resp$index.control
+)
+
+common_pairs &lt;- inner_join(pairs_link, pairs_resp, by = c(&quot;treated&quot;, &quot;control&quot;))
+common_count &lt;- nrow(common_pairs)
+cat(&quot;Number of identical treated-control pairs in both matches:&quot;, common_count, &quot;\n&quot;)</code></pre></details><details><summary>Show saved output · cell 31</summary><pre>Number of identical treated-control pairs in both matches: 707 
+</pre></details><p>Out of 878 total matched pairs in the log-odds match and 5,180 in the
+response match, 707 treated-control pairs are exactly the same in both.
+Even though the two approaches use different matching scales, a large
+portion of the log-odds matches overlap.</p>
+<h2 id="genetic-matching">Genetic Matching</h2>
+<details><summary>Show R code · cell 34</summary><pre><code>library(rgenoud)
+
+# Prepare combined data
+Tr &lt;- combined_data$treat
+X  &lt;- as.matrix(combined_data[, c(&quot;educ&quot;,&quot;age&quot;,&quot;married&quot;,&quot;black&quot;,&quot;hisp&quot;,
+                                  &quot;nodegr&quot;,&quot;re74&quot;,&quot;re75&quot;,&quot;u74&quot;,&quot;u75&quot;)])
+Y  &lt;- combined_data$re78
+
+# Run genetic matching (default fitness)
+set.seed(2025)
+genout &lt;- GenMatch(
+  Tr       = Tr,
+  X        = X,
+  pop.size = 100,         
+  max.generations = 10   
+)
+
+# Estimate ATT with the genetic weights
+mout_gen &lt;- Match(
+  Tr            = Tr,
+  X             = X,
+  Weight.matrix = genout,
+  Y             = Y
+)
+summary(mout_gen)
+
+# Check balance after genetic matching
+mb_gen &lt;- MatchBalance(
+  treat ~ educ + age + married + black + hisp + nodegr + re74 + re75 + u74 + u75,
+  match.out = mout_gen,
+  nboots    = 1000,
+  data      = combined_data
+)
+#mb_gen$AMsmallest.p.value
+#mb_gen$AMsmallestVarName
+head(data.frame(
+  Variable = mb_gen$AMsmallestVarName,
+  P_Value  = mb_gen$AMsmallest.p.value
+), 5)</code></pre></details><details><summary>Show saved output · cell 34</summary><pre>##  rgenoud (Version 5.9-0.11, Build Date: 2024-10-03)
+##  See http://sekhon.berkeley.edu/rgenoud for additional documentation.
+##  Please cite software as:
+##   Walter Mebane, Jr. and Jasjeet S. Sekhon. 2011.
+##   ``Genetic Optimization Using Derivatives: The rgenoud package for R.&#x27;&#x27;
+##   Journal of Statistical Software, 42(11): 1-26. 
+##
+
+
+</pre></details><details><summary>Show saved output · cell 34</summary><pre>
+
+Wed Apr 23 17:17:49 2025
+Domains:
+ 0.000000e+00   &lt;=  X1   &lt;=    1.000000e+03 
+ 0.000000e+00   &lt;=  X2   &lt;=    1.000000e+03 
+ 0.000000e+00   &lt;=  X3   &lt;=    1.000000e+03 
+ 0.000000e+00   &lt;=  X4   &lt;=    1.000000e+03 
+ 0.000000e+00   &lt;=  X5   &lt;=    1.000000e+03 
+ 0.000000e+00   &lt;=  X6   &lt;=    1.000000e+03 
+ 0.000000e+00   &lt;=  X7   &lt;=    1.000000e+03 
+ 0.000000e+00   &lt;=  X8   &lt;=    1.000000e+03 
+ 0.000000e+00   &lt;=  X9   &lt;=    1.000000e+03 
+ 0.000000e+00   &lt;=  X10  &lt;=    1.000000e+03 
+
+Data Type: Floating Point
+Operators (code number, name, population) 
+	(1) Cloning........................... 	15
+	(2) Uniform Mutation.................. 	12
+	(3) Boundary Mutation................. 	12
+	(4) Non-Uniform Mutation.............. 	12
+	(5) Polytope Crossover................ 	12
+	(6) Simple Crossover.................. 	12
+	(7) Whole Non-Uniform Mutation........ 	12
+	(8) Heuristic Crossover............... 	12
+	(9) Local-Minimum Crossover........... 	0
+
+SOFT Maximum Number of Generations: 10
+Maximum Nonchanging Generations: 4
+Population size       : 100
+Convergence Tolerance: 1.000000e-03
+
+Not Using the BFGS Derivative Based Optimizer on the Best Individual Each Generation.
+Not Checking Gradients before Stopping.
+Using Out of Bounds Individuals.
+
+Maximization Problem.
+GENERATION: 0 (initializing the population)
+Lexical Fit..... 1.329615e-01  2.476631e-01  3.195563e-01  4.231561e-01  8.108175e-01  9.960364e-01  9.999392e-01  9.999994e-01  1.000000e+00  1.000000e+00  1.000000e+00  1.000000e+00  1.000000e+00  1.000000e+00  1.000000e+00  1.000000e+00  1.000000e+00  1.000000e+00  1.000000e+00  1.000000e+00  
+#unique......... 100, #Total UniqueCount: 100
+var 1:
+best............ 7.310811e+01
+mean............ 5.364319e+02
+variance........ 8.076825e+04
+var 2:
+best............ 5.506298e+02
+mean............ 4.744153e+02
+variance........ 8.489723e+04
+var 3:
+best............ 4.537204e+02
+mean............ 4.694759e+02
+variance........ 1.001774e+05
+var 4:
+best............ 1.637543e+01
+mean............ 4.637166e+02
+variance........ 9.111472e+04
+var 5:
+best............ 4.836864e+02
+mean............ 4.784377e+02
+variance........ 8.510197e+04
+var 6:
+best............ 1.150983e+02
+mean............ 4.647472e+02
+variance........ 8.584328e+04
+var 7:
+best............ 2.213237e+01
+mean............ 5.500411e+02
+variance........ 7.847958e+04
+var 8:
+best............ 7.766977e+02
+mean............ 4.123394e+02
+variance........ 8.235238e+04
+var 9:
+best............ 7.551465e+02
+mean............ 4.797273e+02
+variance........ 7.313834e+04
+var 10:
+best............ 1.136021e+02
+mean............ 4.743446e+02
+variance........ 6.099900e+04
+
+GENERATION: 1
+Lexical Fit..... 1.575531e-01  1.837033e-01  3.134949e-01  5.008086e-01  6.270285e-01  9.664959e-01  9.999669e-01  9.999996e-01  1.000000e+00  1.000000e+00  1.000000e+00  1.000000e+00  1.000000e+00  1.000000e+00  1.000000e+00  1.000000e+00  1.000000e+00  1.000000e+00  1.000000e+00  1.000000e+00  
+#unique......... 74, #Total UniqueCount: 174
+var 1:
+best............ 1.248732e+02
+mean............ 2.388127e+02
+variance........ 6.869212e+04
+var 2:
+best............ 2.775014e+02
+mean............ 5.988429e+02
+variance........ 4.579218e+04
+var 3:
+best............ 2.511054e+02
+mean............ 4.371328e+02
+variance........ 4.805376e+04
+var 4:
+best............ 8.788522e+02
+mean............ 4.401924e+02
+variance........ 1.502630e+05
+var 5:
+best............ 7.275990e+02
+mean............ 4.995837e+02
+variance........ 3.793998e+04
+var 6:
+best............ 1.584601e+02
+mean............ 3.441454e+02
+variance........ 6.320660e+04
+var 7:
+best............ 4.136682e+01
+mean............ 2.648447e+02
+variance........ 8.519299e+04
+var 8:
+best............ 7.127665e+02
+mean............ 5.175907e+02
+variance........ 6.830317e+04
+var 9:
+best............ 7.181911e+02
+mean............ 5.450464e+02
+variance........ 5.794327e+04
+var 10:
+best............ 1.885255e+02
+mean............ 3.934894e+02
+variance........ 7.813511e+04
+
+GENERATION: 2
+Lexical Fit..... 2.244229e-01  2.407812e-01  3.131627e-01  4.237614e-01  4.392881e-01  9.859301e-01  9.999598e-01  9.999994e-01  1.000000e+00  1.000000e+00  1.000000e+00  1.000000e+00  1.000000e+00  1.000000e+00  1.000000e+00  1.000000e+00  1.000000e+00  1.000000e+00  1.000000e+00  1.000000e+00  
+#unique......... 70, #Total UniqueCount: 244
+var 1:
+best............ 1.103862e+02
+mean............ 1.151041e+02
+variance........ 2.744881e+03
+var 2:
+best............ 3.608769e+02
+mean............ 3.906124e+02
+variance........ 2.133692e+04
+var 3:
+best............ 3.105298e+02
+mean............ 3.388013e+02
+variance........ 1.813839e+04
+var 4:
+best............ 6.208530e+02
+mean............ 5.826069e+02
+variance........ 1.434216e+05
+var 5:
+best............ 5.799718e+02
+mean............ 6.015171e+02
+variance........ 1.817016e+04
+var 6:
+best............ 1.457592e+02
+mean............ 1.824559e+02
+variance........ 1.542202e+04
+var 7:
+best............ 3.842367e+01
+mean............ 6.690027e+01
+variance........ 8.306089e+03
+var 8:
+best............ 7.312318e+02
+mean............ 6.958319e+02
+variance........ 1.208333e+04
+var 9:
+best............ 7.301513e+02
+mean............ 7.042292e+02
+variance........ 1.404053e+04
+var 10:
+best............ 1.665845e+02
+mean............ 2.103246e+02
+variance........ 2.396156e+04
+
+GENERATION: 3
+Lexical Fit..... 2.244229e-01  2.407812e-01  3.437906e-01  3.962494e-01  5.148254e-01  9.859301e-01  9.999598e-01  9.999598e-01  1.000000e+00  1.000000e+00  1.000000e+00  1.000000e+00  1.000000e+00  1.000000e+00  1.000000e+00  1.000000e+00  1.000000e+00  1.000000e+00  1.000000e+00  1.000000e+00  
+#unique......... 73, #Total UniqueCount: 317
+var 1:
+best............ 1.045598e+02
+mean............ 1.213266e+02
+variance........ 7.353461e+02
+var 2:
+best............ 3.856970e+02
+mean............ 3.489955e+02
+variance........ 2.862398e+03
+var 3:
+best............ 2.967476e+02
+mean............ 2.999913e+02
+variance........ 8.973373e+03
+v
+… Preview shortened.</pre><p><a href="logs/output-1.txt">Read complete saved output</a></p></details><details><summary>Show saved output · cell 34</summary><pre>  Variable P_Value
+1 age      0.224  </pre></details><details><summary>Show R code · cell 35</summary><pre><code># Pull out the ATT and the AI standard error
+att_gen  &lt;- mout_gen$est    
+se_ai     &lt;- mout_gen$se      
+
+# Compute t and p using the AI SE
+t_gen     &lt;- att_gen / se_ai 
+p_gen     &lt;- 2 * (1 - pnorm(abs(t_gen))) 
+
+cat(
+  &quot;Genetic Matching ATT =&quot;, round(att_gen,1), 
+  &quot;(AI SE =&quot;, round(se_ai,1), 
+  &quot;, t =&quot;, round(t_gen,3), 
+  &quot;, p =&quot;, round(p_gen,5), &quot;)\n&quot;
+)
+</code></pre></details><details><summary>Show saved output · cell 35</summary><pre>Genetic Matching ATT = 1804.6 (AI SE = 998.7 , t = 1.807 , p = 0.07077 )
+</pre></details><p>I used genetic matching to improve covariate balance while retaining
+all 185 treated units. The algorithm optimized weights for each
+covariate to minimize imbalance. The resulting ATT was $1,804.6 with an
+Abadie-Imbens standard error of $998.7, giving a t‑stat of 1.807 and a
+p-value of 0.071. Compared to the earlier propensity score matches, this
+estimate is much closer to the true ATT and is statistically
+significant.</p>
+<p>Balance improved a lot. Before matching, non-binary covariates had
+large differences between groups, with minimum p-values below 2.22e-16.
+After matching, the worst imbalance was for age, but even that had a KS
+p-value of 0.224. Binary variables like black, married, nodegr, u74, and
+u75 matched perfectly.</p>
+<h2 id="quantile-effects-for-genetic-matching">Quantile Effects for
+Genetic Matching</h2>
+<details><summary>Show R code · cell 38</summary><pre><code># Extract the genetically matched sample
+matched_indices &lt;- c(mout_gen$index.treated, mout_gen$index.control)
+matched_data    &lt;- combined_data[matched_indices, ]
+
+# Estimate quantile treatment effects on matched_data
+qte_matched_list &lt;- lapply(taus, function(tau) {
+  rq_mod  &lt;- rq(re78 ~ treat, tau = tau, data = matched_data)
+  rq_sum  &lt;- summary(rq_mod, se = &quot;boot&quot;, R = 500)
+  coef    &lt;- rq_sum$coefficients[&quot;treat&quot;, &quot;Value&quot;]
+  se      &lt;- rq_sum$coefficients[&quot;treat&quot;, &quot;Std. Error&quot;]
+  data.frame(
+    tau      = tau,
+    estimate = coef,
+    ci_lower = coef - 1.96 * se,
+    ci_upper = coef + 1.96 * se
+  )
+})
+qte_matched_df &lt;- bind_rows(qte_matched_list)
+</code></pre></details><details><summary>Show saved output · cell 38</summary><pre>Warning message in rq.fit.br(x, y, tau = tau, ...):
+&quot;Solution may be nonunique&quot;
+</pre></details><details><summary>Show R code · cell 39</summary><pre><code>ggplot() +
+  # True experimental QTE with confidence interval
+  geom_ribbon(data = qte_df,
+              aes(x = tau, ymin = ci_lower, ymax = ci_upper, fill = ci_label),
+              alpha = 0.4) +
+  geom_line(data = qte_df,
+            aes(x = tau, y = estimate, color = &quot;True QTE&quot;),
+            size = 1) +
+  # Matched observational QTE
+  geom_line(data = qte_matched_df,
+            aes(x = tau, y = estimate, color = &quot;Genetic Matched QTE&quot;),
+            size = 1, linetype = &quot;dashed&quot;) +
+  # Horizontal line at mean ATT
+  geom_hline(yintercept = mean_te, linetype = &quot;dotted&quot;, color = &quot;red&quot;) +
+  scale_color_manual(
+    values = c(&quot;True QTE&quot; = &quot;black&quot;, &quot;Genetic Matched QTE&quot; = &quot;green&quot;),
+    guide = guide_legend(title = NULL)
+  ) +
+  scale_fill_manual(
+    values = c(&quot;95% CI (True QTE)&quot; = &quot;grey80&quot;),
+    guide = guide_legend(title = NULL)
+  ) +
+  scale_x_continuous(labels = scales::percent_format(accuracy = 1)) +
+  scale_y_continuous(labels = scales::dollar_format()) +
+  labs(
+    x     = &quot;Quantile&quot;,
+    y     = &quot;Quantile Treatment Effect ($)&quot;,
+    title = &quot;True vs. Genetically Matched Quantile Treatment Effects&quot;
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = c(0.05, 0.95),
+    legend.justification = c(0, 1),
+    legend.background = element_rect(fill = &quot;white&quot;, color = NA),
+    legend.box.background = element_blank()
+  )</code></pre></details><img src="figures/cell-38-0.png" alt="Saved plot from notebook cell 39" loading="lazy"><details><summary>Show R code · cell 40</summary><pre><code>ggplot() +
+  # True experimental QTE with confidence interval
+  geom_ribbon(data = qte_df,
+              aes(x = tau, ymin = ci_lower, ymax = ci_upper, fill = ci_label),
+              alpha = 0.4) +
+  geom_line(data = qte_df,
+            aes(x = tau, y = estimate, color = &quot;True QTE&quot;),
+            size = 1) +
+  # Matched observational QTE
+  geom_line(data = qte_matched_df,
+            aes(x = tau, y = estimate, color = &quot;Genetic Matched QTE&quot;),
+            size = 1) +
+  # Horizontal line at mean ATT
+  geom_hline(yintercept = mean_te, linetype = &quot;dotted&quot;, color = &quot;red&quot;) +
+  # Clip y-axis
+  coord_cartesian(ylim = c(-1000, 16000)) +
+  scale_color_manual(
+    values = c(&quot;True QTE&quot; = &quot;black&quot;, &quot;Genetic Matched QTE&quot; = &quot;green&quot;),
+    guide = guide_legend(title = NULL)
+  ) +
+  scale_fill_manual(
+    values = c(&quot;95% CI (True QTE)&quot; = &quot;grey80&quot;),
+    guide = guide_legend(title = NULL)
+  ) +
+  scale_x_continuous(labels = scales::percent_format(accuracy = 1)) +
+  scale_y_continuous(labels = scales::dollar_format()) +
+  labs(
+    x     = &quot;Quantile&quot;,
+    y     = &quot;Quantile Treatment Effect ($)&quot;,
+    title = &quot;True vs. Genetically Matched QTEs (Clipped Y-Axis)&quot;
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = c(0.05, 0.95),
+    legend.justification = c(0, 1),
+    legend.background = element_rect(fill = &quot;white&quot;, color = NA),
+    legend.box.background = element_blank()
+  )
+</code></pre></details><img src="figures/cell-39-0.png" alt="Saved plot from notebook cell 40" loading="lazy"><p>Across the distribution, the genetic‑matched curve stays almost
+entirely within the RCT’s 95 % confidence bands. It nails the effect in
+the bottom 30 %, then overshoots between the 30th and 62.5th
+percentiles, dips just below the true effect up to the 70th percentile,
+overshoots again from roughly 75 % to 87.5 %, and then underestimates
+more severely to the 99th percentile. However, it still spikes at the
+very top, mirroring the true QTE’s jump near the 100 % tail. Although
+there are pockets of over‑ and under‑estimation, there’s no consistent
+bias, and nearly every matched estimate lies within the experimental
+confidence interval, meaning our genetic matching has captured the true
+distributional impact within its uncertainty bounds.</p>
+<h2 id="sensitivity-to-hidden-bias">Sensitivity to Hidden Bias</h2>
+<details><summary>Show R code · cell 43</summary><pre><code>vars &lt;- c(&quot;educ&quot;,&quot;age&quot;,&quot;married&quot;,&quot;black&quot;,&quot;hisp&quot;,&quot;nodegr&quot;,&quot;re74&quot;,&quot;re75&quot;,&quot;u74&quot;,&quot;u75&quot;)
+
+# Compute correlations with the outcome
+cors &lt;- sapply(matched_data[vars], function(v) cor(v, matched_data$re78, use = &quot;complete.obs&quot;))
+
+# Sort by absolute correlation
+data.frame(
+  predictor   = vars,
+  correlation = cors,
+  abs_cor     = abs(cors)
+) %&gt;%
+  arrange(desc(abs_cor))
+</code></pre></details><details><summary>Show saved output · cell 43</summary><pre>        predictor correlation abs_cor   
+re75    re75       0.23078214 0.23078214
+re74    re74       0.15874498 0.15874498
+u75     u75       -0.14698828 0.14698828
+married married    0.13089535 0.13089535
+educ    educ       0.11791257 0.11791257
+u74     u74       -0.07053148 0.07053148
+black   black     -0.06978839 0.06978839
+nodegr  nodegr    -0.06931924 0.06931924
+hisp    hisp       0.06235920 0.06235920
+age     age        0.03756056 0.03756056</pre></details><p>1975 earnings are correlated the most with the response variable,
+after matching. I’ll use this as a benchmark since it is the strongest
+predictor.</p>
+<details><summary>Show R code · cell 45</summary><pre><code># install.packages(&quot;sensemakr&quot;)
+library(sensemakr)
+
+# fit the “analysis” regression including all covariates
+lm_gen &lt;- lm(
+  re78 ~ treat
+    + educ + age + married + black + hisp + nodegr
+    + re74  + re75 + u74 + u75,
+  data = matched_data
+)
+
+# run sensemakr benchmarking on re75
+sm_gen &lt;- sensemakr(
+  model                = lm_gen,
+  treatment            = &quot;treat&quot;,
+  benchmark_covariates = &quot;re75&quot;,
+  kd                   = 1:8,   
+  ky                   = 1:8     
+)
+#summary(sm_gen)
+head(sm_gen$benchmarks, 5)
+sm_gen$robustness_values
+
+</code></pre></details><details><summary>Show saved output · cell 45</summary><pre>See details in:
+
+Carlos Cinelli and Chad Hazlett (2020). Making Sense of Sensitivity: Extending Omitted Variable Bias. Journal of the Royal Statistical Society, Series B (Statistical Methodology).
+
+</pre></details><details><summary>Show saved output · cell 45</summary><pre>NULL</pre></details><details><summary>Show saved output · cell 45</summary><pre>NULL</pre></details><p>Once I control for the covariates, the treatment coefficient is about
+$1790 (SE ≈ $570), with a t‐value of 3.14. The partial R² of treat in
+that regression is only 2.05 percent. In other words, after adjusting
+for everything else, ‘treat’ still explains about two cents of every
+dollar of residual variation in 1978 earnings.</p>
+<p>Sensemakr’s “robustness value” for moving the point estimate all the
+way to zero is R² ≈ 13.5 percent. Concretely, an omitted variable that
+is orthogonal to all the covariates and that explains 13.5 percent of
+the residual variance in both treatment status and earnings would just
+be strong enough to knock our $1 790 effect down to zero. Anything
+weaker than that simply can’t generate enough bias.</p>
+<p>The robustness value for losing statistical significance at α = 0.05
+is R² ≈ 5.3 percent. So any hidden confounder that explained less than
+about 5 percent of the leftover variation in both treat and re78 would
+not only fail to zero out the point estimate, it would also leave the
+t‐statistic above 2.</p>
+<details><summary>Show R code · cell 47</summary><pre><code># Contour of point‐estimate bias
+p1 &lt;- plot(
+  sm_gen,
+  main = &quot;Sensitivity Contours: Bias in Point Estimate&quot;,
+)
+</code></pre></details><img src="figures/cell-46-0.png" alt="Saved plot from notebook cell 47" loading="lazy"><p>Because re75, even though it’s our strongest observed predictor, only
+explains a tiny portion of variance, multiplying its partial R² by eight
+still falls well short of the R²–levels required to wipe out the $1,790
+point estimate. In other words, we’d need a truly enormous confounder,
+one that is many, many times stronger than anything that’s measured to
+explain away the program’s effect.</p>
+<details><summary>Show R code · cell 49</summary><pre><code># Contour for t‐value (statistical significance)
+p2 &lt;- plot(
+  sm_gen,
+  sensitivity.of = &quot;t-value&quot;,
+  main = &quot;Sensitivity Contours: t-Value&quot;,
+)
+</code></pre></details><img src="figures/cell-48-0.png" alt="Saved plot from notebook cell 49" loading="lazy"><p>A hypothetical variable that is 8 times stronger than re75 doesn’t
+make the treatment effect statistically insignificant.</p>
+<details><summary>Show R code · cell 51</summary><pre><code># “Extreme” scenario: assume confounder explains 100%, 75%, 50% of Y‐variance
+plot(
+  sm_gen,
+  type        = &quot;extreme&quot;
+)
+
+</code></pre></details><img src="figures/cell-50-0.png" alt="Saved plot from notebook cell 51" loading="lazy"><p>This last plot shows a worst-case scenario where we imagine a hidden
+variable that explains 100%, 75%, or 50% of the leftover variation in
+1978 earnings. The lines show how strong that variable would also need
+to be at predicting treatment to erase the observed treatment
+effect.</p>
+<p>The red bar shows how well re75, our strongest observed covariate,
+predicts treatment. Even if an unobserved variable were 8 times as
+strong as re75 and explained nearly all of the outcome variance, it
+still wouldn’t be enough to make the treatment effect disappear. So the
+ATT estimate looks pretty robust.</p>
+<h1 id="encouragement-design-and-jtpa-data">Encouragement Design and
+JTPA Data</h1>
+<p>The National Job Training Partnership Act (JTPA) Study is a
+large-scale randomized evaluation conducted in the late 1980s to assess
+the effectiveness of federally funded job training programs in the U.S.
+Over 20,000 individuals were randomly assigned to either a program group
+(eligible for training) or a control group (ineligible for 18 months).
+The dataset includes demographic information, training participation,
+and labor market outcomes like earnings and unemployment duration.</p>
+<h2 id="unemployment-duration-earnings">Unemployment Duration &amp;
+Earnings</h2>
+<details><summary>Show R code · cell 56</summary><pre><code>jtpa_data &lt;- read.csv(&quot;https://raw.githubusercontent.com/GillesCrommen/DCC/refs/heads/main/clean_dataset_JTPA.csv&quot;)
+head(jtpa_data)
+str(jtpa_data)
+summary(jtpa_data)</code></pre></details><details><summary>Show saved output · cell 56</summary><pre>  recid  age hsged white children jtpa married male treatment delta days
+1 300001 46  1     0     0        1    0       0    1         1     151 
+2 300002 24  1     1     1        1    0       0    1         1      32 
+3 300003 28  0     0     1        1    1       1    1         1      72 
+4 300006 34  1     0     1        0    1       0    1         1     188 
+5 300008 31  1     1     1        1    0       0    1         1      68 
+6 300009 21  1     0     0        1    0       1    1         1     140 </pre></details><details><summary>Show saved output · cell 56</summary><pre>&#x27;data.frame&#x27;:	10928 obs. of  11 variables:
+ $ recid    : int  300001 300002 300003 300006 300008 300009 300011 300014 300015 300016 ...
+ $ age      : int  46 24 28 34 31 21 20 41 24 26 ...
+ $ hsged    : int  1 1 0 1 1 1 1 1 0 1 ...
+ $ white    : int  0 1 0 0 1 0 1 1 1 1 ...
+ $ children : int  0 1 1 1 1 0 0 1 1 0 ...
+ $ jtpa     : int  1 1 1 0 1 1 1 1 1 1 ...
+ $ married  : int  0 0 1 1 0 0 0 1 1 0 ...
+ $ male     : int  0 0 1 0 0 1 1 0 1 1 ...
+ $ treatment: int  1 1 1 1 1 1 1 1 1 1 ...
+ $ delta    : int  1 1 1 1 1 1 1 1 1 1 ...
+ $ days     : int  151 32 72 188 68 140 44 174 212 66 ...
+</pre></details><details><summary>Show saved output · cell 56</summary><pre>     recid             age            hsged            white       
+ Min.   :300001   Min.   :16.00   Min.   :0.0000   Min.   :0.0000  
+ 1st Qu.:305128   1st Qu.:20.00   1st Qu.:0.0000   1st Qu.:0.0000  
+ Median :310282   Median :26.00   Median :0.0000   Median :1.0000  
+ Mean   :310286   Mean   :28.73   Mean   :0.4808   Mean   :0.5633  
+ 3rd Qu.:315392   3rd Qu.:34.00   3rd Qu.:1.0000   3rd Qu.:1.0000  
+ Max.   :320602   Max.   :82.00   Max.   :1.0000   Max.   :1.0000  
+    children           jtpa           married            male       
+ Min.   :0.0000   Min.   :0.0000   Min.   :0.0000   Min.   :0.0000  
+ 1st Qu.:0.0000   1st Qu.:0.0000   1st Qu.:0.0000   1st Qu.:0.0000  
+ Median :0.0000   Median :1.0000   Median :0.0000   Median :0.0000  
+ Mean   :0.4922   Mean   :0.5025   Mean   :0.2254   Mean   :0.4268  
+ 3rd Qu.:1.0000   3rd Qu.:1.0000   3rd Qu.:0.0000   3rd Qu.:1.0000  
+ Max.   :1.0000   Max.   :1.0000   Max.   :1.0000   Max.   :1.0000  
+   treatment          delta             days       
+ Min.   :0.0000   Min.   :0.0000   Min.   :   1.0  
+ 1st Qu.:0.0000   1st Qu.:1.0000   1st Qu.:  48.0  
+ Median :1.0000   Median :1.0000   Median : 190.0  
+ Mean   :0.6921   Mean   :0.8185   Mean   : 285.7  
+ 3rd Qu.:1.0000   3rd Qu.:1.0000   3rd Qu.: 469.0  
+ Max.   :1.0000   Max.   :1.0000   Max.   :1447.0  </pre></details><details><summary>Show R code · cell 57</summary><pre><code># Effect of encouragement on treatment take-up
+encouraged_treated &lt;- mean(jtpa_data$treatment[jtpa_data$jtpa == 1])
+control_treated &lt;- mean(jtpa_data$treatment[jtpa_data$jtpa == 0])
+compliance_rate &lt;- encouraged_treated - control_treated
+# ITT: Effect of encouragement on outcome (days unemployed)
+encouraged_days &lt;- mean(jtpa_data$days[jtpa_data$jtpa == 1])
+control_days &lt;- mean(jtpa_data$days[jtpa_data$jtpa == 0])
+itt &lt;- encouraged_days - control_days
+
+# LATE: Local Average Treatment Effect = ITT / compliance rate
+late &lt;- itt / compliance_rate
+
+# Print results
+cat(&quot;Share of people in the encouraged group who took up the treatment (always takers + compliers):&quot;, round(encouraged_treated, 3), &quot;\n&quot;)
+cat(&quot;Share of people in the control group who took up the treatment (always takers):&quot;, round(control_treated, 3), &quot;\n&quot;)
+cat(&quot;Effect of encouragement on take-up (Compliance rate):&quot;, round(compliance_rate, 3), &quot;\n&quot;)
+cat(&quot;Average days unemployed in the encouraged group:&quot;, round(encouraged_days, 3), &quot;\n&quot;)
+cat(&quot;Average days unemployed in the control group:&quot;, round(control_days, 3), &quot;\n&quot;)
+cat(&quot;Intention-to-Treat (ITT) effect:&quot;, round(itt, 3), &quot;\n&quot;)
+cat(&quot;Local Average Treatment Effect (LATE):&quot;, round(late, 3), &quot;\n&quot;)
+</code></pre></details><details><summary>Show saved output · cell 57</summary><pre>Share of people in the encouraged group who took up the treatment (always takers + compliers): 0.92 
+Share of people in the control group who took up the treatment (always takers): 0.462 
+Effect of encouragement on take-up (Compliance rate): 0.458 
+Average days unemployed in the encouraged group: 263.122 
+Average days unemployed in the control group: 308.465 
+Intention-to-Treat (ITT) effect: -45.343 
+Local Average Treatment Effect (LATE): -99.036 
+</pre></details><p>The effect of encouragement on take-up is 0.458. This reflects the
+difference between the share of people in the encouraged group (eligible
+for JTPA) who actually received treatment and the share in the not
+encouraged group (not eligible for JTPA services for 18 months) who got
+treated anyway. In other words, being eligible increased the chance of
+receiving the training by 45.8%.</p>
+<p>This is also called the compliance rate. The share of people in the
+encouraged group that got the treatment includes both always takers and
+compliers. The share of people in the not encouraged group that got the
+treatment includes only always takers. So the difference gives us the
+share of people who are compliers — 45.8% of the encouraged group. This
+works because assignment to encouragement was randomized. That means we
+expect equal proportions of compliers, always takers, and never takers
+in both the encouraged and not encouraged groups (assuming no defiers).
+The randomization also means that the compliers in the not encouraged
+group can act as a valid counterfactual for the compliers in the
+encouraged group since there should not be any confouding variables
+between these groups.</p>
+<p>Intention-to-Treat (ITT) is the average difference in outcomes
+between the encouraged and non-encouraged groups, regardless of whether
+they actually received the treatment. If we use unemployment duration as
+the outcome, the ITT is about −45.3 days. That means encouragement
+reduced time spent unemployed by around 45 days on average.</p>
+<p>What we ultimately want is an estimate of the difference between the
+counterfactual outcomes for the compliers (for always takers and never
+takers, we can only ever observe one outcome, so comparison can’t be
+made).</p>
+<p>However, we can’t directly observe who is a complier versus an always
+taker from the people who took the treatment and was in the encouraged
+group. This matters because they may differ in ways that affect
+outcomes. But under the assumptions of monotonicity (no defiers) and
+exclusion restriction (encouragement affects outcomes only through
+treatment), we can identify the causal effect for compliers.</p>
+<p>We defined ITT as:</p>
+<p><span
+class="math display">ITT = 𝔼[<em>Y</em> ∣ <em>Z</em> = 1] − 𝔼[<em>Y</em> ∣ <em>Z</em> = 0]</span></p>
+<p>Where:</p>
+<ul>
+<li><span class="math inline"><em>Z</em></span> is the encouragement
+indicator<br />
+</li>
+<li><span class="math inline"><em>Y</em></span> is the response variable
+(e.g., unemployment duration)</li>
+</ul>
+<p>If encouragement has no direct effect on <span
+class="math inline"><em>Y</em></span>, then the expected outcome for
+always takers and never takers is the same in both groups, so their
+contribution to the ITT cancels out. The remaining difference comes
+entirely from the compliers:</p>
+<p><span
+class="math display">ITT = 𝔼[<em>Y</em> ∣ <em>Z</em> = 1, Complier] ⋅ ℙ(Complier) − 𝔼[<em>Y</em> ∣ <em>Z</em> = 0, Complier] ⋅ ℙ(Complier)</span></p>
+<p>Solving for the treatment effect among compliers:</p>
+<p><span class="math display">$$
+\mathbb{E}[Y \mid Z = 1, \text{Complier}] - \mathbb{E}[Y \mid Z = 0,
+\text{Complier}] = \frac{\text{ITT}}{\mathbb{P}(\text{Complier})}
+$$</span></p>
+<p>This is the Local Average Treatment Effect (LATE) or the Wald
+estimator.</p>
+<p><span class="math display">$$
+\text{LATE} = \frac{\text{ITT}}{\text{Compliance Rate}} =
+\frac{-45.3}{0.458} \approx -99.04
+$$</span></p>
+<p>So, for the compliers — people who only took the treatment when
+encouraged — the treatment reduced unemployment duration by roughly 99
+days.</p>
+<p>Let’s look at a different slice of the dataset to figure out how the
+program affected income.</p>
+<details><summary>Show R code · cell 60</summary><pre><code># Dataset 2. Taken from Session 23
+library(readr)
+jtpa_earnings_url &lt;- &quot;https://docs.google.com/spreadsheets/d/e/2PACX-1vTNEUJl2ONnIboG4Lz24VGM34S2Hz3jthqF06uppmG8E73StM2qw2tBDqLxwkNwV_1NBOTk3rUFoO3P/pub?gid=509277690&amp;single=true&amp;output=csv&quot;
+jtpa_earnings &lt;- read_csv(jtpa_earnings_url, show_col_types = FALSE)
+head(jtpa_earnings)</code></pre></details><details><summary>Show saved output · cell 60</summary><pre>
+Attaching package: &#x27;readr&#x27;
+
+
+The following object is masked from &#x27;package:scales&#x27;:
+
+    col_factor
+
+
+</pre></details><details><summary>Show saved output · cell 60</summary><pre>  recid  radate     assignmt site training afdc sex class_tr ojt_jsa oth_serv
+1 300001 1989-05-16 1        NE   1        0    0   0        0       1       
+2 300002 1989-08-30 1        LC   1        0    0   0        0       1       
+3 300006 1988-08-18 1        HF   0        0    0   1        0       0       
+4 300008 1989-03-08 1        IN   0        0    0   0        1       0       
+5 300010 1988-11-16 0        CV   0        0    0   0        1       0       
+6 300012 1988-04-26 1        JK   1        0    1   0        1       0       
+  ... hsorged black hispanic age2225 age2629 age3035 age3644 age4554 f2sms
+1 ... 1       1     0        0       0       0       0       1       0    
+2 ... 1       0     0        1       0       0       0       0       0    
+3 ... 1       0     1        0       0       1       0       0       0    
+4 ... 1       0     0        0       0       1       0       0       0    
+5 ... 0       0     0        1       0       0       0       0       0    
+6 ... 1       1     0        1       0       0       0       0       1    
+  wkless13
+1 1       
+2 0       
+3 1       
+4 0       
+5 0       
+6 1       </pre></details><details><summary>Show R code · cell 61</summary><pre><code># Effect of encouragement on treatment take-up
+encouraged_treated_earnings &lt;- mean(jtpa_earnings$training[jtpa_earnings$assignmt == 1])
+control_treated_earnings &lt;- mean(jtpa_earnings$training[jtpa_earnings$assignmt == 0])
+compliance_rate_earnings &lt;- encouraged_treated_earnings - control_treated_earnings
+
+# ITT: Effect of encouragement on outcome (earnings)
+encouraged_earnings &lt;- mean(jtpa_earnings$earnings[jtpa_earnings$assignmt == 1])
+control_earnings &lt;- mean(jtpa_earnings$earnings[jtpa_earnings$assignmt == 0])
+itt_earnings &lt;- encouraged_earnings - control_earnings
+
+# LATE: Local Average Treatment Effect = ITT / compliance rate
+late_earnings &lt;- itt_earnings / compliance_rate_earnings
+
+# Print results
+cat(&quot;Share of people in the encouraged group who took up the treatment (always takers + compliers):&quot;, round(encouraged_treated_earnings, 3), &quot;\n&quot;)
+cat(&quot;Share of people in the control group who took up the treatment (always takers):&quot;, round(control_treated_earnings, 3), &quot;\n&quot;)
+cat(&quot;Effect of encouragement on take-up (Compliance rate):&quot;, round(compliance_rate_earnings, 3), &quot;\n&quot;)
+cat(&quot;Average earnings in the encouraged group:&quot;, round(encouraged_earnings, 3), &quot;\n&quot;)
+cat(&quot;Average earnings in the control group:&quot;, round(control_earnings, 3), &quot;\n&quot;)
+cat(&quot;Intention-to-Treat (ITT) effect:&quot;, round(itt_earnings, 3), &quot;\n&quot;)
+cat(&quot;Local Average Treatment Effect (LATE):&quot;, round(late_earnings, 3), &quot;\n&quot;)</code></pre></details><details><summary>Show saved output · cell 61</summary><pre>Share of people in the encouraged group who took up the treatment (always takers + compliers): 0.642 
+Share of people in the control group who took up the treatment (always takers): 0.015 
+Effect of encouragement on take-up (Compliance rate): 0.627 
+Average earnings in the encouraged group: 16199.94 
+Average earnings in the control group: 15040.5 
+Intention-to-Treat (ITT) effect: 1159.433 
+Local Average Treatment Effect (LATE): 1848.829 
+</pre></details><p>Here, the results are different because we are using a different
+version of the JTPA dataset — one compiled from a more comprehensive
+source of follow-up surveys and administrative records.</p>
+<p>These results suggest that being assigned to the program increased
+the chance of actually receiving training by about 63%. On average,
+encouragement increased earnings by $1,159 (ITT), and among compliers
+specifically, the estimated effect of training was an increase of about
+$1,849 in earnings.</p>
+<h2
+id="interpretation-and-comparison-with-published-paper">Interpretation
+and Comparison with Published Paper</h2>
+<p>These results differ from Abadie, Angrist, and Imbens (2002), who
+also use JTPA data to estimate local average treatment effects (LATE)
+via instrumental variables. In their study, the 2SLS estimate for women
+was 1780 and for men 1593, with results suggesting stronger impacts at
+certain quantiles (especially for women at lower quantiles). Our LATE
+estimate from dataset 2 (1848.83) aligns well in magnitude with
+theirs.</p>
+<p>One key difference is that their paper focuses on earnings quantiles
+using quantile treatment effects (QTE), while our estimates average
+across the distribution. Their LATE is more refined and
+subgroup-specific, while ours uses broader aggregates. Also, compliance
+rates vary because the datasets were curated differently—our first
+dataset has unusually high treatment in the control group (46.2
+percent), while their analysis, like ours in dataset 2, notes minimal
+crossover (1.5 percent).</p>
+<h2 id="potential-threats">Potential Threats</h2>
+<p>Potential threats to the instrumental variable (IV) assumptions in
+the JTPA study include:</p>
+<ol type="1">
+<li><p>Violation of the exclusion restriction: The instrument
+(assignment to JTPA eligibility) must affect the outcome only through
+participation in training. However, it’s possible that being assigned to
+the treatment group could influence job search behavior, motivation, or
+access to other services, even without actual participation.</p></li>
+<li><p>Imperfect randomization: If the random assignment process was not
+strictly followed—for example, if administrators influenced which
+applicants were assigned to treatment or control—then the instrument may
+be correlated with unobserved characteristics, violating the
+independence assumption.</p></li>
+<li><p>Presence of defiers: The IV framework assumes monotonicity,
+meaning no one does the opposite of their assignment (e.g., someone who
+only takes training if they’re not assigned). If defiers exist, the
+estimated LATE may not be valid.</p></li>
+<li><p>Heterogeneous treatment effects: The LATE only captures the
+effect of treatment on compliers (those who follow their assignment). If
+compliers differ in important ways from always-takers or never-takers,
+the result may not generalize to the broader population.</p></li>
+</ol>
+<p>Possible robustness checks:</p>
+<ul>
+<li>Conduct balance tests to verify that observable covariates are
+similar across assignment groups, confirming successful
+randomization.</li>
+<li>Run placebo tests by checking whether assignment predicts outcomes
+that should not be affected by treatment, such as pre-treatment
+earnings.</li>
+<li>Use sensitivity analysis tools like Rosenbaum bounds to assess how
+robust the findings are to potential unobserved confounding.</li>
+<li>Explore alternative instruments (if available), or estimate LATE
+using subsamples to test for consistency across groups.</li>
+</ul>
+<h1 id="synthetic-control">Synthetic Control</h1>
+<h2 id="data-set">Data set</h2>
+<p>Research question: What was the impact of California’s 2011–2015
+drought on statewide crime rates?</p>
+<p>The study uses a synthetic control constructed from other U.S. states
+(which did not experience such a severe drought) to estimate how
+property and violent crime in California would have evolved in the
+absence of drought and compares that counterfactual to the actual
+observed rates (Goin et al., 2017b).</p>
+<p>Synthetic Control Implementation</p>
+<ul>
+<li>Treated unit: California (drought begins 2011)</li>
+<li>Donor pool: All other U.S. states, 2000–2015 panel</li>
+<li>Pre-treatment period: 2000–2010</li>
+<li>Outcome: Annual property and violent crime rates (per 100,000)</li>
+<li>Predictor types:</li>
+</ul>
+<p>Demographic structure variables (e.g., age groups,
+race/ethnicity)<br />
+Socioeconomic indicators (poverty, income, Gini, unemployment)<br />
+Earnings by occupation<br />
+Housing cost burden for owners and renters<br />
+Home value ratios<br />
+Labor earnings by occupation<br />
+Residential mobility, police staffing, energy costs, and temperature -
+Special predictor: Mean violent or property crime rate over 2000–2010 -
+Method: dataprep() and synth() from the Synth R package</p>
+<h3 id="violent-crime-rate">Violent Crime Rate</h3>
+<details><summary>Show R code · cell 67</summary><pre><code>url_synth &lt;- &quot;https://drive.google.com/uc?export=download&amp;id=1KX8eiCQhq7_Pfis58uzaRBOi_331kXUZ&quot; 
+# (Goin et al., 2017a, Data set: https://figshare.com/articles/dataset/Impact_of_drought_on_crime_in_California_A_synthetic_control_approach/5470669?file=9466315)
+data_synth &lt;- read.csv(url_synth)
+head(data_synth)
+#str(data_synth)</code></pre></details><details><summary>Show saved output · cell 67</summary><pre>  X state   year illicit_12pl illicit12_17 illicit18_25 illicit_26pl
+1 1 Alabama 2000 NA           NA           NA           NA          
+2 2 Alabama 2001 NA           NA           NA           NA          
+3 3 Alabama 2002 NA           NA           NA           NA          
+4 4 Alabama 2003 NA           NA           NA           NA          
+5 5 Alabama 2004 NA           NA           NA           NA          
+6 6 Alabama 2005 NA           NA           NA           NA          
+  bingeal_12pl bingeal12_17 bingeal18_25 ... forcibleraperate robberyrate
+1 NA           NA           NA           ... 33.3             128.2      
+2 NA           NA           NA           ... 30.6             125.0      
+3 NA           NA           NA           ... 37.2             133.1      
+4 NA           NA           NA           ... 36.8             134.1      
+5 NA           NA           NA           ... 38.5             133.5      
+6 NA           NA           NA           ... 34.4             141.7      
+  aggravatedassaultrate propertycrimerate burglaryrate larcenytheftrate
+1 317.2                 4059.7            906.9        2864.8          
+2 274.1                 3876.8            909.4        2685.0          
+3 268.0                 4027.8            950.6        2767.0          
+4 251.7                 4046.4            960.2        2754.1          
+5 249.4                 4029.3            987.0        2732.4          
+6 248.3                 3900.0            955.8        2656.0          
+  motorvehicletheftrate vcrimerate popdensity id
+1 288.0                 452.8344   84.93272   1 
+2 282.4                 407.5489   85.22766   1 
+3 310.1                 407.8460   85.46526   1 
+4 332.1                 392.4528   85.91170   1 
+5 309.9                 388.5203   86.43130   1 
+6 289.0                 398.2563   87.17674   1 </pre></details><details><summary>Show R code · cell 68</summary><pre><code>library(Synth)
+library(dplyr)
+
+# Keep relevant years and remove rows with missing outcome
+data_clean &lt;- data_synth %&gt;%
+  filter(year &gt;= 2000 &amp; year &lt;= 2015) %&gt;%
+  filter(!is.na(vcrimerate))
+
+# View available states
+unique(data_clean$state)
+
+# Create numeric unit id for Synth 
+data_clean$state_id &lt;- as.numeric(factor(data_clean$state))</code></pre></details><details><summary>Show saved output · cell 68</summary><pre>##
+## Synth Package: Implements Synthetic Control Methods.
+
+
+## See https://web.stanford.edu/~jhain/synthpage.html for additional information.
+
+
+
+</pre></details><details><summary>Show saved output · cell 68</summary><pre> [1] &quot;Alabama&quot;        &quot;Arizona&quot;        &quot;Arkansas&quot;       &quot;California&quot;    
+ [5] &quot;Colorado&quot;       &quot;Connecticut&quot;    &quot;Delaware&quot;       &quot;Florida&quot;       
+ [9] &quot;Georgia&quot;        &quot;Idaho&quot;          &quot;Illinois&quot;       &quot;Indiana&quot;       
+[13] &quot;Iowa&quot;           &quot;Kansas&quot;         &quot;Kentucky&quot;       &quot;Louisiana&quot;     
+[17] &quot;Maine&quot;          &quot;Maryland&quot;       &quot;Massachusetts&quot;  &quot;Michigan&quot;      
+[21] &quot;Minnesota&quot;      &quot;Mississippi&quot;    &quot;Missouri&quot;       &quot;Montana&quot;       
+[25] &quot;Nebraska&quot;       &quot;Nevada&quot;         &quot;New Hampshire&quot;  &quot;New Jersey&quot;    
+[29] &quot;New Mexico&quot;     &quot;New York&quot;       &quot;North Carolina&quot; &quot;North Dakota&quot;  
+[33] &quot;Ohio&quot;           &quot;Oklahoma&quot;       &quot;Oregon&quot;         &quot;Pennsylvania&quot;  
+[37] &quot;Rhode Island&quot;   &quot;South Carolina&quot; &quot;South Dakota&quot;   &quot;Tennessee&quot;     
+[41] &quot;Texas&quot;          &quot;Utah&quot;           &quot;Vermont&quot;        &quot;Virginia&quot;      
+[45] &quot;Washington&quot;    </pre></details><details><summary>Show R code · cell 69</summary><pre><code># California and control IDs (as before)
+ca_id      &lt;- unique(data_clean$state_id[data_clean$state == &quot;California&quot;])
+control_ids &lt;- setdiff(unique(data_clean$state_id), ca_id)
+
+dataprep.out &lt;- dataprep(
+  foo = data_clean,
+  
+  # Predictors (mean over 2000–2010)
+  predictors = c(
+    &quot;r15_19&quot;, &quot;r20_24&quot;, &quot;r25_29&quot;,
+    &quot;race_AIAN&quot;, &quot;race_Asian&quot;, &quot;race_Black&quot;, &quot;race_HISPANIC&quot;, 
+      &quot;race_NHPI&quot;, &quot;race_Multiple&quot;, &quot;race_White&quot;,
+    &quot;PovertyPercentAllAges&quot;, &quot;PovertyPercentAges017&quot;,
+    &quot;logmedian&quot;, &quot;ipercapita&quot;, &quot;gini&quot;, &quot;jobspercapita&quot;, &quot;unemprate_yr&quot;,
+    &quot;median_earnings&quot;, &quot;manage_earnings&quot;, &quot;service_earnings&quot;, 
+      &quot;sales_earnings&quot;, &quot;construction_earnings&quot;,
+    &quot;pct_own_lt20_30pct_total&quot;, &quot;pct_own_20_lt35_30pct_total&quot;, 
+      &quot;pct_own_35_lt50_30pct_total&quot;, &quot;pct_own_50_lt75_30pct_total&quot;, 
+      &quot;pct_own_75pl_30pct_total&quot;,
+    &quot;pct_rent_lt20_30pct_total&quot;, &quot;pct_rent_20_lt35_30pct_total&quot;, 
+      &quot;pct_rent_35_lt50_30pct_total&quot;, &quot;pct_rent_50_lt75_30pct_total&quot;, 
+      &quot;pct_rent_75pl_30pct_total&quot;,
+    &quot;value_ratio_lt2&quot;, &quot;value_ratio_2_3&quot;, &quot;value_ratio_3_4&quot;, &quot;value_ratio_gt4&quot;,
+    &quot;pct_samehouse&quot;, &quot;pct_moved_outofstate&quot;, &quot;pct_moved_abroad&quot;,
+    &quot;gas_price_gal&quot;, &quot;totalemployees&quot;, &quot;agencies&quot;, &quot;maleofficers&quot;,
+    &quot;maxtemp&quot;                      # annual avg. temperature
+  ),
+  predictors.op           = &quot;mean&quot;,
+  time.predictors.prior   = 2000:2010,        # fit on pre‐drought period
+  
+  # Lagged‐outcome special predictors
+  special.predictors      = list(
+                             list(&quot;vcrimerate&quot;, 2000:2010, &quot;mean&quot;)
+                           ),
+  
+
+  dependent               = &quot;vcrimerate&quot;,     # violent crime rate
+  unit.variable           = &quot;state_id&quot;,
+  unit.names.variable     = &quot;state&quot;,
+  time.variable           = &quot;year&quot;,
+  
+  # Which units / periods
+  treatment.identifier    = ca_id,
+  controls.identifier     = control_ids,
+  time.optimize.ssr       = 2000:2010,
+  time.plot               = 2000:2015
+)
+
+#str(dataprep.out)
+</code></pre></details><details><summary>Show saved output · cell 69</summary><pre>
+ Missing data- treated unit; predictor: PovertyPercentAllAges ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: PovertyPercentAllAges ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: PovertyPercentAllAges ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: PovertyPercentAges017 ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: PovertyPercentAges017 ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: PovertyPercentAges017 ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: gini ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: gini ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: gini ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: gini ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: gini ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: gini ; for period: 2005 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: median_earnings ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: median_earnings ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: median_earnings ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: median_earnings ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: median_earnings ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: manage_earnings ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: manage_earnings ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: manage_earnings ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: manage_earnings ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: manage_earnings ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: service_earnings ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: service_earnings ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: service_earnings ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: service_earnings ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: service_earnings ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: sales_earnings ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: sales_earnings ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: sales_earnings ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: sales_earnings ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: sales_earnings ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: construction_earnings ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: construction_earnings ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: construction_earnings ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: construction_earnings ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: construction_earnings ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_own_lt20_30pct_total ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_own_lt20_30pct_total ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_own_lt20_30pct_total ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_own_lt20_30pct_total ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_own_lt20_30pct_total ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; pre
+… Preview shortened.</pre><p><a href="logs/output-2.txt">Read complete saved output</a></p></details><details><summary>Show R code · cell 70</summary><pre><code>synth.out &lt;- synth(dataprep.out)</code></pre></details><details><summary>Show saved output · cell 70</summary><pre>
+X1, X0, Z1, Z0 all come directly from dataprep object.
+
+
+**************** 
+ searching for synthetic control unit  
+ 
+
+**************** 
+**************** 
+**************** 
+
+MSPE (LOSS V): 91.91731 
+
+solution.v:
+ 0.02350596 0.01539385 0.001902364 0.00305436 0.000121437 0.002924561 0.01010571 0.02393817 0.006800792 0.007798856 0.004355262 0.00513714 0.008523667 0.01212773 0.05535506 0.002102371 0.000228536 0.0006174718 0.001224623 0.000271588 0.005038196 0.000248899 0.001255676 0.001033883 0.02931961 0.03631612 0.001954263 0.1121061 0.004518548 0.0005832235 2.86305e-05 2.82142e-05 0.05907999 0.001896603 5.0436e-06 0.06908507 0.0657721 0.03930445 0.004404702 0.09137904 0.1008256 0.004708051 0.07318167 0.1017852 0.01065173 
+
+solution.w:
+ 1.034e-07 1.1538e-06 9.27e-08 5.931e-07 2.278e-07 1.706e-07 0.3923921 2.516e-07 3.513e-07 1.0543e-06 1.294e-07 4.86e-08 1.047e-07 7.55e-08 1.641e-07 1.257e-07 3.572e-07 4.452e-07 2.772e-07 2.416e-07 6.28e-08 1.628e-07 2.299e-07 7.67e-08 0.0001517711 1.252e-07 5.009e-07 3.032e-07 0.5085817 3.889e-07 1.51e-08 2.931e-07 1.023e-07 1.94e-08 3.096e-07 3.158e-07 1.132e-07 3.18e-08 1.771e-07 3.7292e-06 5.5628e-06 1.326e-07 4.626e-07 0.09885539 
+
+</pre></details><details><summary>Show R code · cell 71</summary><pre><code># Actual vs. Synthetic
+path.plot(synth.res = synth.out, dataprep.res = dataprep.out,
+          Ylab = &quot;Violent Crime Rate&quot;, Xlab = &quot;Year&quot;,
+          Legend = c(&quot;California&quot;, &quot;Synthetic CA&quot;),
+          Legend.position = &quot;topright&quot;)
+
+title(&quot;Violent Crime Rate: California vs. Synthetic Control&quot;)
+
+# Add shaded treatment period: from 2011 to 2015
+rect(xleft = 2011, xright = 2015.5, ybottom = par(&quot;usr&quot;)[3], ytop = par(&quot;usr&quot;)[4],
+     col = rgb(0.8, 0.8, 0.8, 0.5), border = NA)
+
+gaps.plot(synth.res = synth.out, dataprep.res = dataprep.out,
+          Ylab = &quot;Gap in Violent Crime Rate&quot;, Xlab = &quot;Year&quot;)
+
+# Add shaded treatment period
+rect(xleft = 2011, xright = 2015.5, ybottom = par(&quot;usr&quot;)[3], ytop = par(&quot;usr&quot;)[4],
+     col = rgb(0.8, 0.8, 0.8, 0.5), border = NA)</code></pre></details><img src="figures/cell-70-0.png" alt="Saved plot from notebook cell 71" loading="lazy"><img src="figures/cell-70-1.png" alt="Saved plot from notebook cell 71" loading="lazy"><p>From just looking at the graph, it doesn’t look like there’s much of
+a difference between the synthetic California and real California in
+violent crime rates. If anything, it looks like it decreased
+slightly.</p>
+<h4 id="treatment-effect">Treatment Effect</h4>
+<details><summary>Show R code · cell 73</summary><pre><code># Actual California crime rate over time
+Y_actual   &lt;- dataprep.out$Y1plot
+
+# Synthetic California crime rate over time
+Y_synth    &lt;- dataprep.out$Y0plot %*% synth.out$solution.w
+# Full vector of gaps
+gaps &lt;- as.numeric(Y_actual - Y_synth)
+
+years &lt;- dataprep.out$tag$time.plot
+treatment_effects &lt;- data.frame(
+  year = years,
+  gap  = gaps
+)
+print(treatment_effects)</code></pre></details><details><summary>Show saved output · cell 73</summary><pre>   year        gap
+1  2000 -12.906085
+2  2001   6.450607
+3  2002   7.439004
+4  2003  23.430960
+5  2004  -7.397070
+6  2005  -9.843844
+7  2006  -2.274198
+8  2007  -3.344699
+9  2008  -1.725663
+10 2009   2.742976
+11 2010  -4.481698
+12 2011 -21.021776
+13 2012  -3.611258
+14 2013 -10.874105
+15 2014 -33.479732
+16 2015  24.988931
+</pre></details><details><summary>Show R code · cell 74</summary><pre><code># Identify indices corresponding to 2011–2015
+post_idx &lt;- which(years &gt;= 2011 &amp; years &lt;= 2015)
+
+# Subset the gaps
+post_gaps &lt;- gaps[post_idx]
+
+# Compute the average treatment effect on the treated
+ATE &lt;- mean(post_gaps)
+
+# the standard deviation
+SD  &lt;- sd(post_gaps)
+
+cat(&quot;Average treatment effect (2011-2015):&quot;, round(ATE, 2),
+    &quot;+-&quot;, round(SD, 2), &quot;crime rate units\n&quot;)
+</code></pre></details><details><summary>Show saved output · cell 74</summary><pre>Average treatment effect (2011-2015): -8.8 +- 21.97 crime rate units
+</pre></details><p>The average treatment effect (ATE) here refers to the average
+difference in violent crime rates between the real California and its
+synthetic version after the drought began, from 2011 to 2015. The
+estimated ATE is -8.8, meaning that each year from 2011 to 2015,
+California experienced 8.8 fewer violent crimes per 100,000 people on
+average, compared to what its synthetic counterpart predicted would have
+happened without the drought.</p>
+<p>The standard error of 21.97 reflects the variability in the estimated
+gaps across the post-treatment period — it’s a measure of how much the
+gaps fluctuate year to year after the drought started.</p>
+<p>This standard error is not tied to a traditional confidence interval.
+It only gives a sense of variability, it doesn’t tell us whether -8.8 is
+statistically significant.</p>
+<h3 id="property-crime-rate">Property Crime Rate</h3>
+<details><summary>Show R code · cell 77</summary><pre><code>dataprep.out_prop &lt;- dataprep(
+  foo = data_clean,
+  
+  predictors = c(
+    &quot;r15_19&quot;, &quot;r20_24&quot;, &quot;r25_29&quot;,
+    &quot;race_AIAN&quot;, &quot;race_Asian&quot;, &quot;race_Black&quot;, &quot;race_HISPANIC&quot;, 
+    &quot;race_NHPI&quot;, &quot;race_Multiple&quot;, &quot;race_White&quot;,
+    &quot;PovertyPercentAllAges&quot;, &quot;PovertyPercentAges017&quot;,
+    &quot;logmedian&quot;, &quot;ipercapita&quot;, &quot;gini&quot;, &quot;jobspercapita&quot;, &quot;unemprate_yr&quot;,
+    &quot;median_earnings&quot;, &quot;manage_earnings&quot;, &quot;service_earnings&quot;, 
+    &quot;sales_earnings&quot;, &quot;construction_earnings&quot;,
+    &quot;pct_own_lt20_30pct_total&quot;, &quot;pct_own_20_lt35_30pct_total&quot;, 
+    &quot;pct_own_35_lt50_30pct_total&quot;, &quot;pct_own_50_lt75_30pct_total&quot;, 
+    &quot;pct_own_75pl_30pct_total&quot;,
+    &quot;pct_rent_lt20_30pct_total&quot;, &quot;pct_rent_20_lt35_30pct_total&quot;, 
+    &quot;pct_rent_35_lt50_30pct_total&quot;, &quot;pct_rent_50_lt75_30pct_total&quot;, 
+    &quot;pct_rent_75pl_30pct_total&quot;,
+    &quot;value_ratio_lt2&quot;, &quot;value_ratio_2_3&quot;, &quot;value_ratio_3_4&quot;, &quot;value_ratio_gt4&quot;,
+    &quot;pct_samehouse&quot;, &quot;pct_moved_outofstate&quot;, &quot;pct_moved_abroad&quot;,
+    &quot;gas_price_gal&quot;, &quot;totalemployees&quot;, &quot;agencies&quot;, &quot;maleofficers&quot;,
+    &quot;maxtemp&quot;
+  ),
+  predictors.op           = &quot;mean&quot;,
+  time.predictors.prior   = 2000:2010,
+  
+  # from Table 1 in Goin et al.—the 2000–2010 average of the property‐crime rate
+  special.predictors      = list(
+    list(&quot;propertycrimerate&quot;, 2000:2010, &quot;mean&quot;)
+  ),
+  
+  dependent               = &quot;propertycrimerate&quot;,
+  unit.variable           = &quot;state_id&quot;,
+  unit.names.variable     = &quot;state&quot;,
+  time.variable           = &quot;year&quot;,
+  treatment.identifier    = ca_id,
+  controls.identifier     = control_ids,
+  time.optimize.ssr       = 2000:2010,
+  time.plot               = 2000:2015
+)
+</code></pre></details><details><summary>Show saved output · cell 77</summary><pre>
+ Missing data- treated unit; predictor: PovertyPercentAllAges ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: PovertyPercentAllAges ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: PovertyPercentAllAges ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: PovertyPercentAges017 ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: PovertyPercentAges017 ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: PovertyPercentAges017 ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: gini ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: gini ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: gini ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: gini ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: gini ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: gini ; for period: 2005 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: median_earnings ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: median_earnings ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: median_earnings ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: median_earnings ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: median_earnings ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: manage_earnings ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: manage_earnings ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: manage_earnings ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: manage_earnings ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: manage_earnings ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: service_earnings ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: service_earnings ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: service_earnings ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: service_earnings ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: service_earnings ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: sales_earnings ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: sales_earnings ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: sales_earnings ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: sales_earnings ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: sales_earnings ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: construction_earnings ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: construction_earnings ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: construction_earnings ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: construction_earnings ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: construction_earnings ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_own_lt20_30pct_total ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_own_lt20_30pct_total ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_own_lt20_30pct_total ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_own_lt20_30pct_total ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_own_lt20_30pct_total ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; pre
+… Preview shortened.</pre><p><a href="logs/output-3.txt">Read complete saved output</a></p></details><details><summary>Show R code · cell 78</summary><pre><code>synth.out_prop &lt;- synth(dataprep.out_prop)
+</code></pre></details><details><summary>Show saved output · cell 78</summary><pre>
+X1, X0, Z1, Z0 all come directly from dataprep object.
+
+
+**************** 
+ searching for synthetic control unit  
+ 
+
+**************** 
+**************** 
+**************** 
+
+MSPE (LOSS V): 4973.758 
+
+solution.v:
+ 0.03940844 0.01284729 0.02922579 0.0002437932 0.04162123 0.01747217 0.06617059 0.08580398 0.04399159 0.01718457 0.003111609 0.002247636 0.01117462 0.009327729 0.05826817 0.001747798 0.01031989 0.001039854 0.001232615 0.007391543 0.0006602898 0.009893574 0.02886129 0.02248856 0.009225392 0.01862924 0.02121398 0.07433507 0.01962902 0.01142839 0.004388418 0.000428964 0.003055417 0.005253901 0.005524966 0.003650869 0.06856463 0.008588976 0.0002481867 0.04853291 0.04180921 0.03044857 0.008706186 0.06009136 0.03451172 
+
+solution.w:
+ 1.95e-08 1.584e-07 2.33e-08 9.45e-08 1.631e-07 8.49e-08 1.355e-07 6.32e-08 5.51e-08 4.559e-07 3.1e-08 2.95e-08 7.01e-08 1.66e-08 3.82e-08 5.4e-09 1.4022e-06 2.469e-07 5.76e-08 1.229e-07 1.28e-08 3.84e-08 2.36e-08 4.19e-08 0.3812468 5.65e-08 4.2566e-06 1.042e-07 0.4423753 4.29e-08 2.92e-08 4.32e-08 7.15e-08 1.123e-07 8.16e-08 1.06e-07 2.49e-08 2.84e-08 2.36e-08 0.1758078 1.84465e-05 6e-09 3.711e-07 0.0005429761 
+
+</pre></details><details><summary>Show R code · cell 79</summary><pre><code># Actual vs. Synthetic (Property Crime)
+path.plot(synth.res = synth.out_prop, dataprep.res = dataprep.out_prop,
+          Ylab = &quot;Property Crime Rate&quot;, Xlab = &quot;Year&quot;,
+          Legend = c(&quot;California&quot;, &quot;Synthetic CA&quot;),
+          Legend.position = &quot;topright&quot;)
+title(&quot;Property Crime Rate: California vs. Synthetic Control&quot;)
+# Add shaded treatment period: from 2011 to 2015
+rect(xleft = 2011, xright = 2015.5, ybottom = par(&quot;usr&quot;)[3], ytop = par(&quot;usr&quot;)[4],
+     col = rgb(0.8, 0.8, 0.8, 0.5), border = NA)
+
+# Gap (Actual – Synthetic)
+gaps.plot(synth.res = synth.out_prop, dataprep.res = dataprep.out_prop,
+          Ylab = &quot;Gap in Property Crime Rate&quot;, Xlab = &quot;Year&quot;)
+rect(xleft = 2011, xright = 2015.5, ybottom = par(&quot;usr&quot;)[3], ytop = par(&quot;usr&quot;)[4],
+     col = rgb(0.8, 0.8, 0.8, 0.5), border = NA)
+</code></pre></details><img src="figures/cell-78-0.png" alt="Saved plot from notebook cell 79" loading="lazy"><img src="figures/cell-78-1.png" alt="Saved plot from notebook cell 79" loading="lazy"><h4 id="treatment-effects">Treatment Effects</h4>
+<details><summary>Show R code · cell 81</summary><pre><code># 1. Extract the actual and synthetic property crime rates
+Y_actual_prop &lt;- dataprep.out_prop$Y1plot  # California
+Y_synth_prop  &lt;- dataprep.out_prop$Y0plot %*% synth.out_prop$solution.w  # Synthetic California
+
+# 2. Calculate yearly treatment effects (gaps)
+gaps_prop &lt;- as.numeric(Y_actual_prop - Y_synth_prop)
+
+# 3. Get corresponding years
+years_prop &lt;- dataprep.out_prop$tag$time.plot
+
+# 4. Create a dataframe for inspection
+treatment_effects_prop &lt;- data.frame(
+  year = years_prop,
+  gap  = gaps_prop
+)
+
+# 5. Filter to post-drought years and compute average treatment effect (ATE)
+post_index &lt;- which(years_prop &gt;= 2011 &amp; years_prop &lt;= 2015)
+post_gaps  &lt;- gaps_prop[post_index]
+
+# 6. Calculate ATE and standard deviation
+ATE_prop &lt;- mean(post_gaps)
+SD_prop  &lt;- sd(post_gaps)
+
+# 7. Print results
+cat(&quot;Average treatment effect on property crime (2011-2015):&quot;, 
+    round(ATE_prop, 2), &quot;+-&quot;, round(SD_prop, 2), &quot;\n&quot;)
+
+# 8. View yearly treatment effects
+print(treatment_effects_prop)
+</code></pre></details><details><summary>Show saved output · cell 81</summary><pre>Average treatment effect on property crime (2011-2015): 223.61 +- 102.39 
+   year          gap
+1  2000 -213.5555265
+2  2001    1.9481487
+3  2002   48.4589412
+4  2003  -14.3686154
+5  2004   55.4806392
+6  2005   10.2887324
+7  2006  -15.4173713
+8  2007   -6.2021329
+9  2008   36.2429456
+10 2009    0.3034191
+11 2010   42.1080218
+12 2011  144.1231124
+13 2012  244.2867526
+14 2013  190.7880231
+15 2014  147.1206611
+16 2015  391.7317122
+</pre></details><p>The average treatment effect is 223.61 with a standard error of
+102.39, suggesting a significant post-drought increase in property crime
+rates. Between 2011 and 2015, California’s property crime rate was, on
+average, 223.61 incidents per 100,000 people higher each year than its
+synthetic control. All post-treatment years show positive gaps,
+supporting the idea that the drought had a real impact. Interestingly,
+the graphs show an upward trend starting around 2009–2010—still within
+the pre-treatment period. This early deviation could mean the effects of
+the drought began before 2011, possibly due to anticipation of the
+drought already influencing behavior.</p>
+<details><summary>Show R code · cell 83</summary><pre><code># 1) Predictor and special‐predictor lists 
+predictor.vars &lt;- c(
+  &quot;r15_19&quot;, &quot;r20_24&quot;, &quot;r25_29&quot;,
+  &quot;race_AIAN&quot;, &quot;race_Asian&quot;, &quot;race_Black&quot;, &quot;race_HISPANIC&quot;,
+  &quot;race_NHPI&quot;, &quot;race_Multiple&quot;, &quot;race_White&quot;,
+  &quot;PovertyPercentAllAges&quot;, &quot;PovertyPercentAges017&quot;,
+  &quot;logmedian&quot;, &quot;ipercapita&quot;, &quot;gini&quot;, &quot;jobspercapita&quot;, &quot;unemprate_yr&quot;,
+  &quot;median_earnings&quot;, &quot;manage_earnings&quot;, &quot;service_earnings&quot;,
+  &quot;sales_earnings&quot;, &quot;construction_earnings&quot;,
+  &quot;pct_own_lt20_30pct_total&quot;,&quot;pct_own_20_lt35_30pct_total&quot;,
+  &quot;pct_own_35_lt50_30pct_total&quot;,&quot;pct_own_50_lt75_30pct_total&quot;,
+  &quot;pct_own_75pl_30pct_total&quot;,
+  &quot;pct_rent_lt20_30pct_total&quot;,&quot;pct_rent_20_lt35_30pct_total&quot;,
+  &quot;pct_rent_35_lt50_30pct_total&quot;,&quot;pct_rent_50_lt75_30pct_total&quot;,
+  &quot;pct_rent_75pl_30pct_total&quot;,
+  &quot;value_ratio_lt2&quot;,&quot;value_ratio_2_3&quot;,&quot;value_ratio_3_4&quot;,&quot;value_ratio_gt4&quot;,
+  &quot;pct_samehouse&quot;,&quot;pct_moved_outofstate&quot;,&quot;pct_moved_abroad&quot;,
+  &quot;gas_price_gal&quot;,&quot;totalemployees&quot;,&quot;agencies&quot;,&quot;maleofficers&quot;,
+  &quot;maxtemp&quot;
+)
+special.list &lt;- list(
+  list(&quot;propertycrimerate&quot;, 2000:2010, &quot;mean&quot;)
+)
+
+# 2) Build dataprep for CA
+dataprep.out_prop &lt;- dataprep(
+  foo                   = data_clean,
+  predictors            = predictor.vars,
+  predictors.op         = &quot;mean&quot;,
+  time.predictors.prior = 2000:2010,
+  special.predictors    = special.list,
+  dependent             = &quot;propertycrimerate&quot;,
+  unit.variable         = &quot;state_id&quot;,
+  unit.names.variable   = &quot;state&quot;,
+  time.variable         = &quot;year&quot;,
+  treatment.identifier  = ca_id,
+  controls.identifier   = control_ids,
+  time.optimize.ssr     = 2000:2010,
+  time.plot             = 2000:2015
+)
+synth.out_prop &lt;- synth(dataprep.out_prop)
+
+# 3) Extract CA gap once:
+Y1_CA  &lt;- dataprep.out_prop$Y1plot
+Y0_CA  &lt;- dataprep.out_prop$Y0plot %*% synth.out_prop$solution.w
+gap_CA &lt;- as.numeric(Y1_CA - Y0_CA)
+
+# 4) Do the placebo loop, computing each control’s gap
+placebo.gaps_prop &lt;- lapply(control_ids, function(ctrl) {
+  dp_ctrl &lt;- dataprep(
+    foo                   = data_clean,
+    predictors            = predictor.vars,
+    predictors.op         = &quot;mean&quot;,
+    time.predictors.prior = 2000:2010,
+    special.predictors    = special.list,
+    dependent             = &quot;propertycrimerate&quot;,
+    unit.variable         = &quot;state_id&quot;,
+    unit.names.variable   = &quot;state&quot;,
+    time.variable         = &quot;year&quot;,
+    treatment.identifier  = ctrl,
+    controls.identifier   = setdiff(control_ids, ctrl),
+    time.optimize.ssr     = 2000:2010,
+    time.plot             = 2000:2015
+  )
+  so_ctrl &lt;- synth(dp_ctrl)
+  Y1_ctrl &lt;- dp_ctrl$Y1plot
+  Y0_ctrl &lt;- dp_ctrl$Y0plot %*% so_ctrl$solution.w
+  as.numeric(Y1_ctrl - Y0_ctrl)
+})
+
+# 5) Plot them all
+years &lt;- dataprep.out_prop$tag$time.plot
+
+plot(years, gap_CA, type = &quot;l&quot;, col = &quot;black&quot;, lwd = 2,
+     ylim = range(c(gap_CA, unlist(placebo.gaps_prop))),
+     xlab = &quot;Year&quot;, ylab = &quot;Gap in Property Crime Rate&quot;)
+abline(v = 2011, lty = 2)  # start of drought
+for(g in placebo.gaps_prop) lines(years, g, col = &quot;grey&quot;)
+legend(&quot;topleft&quot;, legend = c(&quot;California&quot;, &quot;Placebo states&quot;),
+       col = c(&quot;black&quot;,&quot;grey&quot;), lty = 1, lwd = c(2,1))
+</code></pre></details><details><summary>Show saved output · cell 83</summary><pre>
+ Missing data- treated unit; predictor: PovertyPercentAllAges ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: PovertyPercentAllAges ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: PovertyPercentAllAges ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: PovertyPercentAges017 ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: PovertyPercentAges017 ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: PovertyPercentAges017 ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: gini ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: gini ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: gini ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: gini ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: gini ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: gini ; for period: 2005 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: median_earnings ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: median_earnings ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: median_earnings ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: median_earnings ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: median_earnings ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: manage_earnings ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: manage_earnings ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: manage_earnings ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: manage_earnings ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: manage_earnings ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: service_earnings ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: service_earnings ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: service_earnings ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: service_earnings ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: service_earnings ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: sales_earnings ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: sales_earnings ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: sales_earnings ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: sales_earnings ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: sales_earnings ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: construction_earnings ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: construction_earnings ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: construction_earnings ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: construction_earnings ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: construction_earnings ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_own_lt20_30pct_total ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_own_lt20_30pct_total ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_own_lt20_30pct_total ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_own_lt20_30pct_total ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_own_lt20_30pct_total ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; pre
+… Preview shortened.</pre><p><a href="logs/output-4.txt">Read complete saved output</a></p></details><img src="figures/cell-82-1.png" alt="Saved plot from notebook cell 83" loading="lazy"><p>The control states don’t reflect pre-treatment period California well
+enough.</p>
+<details><summary>Show R code · cell 85</summary><pre><code>pre_idx   &lt;- which(years &lt;= 2010)
+post_idx  &lt;- which(years &gt;  2010)
+# California’s pre- and post-MSPE
+mspe_ca_pre  &lt;- mean( gap_CA[pre_idx]  ^2 )
+mspe_ca_post &lt;- mean( gap_CA[post_idx] ^2 )
+ratio_ca     &lt;- mspe_ca_post / mspe_ca_pre
+# 1) Compute each placebo’s pre- and post-MSPE
+mspe_placebo_pre  &lt;- sapply(placebo.gaps_prop, function(g) mean(g[pre_idx]  ^2))
+mspe_placebo_post &lt;- sapply(placebo.gaps_prop, function(g) mean(g[post_idx] ^2))
+
+# 1) compute each placebo’s pre‐2011 MSPE
+mspe_placebo &lt;- sapply(placebo.gaps_prop,
+                       function(g) mean(g[pre_idx]^2))
+
+# 2) select those with MSPE ≤ 2× CA’s
+keep2     &lt;- which(mspe_placebo &lt;= 2* mspe_ca_pre)
+filtered2 &lt;- placebo.gaps_prop[keep2]
+
+cat(sprintf(&quot;Retaining %d/%d placebos (threshold = %.2f)\n&quot;,
+            length(filtered2), length(placebo.gaps_prop),
+            2*mspe_ca_pre))
+
+# 3) define y‐limits
+y_lim2 &lt;- range(c(gap_CA, unlist(filtered2)))
+
+# 4) re‐plot
+plot(
+  years, gap_CA, type=&quot;n&quot;,
+  xlim = range(years), ylim = y_lim2,
+  xlab = &quot;Year&quot;, ylab = &quot;Gap in Property Crime Rate&quot;,
+  main = &quot;Filtered Placebo Gaps (MSPE &lt;= 2x pre-2011 CA MSPE)&quot;
+)
+
+# shade the drought era (2011 onward)
+rect(2011, y_lim2[1], max(years), y_lim2[2],
+     col = adjustcolor(&quot;lightblue&quot;, .3), border = NA)
+
+# grey placebo lines
+invisible(lapply(filtered2, function(g) {
+  lines(years, g, col=&quot;grey80&quot;, lwd=1)
+}))
+
+# California line
+lines(years, gap_CA, col=&quot;black&quot;, lwd=2)
+
+# vertical line at start of drought
+abline(v = 2011, lty=2)
+
+legend(&quot;topleft&quot;,
+       legend = c(&quot;California&quot;,&quot;Filtered placebos&quot;,&quot;Drought era&quot;),
+       col    = c(&quot;black&quot;,&quot;grey80&quot;,&quot;lightblue&quot;),
+       lwd    = c(2,1,10),
+       pch    = c(NA,NA,15),
+       pt.cex = c(NA,NA,2),
+       bty    = &quot;n&quot;)
+</code></pre></details><details><summary>Show saved output · cell 85</summary><pre>Retaining 18/44 placebos (threshold = 9947.52)
+</pre></details><img src="figures/cell-84-1.png" alt="Saved plot from notebook cell 85" loading="lazy"><p>By discarding any control state whose pre-2011 mean squared
+prediction error (MSPE) exceeds twice California’s, we’ve focused on 18
+better-matched placebos. In the years 2000–2010, these filtered placebos
+(thin grey lines) cluster more tightly around zero. From 2011 onward
+(shaded in light blue), almost all of the filtered placebos remain
+around zero (with noise) or dip negative, whereas California’s gap
+shoots up sharply, reaching over +400 per 100 000 by 2015. This tells us
+that the post-drought increase in property crime is likely not an
+artifact of a few badly chosen controls. It points toward a genuine
+effect coinciding with the drought period.</p>
+<p>California shows the highest gap in the treatment period among the
+retained states, meaning no other control state experienced a larger
+divergence between actual and synthetic outcomes after the drought
+began. This implies a permutation-based p-value of 1/19, or
+approximately 0.053. The intuition is that if the treatment had no
+effect, California’s outcome should resemble that of the control states.
+So, the chance of it ranking first out of 19 by random chance is just 1
+in 19.</p>
+<details><summary>Show R code · cell 87</summary><pre><code># Compute ratio = post/pre
+ratio_placebo &lt;- mspe_placebo_post[keep2] / mspe_placebo_pre[keep2]
+
+
+# Set up histogram bins to comfortably include CA’s ratio
+all_ratios &lt;- c(ratio_placebo, ratio_ca)
+breaks     &lt;- pretty(c(all_ratios, 25), n = 30)
+
+# Plot histogram
+h &lt;- hist(ratio_placebo,
+          breaks = breaks,
+          border = &quot;black&quot;,
+          col    = &quot;grey80&quot;,
+          xlab   = &quot;Post-/Pre-drought MSPE ratio&quot;,
+          ylab   = &quot;Frequency&quot;,
+          main   = &quot;Figure 8: Post/Pre MSPE Ratios\nCalifornia vs. Control States&quot;
+)
+
+# Add California’s bar in a contrasting color
+# Find which bin contains ratio_ca
+bin_ca &lt;- findInterval(ratio_ca, h$breaks, all.inside = TRUE)
+# redraw that bin
+rect(xleft   = h$breaks[bin_ca],
+     ybottom = 0,
+     xright  = h$breaks[bin_ca + 1],
+     ytop    = h$counts[bin_ca] + 1,  # bump one extra to show CA
+     col     = &quot;tomato&quot;,
+     border  = &quot;black&quot;
+)
+counts &lt;- hist(ratio_placebo, breaks = breaks, plot = FALSE)$counts
+counts[bin_ca] &lt;- counts[bin_ca] + 1  # bump count by 1
+rect(breaks[-length(breaks)], 0, breaks[-1], counts,
+     col = ifelse(seq_along(counts)==bin_ca, &quot;tomato&quot;, NA),
+     border = &quot;black&quot;
+
+legend(&quot;topright&quot;,
+       legend = c(&quot;Control states&quot;, &quot;California&quot;),
+       fill   = c(&quot;grey80&quot;,       &quot;tomato&quot;),
+       border = &quot;black&quot;,
+       bty    = &quot;n&quot;
+)
+
+</code></pre></details><img src="figures/cell-86-0.png" alt="Saved plot from notebook cell 87" loading="lazy"><p>To assess the significance of the observed treatment effect, we
+compare California’s post-/pre-drought mean squared prediction error
+(MSPE) ratio to the distribution of ratios from placebo states. The MSPE
+quantifies how closely the synthetic control tracks the actual outcome,
+with higher values indicating a poorer fit. By computing MSPE separately
+for the pre-treatment (2000–2010) and post-treatment (2011–2015) periods
+and taking their ratio, we assess whether the model’s predictive
+accuracy deteriorated substantially after the onset of the drought.</p>
+<p>California’s MSPE ratio stands out clearly from the rest of the
+distribution, with a value around 11—well above nearly all placebo
+states. This suggests that the synthetic control fit California closely
+prior to the drought, but diverged notably after 2011. The fact that
+very few placebo states exhibit larger ratios implies that the observed
+deviation in California is unlikely to have occurred by chance. This
+reinforces the interpretation that the drought may have had a real
+effect on property crime rates in California. However, it’s important to
+acknowledge that a few placebo states exhibit even higher post/pre-MSPE
+ratios. These outliers may reflect idiosyncratic events or poor
+synthetic matches in those states, rather than true treatment
+effects.</p>
+<p>The implied p-value from this figure is 3/19 or 0.158 since 2 placebo
+states (in addition to California) exhibited a post-/pre-drought MSPE
+ratio larger than California’s. This test evaluates how much worse the
+model’s fit becomes after the intervention, relative to how well it fit
+beforehand. It captures instability in the post-treatment period, rather
+than just the size of the treatment effect.</p>
+<p>This differs from the previous result, where California had the
+largest raw post-treatment gap, resulting in a lower p-value of 0.053.
+In contrast, here, some placebo states may have had extremely tight
+pre-treatment fits and moderate post-treatment deviations—leading to a
+high ratio even if their actual gaps were smaller. So while California
+showed the strongest effect, it didn’t show the most extreme shift in
+model error, explaining the higher p-value.</p>
+<p>AI Usage: I used ChatGPT to help me code and plot. I did not copy
+paste.</p>
+<p>Note: I uploaded a zip file only because when I export to pdf, the
+truncated outputs get printed in its entirety resulting in over 2000
+pages, and they don’t disappear even if I comment out the lines.</p>
+<h1 id="references">References</h1>
+<p>Abadie, A., Angrist, J., &amp; Imbens, G. (2002). <em>Instrumental
+variables estimates of the effect of subsidized training on the
+quantiles of trainee earnings</em>. <em>Econometrica, 70</em>(1).
+https://doi.org/10.2307/2692164</p>
+<p>Crommen, G. (n.d.). <em>GillesCrommen/DCC: R code for “An
+instrumental variable approach under dependent censoring.”</em> GitHub.
+Retrieved April 23, 2025, from https://github.com/GillesCrommen/DCC</p>
+<p>Goin, D. E., Rudolph, K. E., &amp; Ahern, J. (2017a). <em>Dataset for
+drought and crime synthetic control analysis, 2000–2015</em>. Figshare.
+https://doi.org/10.1371/u002Fjournal.pone.0185629.s001</p>
+<p>Goin, D. E., Rudolph, K. E., &amp; Ahern, J. (2017b). <em>Impact of
+drought on crime in California: A synthetic control approach</em>.
+<em>PLOS ONE, 12</em>(10), e0185629.
+https://doi.org/10.1371/journal.pone.0185629</p>
+<p>NBER. (n.d.). <em>Index of /~rdehejia/data</em>. Retrieved April 23,
+2025, from https://users.nber.org/~rdehejia/data/</p>
+</html>

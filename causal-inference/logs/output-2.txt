@@ -1,0 +1,2100 @@
+
+ Missing data- treated unit; predictor: PovertyPercentAllAges ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: PovertyPercentAllAges ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: PovertyPercentAllAges ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: PovertyPercentAges017 ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: PovertyPercentAges017 ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: PovertyPercentAges017 ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: gini ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: gini ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: gini ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: gini ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: gini ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: gini ; for period: 2005 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: median_earnings ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: median_earnings ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: median_earnings ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: median_earnings ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: median_earnings ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: manage_earnings ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: manage_earnings ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: manage_earnings ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: manage_earnings ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: manage_earnings ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: service_earnings ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: service_earnings ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: service_earnings ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: service_earnings ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: service_earnings ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: sales_earnings ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: sales_earnings ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: sales_earnings ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: sales_earnings ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: sales_earnings ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: construction_earnings ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: construction_earnings ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: construction_earnings ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: construction_earnings ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: construction_earnings ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_own_lt20_30pct_total ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_own_lt20_30pct_total ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_own_lt20_30pct_total ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_own_lt20_30pct_total ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_own_lt20_30pct_total ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_own_20_lt35_30pct_total ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_own_20_lt35_30pct_total ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_own_20_lt35_30pct_total ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_own_20_lt35_30pct_total ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_own_20_lt35_30pct_total ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_own_35_lt50_30pct_total ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_own_35_lt50_30pct_total ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_own_35_lt50_30pct_total ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_own_35_lt50_30pct_total ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_own_35_lt50_30pct_total ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_own_50_lt75_30pct_total ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_own_50_lt75_30pct_total ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_own_50_lt75_30pct_total ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_own_50_lt75_30pct_total ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_own_50_lt75_30pct_total ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_own_75pl_30pct_total ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_own_75pl_30pct_total ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_own_75pl_30pct_total ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_own_75pl_30pct_total ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_own_75pl_30pct_total ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_rent_lt20_30pct_total ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_rent_lt20_30pct_total ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_rent_lt20_30pct_total ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_rent_lt20_30pct_total ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_rent_lt20_30pct_total ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_rent_20_lt35_30pct_total ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_rent_20_lt35_30pct_total ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_rent_20_lt35_30pct_total ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_rent_20_lt35_30pct_total ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_rent_20_lt35_30pct_total ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_rent_35_lt50_30pct_total ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_rent_35_lt50_30pct_total ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_rent_35_lt50_30pct_total ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_rent_35_lt50_30pct_total ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_rent_35_lt50_30pct_total ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_rent_50_lt75_30pct_total ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_rent_50_lt75_30pct_total ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_rent_50_lt75_30pct_total ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_rent_50_lt75_30pct_total ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_rent_50_lt75_30pct_total ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_rent_75pl_30pct_total ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_rent_75pl_30pct_total ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_rent_75pl_30pct_total ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_rent_75pl_30pct_total ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_rent_75pl_30pct_total ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: value_ratio_lt2 ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: value_ratio_lt2 ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: value_ratio_lt2 ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: value_ratio_lt2 ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: value_ratio_lt2 ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: value_ratio_2_3 ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: value_ratio_2_3 ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: value_ratio_2_3 ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: value_ratio_2_3 ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: value_ratio_2_3 ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: value_ratio_3_4 ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: value_ratio_3_4 ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: value_ratio_3_4 ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: value_ratio_3_4 ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: value_ratio_3_4 ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: value_ratio_gt4 ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: value_ratio_gt4 ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: value_ratio_gt4 ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: value_ratio_gt4 ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: value_ratio_gt4 ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_samehouse ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_samehouse ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_samehouse ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_samehouse ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_samehouse ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_samehouse ; for period: 2005 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_samehouse ; for period: 2006 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_moved_outofstate ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_moved_outofstate ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_moved_outofstate ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_moved_outofstate ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_moved_outofstate ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_moved_outofstate ; for period: 2005 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_moved_outofstate ; for period: 2006 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_moved_abroad ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_moved_abroad ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_moved_abroad ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_moved_abroad ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_moved_abroad ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_moved_abroad ; for period: 2005 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: pct_moved_abroad ; for period: 2006 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: totalemployees ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: totalemployees ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: totalemployees ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: totalemployees ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: agencies ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: agencies ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: agencies ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: agencies ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: maleofficers ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: maleofficers ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: maleofficers ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data- treated unit; predictor: maleofficers ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: PovertyPercentAllAges ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: PovertyPercentAllAges ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: PovertyPercentAllAges ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: PovertyPercentAllAges ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: PovertyPercentAllAges ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: PovertyPercentAllAges ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: PovertyPercentAllAges ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: PovertyPercentAllAges ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: PovertyPercentAllAges ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: PovertyPercentAllAges ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: PovertyPercentAllAges ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: PovertyPercentAllAges ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: PovertyPercentAges017 ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: PovertyPercentAges017 ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: PovertyPercentAges017 ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: PovertyPercentAges017 ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: PovertyPercentAges017 ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: PovertyPercentAges017 ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: PovertyPercentAges017 ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: PovertyPercentAges017 ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: PovertyPercentAges017 ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: PovertyPercentAges017 ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: PovertyPercentAges017 ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: PovertyPercentAges017 ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: gini ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: gini ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: gini ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: gini ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: gini ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: gini ; for period: 2005 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: gini ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: gini ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: gini ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: gini ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: gini ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: gini ; for period: 2005 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: gini ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: gini ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: gini ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: gini ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: gini ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: gini ; for period: 2005 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: gini ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: gini ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: gini ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: gini ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: gini ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: gini ; for period: 2005 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: median_earnings ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: median_earnings ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: median_earnings ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: median_earnings ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: median_earnings ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: median_earnings ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: median_earnings ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: median_earnings ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: median_earnings ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: median_earnings ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: median_earnings ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: median_earnings ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: median_earnings ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: median_earnings ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: median_earnings ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: median_earnings ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: median_earnings ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: median_earnings ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: median_earnings ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: median_earnings ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: manage_earnings ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: manage_earnings ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: manage_earnings ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: manage_earnings ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: manage_earnings ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: manage_earnings ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: manage_earnings ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: manage_earnings ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: manage_earnings ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: manage_earnings ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: manage_earnings ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: manage_earnings ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: manage_earnings ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: manage_earnings ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: manage_earnings ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: manage_earnings ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: manage_earnings ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: manage_earnings ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: manage_earnings ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: manage_earnings ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: service_earnings ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: service_earnings ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: service_earnings ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: service_earnings ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: service_earnings ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: service_earnings ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: service_earnings ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: service_earnings ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: service_earnings ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: service_earnings ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: service_earnings ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: service_earnings ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: service_earnings ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: service_earnings ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: service_earnings ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: service_earnings ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: service_earnings ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: service_earnings ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: service_earnings ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: service_earnings ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: sales_earnings ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: sales_earnings ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: sales_earnings ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: sales_earnings ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: sales_earnings ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: sales_earnings ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: sales_earnings ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: sales_earnings ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: sales_earnings ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: sales_earnings ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: sales_earnings ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: sales_earnings ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: sales_earnings ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: sales_earnings ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: sales_earnings ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: sales_earnings ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: sales_earnings ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: sales_earnings ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: sales_earnings ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: sales_earnings ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: construction_earnings ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: construction_earnings ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: construction_earnings ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: construction_earnings ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: construction_earnings ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: construction_earnings ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: construction_earnings ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: construction_earnings ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: construction_earnings ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: construction_earnings ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: construction_earnings ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: construction_earnings ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: construction_earnings ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: construction_earnings ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: construction_earnings ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: construction_earnings ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: construction_earnings ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: construction_earnings ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: construction_earnings ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: construction_earnings ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_own_lt20_30pct_total ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_own_lt20_30pct_total ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_own_lt20_30pct_total ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_own_lt20_30pct_total ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_own_lt20_30pct_total ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_own_lt20_30pct_total ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_own_lt20_30pct_total ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_own_lt20_30pct_total ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_own_lt20_30pct_total ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_own_lt20_30pct_total ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_own_lt20_30pct_total ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_own_lt20_30pct_total ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_own_lt20_30pct_total ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_own_lt20_30pct_total ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_own_lt20_30pct_total ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_own_lt20_30pct_total ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_own_lt20_30pct_total ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_own_lt20_30pct_total ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_own_lt20_30pct_total ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_own_lt20_30pct_total ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_own_20_lt35_30pct_total ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_own_20_lt35_30pct_total ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_own_20_lt35_30pct_total ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_own_20_lt35_30pct_total ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_own_20_lt35_30pct_total ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_own_20_lt35_30pct_total ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_own_20_lt35_30pct_total ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_own_20_lt35_30pct_total ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_own_20_lt35_30pct_total ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_own_20_lt35_30pct_total ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_own_20_lt35_30pct_total ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_own_20_lt35_30pct_total ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_own_20_lt35_30pct_total ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_own_20_lt35_30pct_total ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_own_20_lt35_30pct_total ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_own_20_lt35_30pct_total ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_own_20_lt35_30pct_total ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_own_20_lt35_30pct_total ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_own_20_lt35_30pct_total ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_own_20_lt35_30pct_total ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_own_35_lt50_30pct_total ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_own_35_lt50_30pct_total ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_own_35_lt50_30pct_total ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_own_35_lt50_30pct_total ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_own_35_lt50_30pct_total ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_own_35_lt50_30pct_total ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_own_35_lt50_30pct_total ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_own_35_lt50_30pct_total ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_own_35_lt50_30pct_total ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_own_35_lt50_30pct_total ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_own_35_lt50_30pct_total ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_own_35_lt50_30pct_total ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_own_35_lt50_30pct_total ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_own_35_lt50_30pct_total ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_own_35_lt50_30pct_total ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_own_35_lt50_30pct_total ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_own_35_lt50_30pct_total ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_own_35_lt50_30pct_total ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_own_35_lt50_30pct_total ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_own_35_lt50_30pct_total ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_own_50_lt75_30pct_total ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_own_50_lt75_30pct_total ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_own_50_lt75_30pct_total ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_own_50_lt75_30pct_total ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_own_50_lt75_30pct_total ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_own_50_lt75_30pct_total ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_own_50_lt75_30pct_total ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_own_50_lt75_30pct_total ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_own_50_lt75_30pct_total ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_own_50_lt75_30pct_total ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_own_50_lt75_30pct_total ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_own_50_lt75_30pct_total ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_own_50_lt75_30pct_total ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_own_50_lt75_30pct_total ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_own_50_lt75_30pct_total ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_own_50_lt75_30pct_total ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_own_50_lt75_30pct_total ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_own_50_lt75_30pct_total ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_own_50_lt75_30pct_total ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_own_50_lt75_30pct_total ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_own_75pl_30pct_total ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_own_75pl_30pct_total ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_own_75pl_30pct_total ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_own_75pl_30pct_total ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_own_75pl_30pct_total ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_own_75pl_30pct_total ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_own_75pl_30pct_total ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_own_75pl_30pct_total ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_own_75pl_30pct_total ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_own_75pl_30pct_total ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_own_75pl_30pct_total ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_own_75pl_30pct_total ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_own_75pl_30pct_total ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_own_75pl_30pct_total ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_own_75pl_30pct_total ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_own_75pl_30pct_total ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_own_75pl_30pct_total ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_own_75pl_30pct_total ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_own_75pl_30pct_total ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_own_75pl_30pct_total ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_rent_lt20_30pct_total ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_rent_lt20_30pct_total ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_rent_lt20_30pct_total ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_rent_lt20_30pct_total ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_rent_lt20_30pct_total ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_rent_lt20_30pct_total ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_rent_lt20_30pct_total ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_rent_lt20_30pct_total ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_rent_lt20_30pct_total ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_rent_lt20_30pct_total ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_rent_lt20_30pct_total ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_rent_lt20_30pct_total ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_rent_lt20_30pct_total ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_rent_lt20_30pct_total ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_rent_lt20_30pct_total ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_rent_lt20_30pct_total ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_rent_lt20_30pct_total ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_rent_lt20_30pct_total ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_rent_lt20_30pct_total ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_rent_lt20_30pct_total ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_rent_20_lt35_30pct_total ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_rent_20_lt35_30pct_total ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_rent_20_lt35_30pct_total ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_rent_20_lt35_30pct_total ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_rent_20_lt35_30pct_total ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_rent_20_lt35_30pct_total ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_rent_20_lt35_30pct_total ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_rent_20_lt35_30pct_total ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_rent_20_lt35_30pct_total ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_rent_20_lt35_30pct_total ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_rent_20_lt35_30pct_total ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_rent_20_lt35_30pct_total ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_rent_20_lt35_30pct_total ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_rent_20_lt35_30pct_total ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_rent_20_lt35_30pct_total ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_rent_20_lt35_30pct_total ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_rent_20_lt35_30pct_total ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_rent_20_lt35_30pct_total ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_rent_20_lt35_30pct_total ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_rent_20_lt35_30pct_total ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_rent_35_lt50_30pct_total ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_rent_35_lt50_30pct_total ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_rent_35_lt50_30pct_total ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_rent_35_lt50_30pct_total ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_rent_35_lt50_30pct_total ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_rent_35_lt50_30pct_total ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_rent_35_lt50_30pct_total ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_rent_35_lt50_30pct_total ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_rent_35_lt50_30pct_total ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_rent_35_lt50_30pct_total ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_rent_35_lt50_30pct_total ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_rent_35_lt50_30pct_total ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_rent_35_lt50_30pct_total ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_rent_35_lt50_30pct_total ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_rent_35_lt50_30pct_total ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_rent_35_lt50_30pct_total ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_rent_35_lt50_30pct_total ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_rent_35_lt50_30pct_total ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_rent_35_lt50_30pct_total ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_rent_35_lt50_30pct_total ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_rent_50_lt75_30pct_total ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_rent_50_lt75_30pct_total ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_rent_50_lt75_30pct_total ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_rent_50_lt75_30pct_total ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_rent_50_lt75_30pct_total ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_rent_50_lt75_30pct_total ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_rent_50_lt75_30pct_total ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_rent_50_lt75_30pct_total ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_rent_50_lt75_30pct_total ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_rent_50_lt75_30pct_total ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_rent_50_lt75_30pct_total ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_rent_50_lt75_30pct_total ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_rent_50_lt75_30pct_total ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_rent_50_lt75_30pct_total ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_rent_50_lt75_30pct_total ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_rent_50_lt75_30pct_total ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_rent_50_lt75_30pct_total ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_rent_50_lt75_30pct_total ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_rent_50_lt75_30pct_total ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_rent_50_lt75_30pct_total ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_rent_75pl_30pct_total ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_rent_75pl_30pct_total ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_rent_75pl_30pct_total ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_rent_75pl_30pct_total ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_rent_75pl_30pct_total ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_rent_75pl_30pct_total ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_rent_75pl_30pct_total ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_rent_75pl_30pct_total ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_rent_75pl_30pct_total ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_rent_75pl_30pct_total ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_rent_75pl_30pct_total ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_rent_75pl_30pct_total ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_rent_75pl_30pct_total ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_rent_75pl_30pct_total ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_rent_75pl_30pct_total ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_rent_75pl_30pct_total ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_rent_75pl_30pct_total ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_rent_75pl_30pct_total ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_rent_75pl_30pct_total ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_rent_75pl_30pct_total ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: value_ratio_lt2 ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: value_ratio_lt2 ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: value_ratio_lt2 ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: value_ratio_lt2 ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: value_ratio_lt2 ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: value_ratio_lt2 ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: value_ratio_lt2 ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: value_ratio_lt2 ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: value_ratio_lt2 ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: value_ratio_lt2 ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: value_ratio_lt2 ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: value_ratio_lt2 ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: value_ratio_lt2 ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: value_ratio_lt2 ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: value_ratio_lt2 ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: value_ratio_lt2 ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: value_ratio_lt2 ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: value_ratio_lt2 ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: value_ratio_lt2 ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: value_ratio_lt2 ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: value_ratio_2_3 ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: value_ratio_2_3 ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: value_ratio_2_3 ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: value_ratio_2_3 ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: value_ratio_2_3 ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: value_ratio_2_3 ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: value_ratio_2_3 ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: value_ratio_2_3 ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: value_ratio_2_3 ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: value_ratio_2_3 ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: value_ratio_2_3 ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: value_ratio_2_3 ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: value_ratio_2_3 ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: value_ratio_2_3 ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: value_ratio_2_3 ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: value_ratio_2_3 ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: value_ratio_2_3 ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: value_ratio_2_3 ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: value_ratio_2_3 ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: value_ratio_2_3 ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: value_ratio_3_4 ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: value_ratio_3_4 ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: value_ratio_3_4 ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: value_ratio_3_4 ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: value_ratio_3_4 ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: value_ratio_3_4 ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: value_ratio_3_4 ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: value_ratio_3_4 ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: value_ratio_3_4 ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: value_ratio_3_4 ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: value_ratio_3_4 ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: value_ratio_3_4 ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: value_ratio_3_4 ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: value_ratio_3_4 ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: value_ratio_3_4 ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: value_ratio_3_4 ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: value_ratio_3_4 ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: value_ratio_3_4 ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: value_ratio_3_4 ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: value_ratio_3_4 ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: value_ratio_gt4 ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: value_ratio_gt4 ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: value_ratio_gt4 ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: value_ratio_gt4 ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: value_ratio_gt4 ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: value_ratio_gt4 ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: value_ratio_gt4 ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: value_ratio_gt4 ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: value_ratio_gt4 ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: value_ratio_gt4 ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: value_ratio_gt4 ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: value_ratio_gt4 ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: value_ratio_gt4 ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: value_ratio_gt4 ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: value_ratio_gt4 ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: value_ratio_gt4 ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: value_ratio_gt4 ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: value_ratio_gt4 ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: value_ratio_gt4 ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: value_ratio_gt4 ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_samehouse ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_samehouse ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_samehouse ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_samehouse ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_samehouse ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_samehouse ; for period: 2005 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_samehouse ; for period: 2006 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_samehouse ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_samehouse ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_samehouse ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_samehouse ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_samehouse ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_samehouse ; for period: 2005 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_samehouse ; for period: 2006 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_samehouse ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_samehouse ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_samehouse ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_samehouse ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_samehouse ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_samehouse ; for period: 2005 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_samehouse ; for period: 2006 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_samehouse ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_samehouse ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_samehouse ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_samehouse ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_samehouse ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_samehouse ; for period: 2005 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_samehouse ; for period: 2006 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_moved_outofstate ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_moved_outofstate ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_moved_outofstate ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_moved_outofstate ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_moved_outofstate ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_moved_outofstate ; for period: 2005 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_moved_outofstate ; for period: 2006 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_moved_outofstate ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_moved_outofstate ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_moved_outofstate ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_moved_outofstate ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_moved_outofstate ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_moved_outofstate ; for period: 2005 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_moved_outofstate ; for period: 2006 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_moved_outofstate ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_moved_outofstate ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_moved_outofstate ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_moved_outofstate ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_moved_outofstate ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_moved_outofstate ; for period: 2005 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_moved_outofstate ; for period: 2006 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_moved_outofstate ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_moved_outofstate ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_moved_outofstate ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_moved_outofstate ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_moved_outofstate ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_moved_outofstate ; for period: 2005 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_moved_outofstate ; for period: 2006 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_moved_abroad ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_moved_abroad ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_moved_abroad ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_moved_abroad ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_moved_abroad ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_moved_abroad ; for period: 2005 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: pct_moved_abroad ; for period: 2006 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_moved_abroad ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_moved_abroad ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_moved_abroad ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_moved_abroad ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_moved_abroad ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_moved_abroad ; for period: 2005 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: pct_moved_abroad ; for period: 2006 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_moved_abroad ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_moved_abroad ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_moved_abroad ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_moved_abroad ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_moved_abroad ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_moved_abroad ; for period: 2005 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: pct_moved_abroad ; for period: 2006 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_moved_abroad ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_moved_abroad ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_moved_abroad ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_moved_abroad ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_moved_abroad ; for period: 2004 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_moved_abroad ; for period: 2005 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: pct_moved_abroad ; for period: 2006 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: totalemployees ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: totalemployees ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: totalemployees ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: totalemployees ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: totalemployees ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: totalemployees ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: totalemployees ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: totalemployees ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: totalemployees ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: totalemployees ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: totalemployees ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: totalemployees ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: totalemployees ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: totalemployees ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: totalemployees ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: totalemployees ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: agencies ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: agencies ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: agencies ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: agencies ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: agencies ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: agencies ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: agencies ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: agencies ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: agencies ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: agencies ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: agencies ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: agencies ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: agencies ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: agencies ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: agencies ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: agencies ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: maleofficers ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: maleofficers ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: maleofficers ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 1 ; predictor: maleofficers ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: maleofficers ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: maleofficers ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: maleofficers ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 2 ; predictor: maleofficers ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: maleofficers ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: maleofficers ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: maleofficers ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 3 ; predictor: maleofficers ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: maleofficers ; for period: 2000 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: maleofficers ; for period: 2001 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: maleofficers ; for period: 2002 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
+
+ Missing data - control unit: 5 ; predictor: maleofficers ; for period: 2003 
+ We ignore (na.rm = TRUE) all missing values for predictors.op.
