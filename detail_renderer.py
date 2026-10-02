@@ -1,9 +1,26 @@
 from pathlib import Path
 from html import escape as E
+import subprocess
 from project_details import DETAILS
+
+def render_markdown_detail(p, d, tags):
+ source = (Path(__file__).parent / d['markdown_source']).read_text()
+ title, subtitle, article = source.strip().split('\n\n', 2)
+ title = title.removeprefix('# ')
+ subtitle = subtitle.strip('*')
+ article_html = subprocess.run(
+  ['pandoc', '--from=markdown', '--to=html5', '--section-divs', '--wrap=none'],
+  input=article, text=True, capture_output=True, check=True,
+ ).stdout
+ article_html = article_html.replace('id="abstract" class="level2"', 'id="abstract" class="level2 abstract"', 1)
+ article_html = article_html.replace('<table>', '<div class="table-scroll"><table>').replace('</table>', '</table></div>')
+ source_links = ''.join(f'<p><a href="{E(url)}">{E(label)}</a></p>' for label, url in d.get('source_links', []))
+ return f'<section class="hero"><a class="back" href="../#projects">All projects</a><p class="eyebrow">{E(" / ".join(p["category"]))}</p><h1>{E(title)}</h1><p class="lead">{E(subtitle)}</p>{tags(p)}</section><article class="case-study">{article_html}<section class="source-section"><h2>Original report</h2>{source_links}</section></article>'
 
 def render_detail(p,tags,deck=''):
  d=DETAILS[p['slug']]; slug=p['slug']
+ if 'markdown_source' in d:
+  return render_markdown_detail(p, d, tags)
  links=list(p['links'])
  if slug in ['bayesian-housing','social-networks','multilevel-scores','movie-preferences']:
   links.insert(0,('Read full analysis','analysis.html'))
