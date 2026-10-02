@@ -1,0 +1,517 @@
+[
+  {
+    "slug": "dna-inference",
+    "title": "Inferring family relationships from DNA",
+    "category": [
+      "Statistics & ML"
+    ],
+    "tags": [
+      "Bayesian inference",
+      "R",
+      "Simulation",
+      "Genetics"
+    ],
+    "question": "How can we assess distant kinship when only limited relatives are available?",
+    "method": "Developed an Approximate Bayesian Computation pipeline that simulates DNA-sharing patterns under competing pedigree hypotheses, summarizes shared segments and estimates support for related versus unrelated models. The capstone examines 11 pedigrees and includes repeated cross-validation and label-permutation checks.",
+    "finding": "The framework makes the relationship hypothesis, reference populations and uncertainty explicit. It was motivated by humanitarian identification work in Argentina, where ambiguous genetic evidence has consequences for families.",
+    "limit": "Internal cross-validation measures performance within the constructed reference banks. It is not a real-world identification accuracy estimate, and should not be directly compared with STR detection power as though the metrics were interchangeable.",
+    "links": [
+      [
+        "Read capstone paper",
+        "https://docs.google.com/document/d/1e9A9l0uKJ8IvY67Jtgu8liAjk33Njx_lanUBgxBzeTs/edit"
+      ],
+      [
+        "Explore early notebooks",
+        "https://github.com/undralg/ABC-inference-public"
+      ],
+      [
+        "mispitools contributor credits",
+        "https://github.com/MarsicoFL/mispitools#authors"
+      ]
+    ],
+    "metric": "11",
+    "label": "pedigrees examined",
+    "role": "Capstone research · Institute of Calculus, University of Buenos Aires",
+    "chart": null
+  },
+  {
+    "slug": "vinyl",
+    "title": "Vinyl beyond release week",
+    "category": [
+      "Market Research",
+      "Statistics & ML"
+    ],
+    "tags": [
+      "R",
+      "Tableau",
+      "Regression",
+      "Web data collection"
+    ],
+    "question": "Streaming made physical albums optional. Why did vinyl grow while CDs declined?",
+    "method": "Combined RIAA market trends, publicly reported album sales and industry catalog breakdowns.",
+    "finding": "Older recordings account for a larger share of vinyl purchases than CD purchases.",
+    "limit": "",
+    "links": [],
+    "metric": "132",
+    "label": "albums in the opening-week dataset",
+    "role": "Independent analysis",
+    "chart": null
+  },
+  {
+    "slug": "huzur",
+    "title": "Huzur: AI with hidden information",
+    "category": [
+      "Software & AI"
+    ],
+    "tags": [
+      "JavaScript",
+      "Python",
+      "Cloudflare",
+      "Game AI"
+    ],
+    "question": "Can an AI opponent play a traditional Mongolian card game without seeing the other players’ cards?",
+    "method": "Built a browser game for 2–5 players, with local human and AI seats, multiplayer lobbies and persistent match records. AI decisions combine strategic heuristics, lookahead and exact two-player endgame search. Offline self-play supports policy comparisons.",
+    "finding": "The project connects a playable product with an evaluation loop: log decisions, simulate opponents, compare policies and revise the strategy. Fairness guards keep hidden opponent cards and deck order out of bot decision inputs.",
+    "limit": "Simulated match results do not establish performance against human players. The documented multiplayer roadmap still includes server-side rules validation.",
+    "links": [
+      [
+        "Play Huzur",
+        "https://huzur-card-game-platform.undral.workers.dev/"
+      ],
+      [
+        "View code",
+        "https://github.com/undralg/Data-Science-Projects/tree/main/card-game-platform"
+      ]
+    ],
+    "metric": "2–5",
+    "label": "players supported",
+    "role": "Independent software project",
+    "chart": null
+  },
+  {
+    "slug": "causal-inference",
+    "title": "Finding a credible comparison",
+    "category": [
+      "Statistics & ML"
+    ],
+    "tags": [
+      "Causal inference",
+      "R",
+      "Matching",
+      "Synthetic control"
+    ],
+    "question": "How much does the choice of comparison group change an estimated effect?",
+    "method": "Analyzed job-training outcomes using experimental and observational data, propensity-score and genetic matching, and instrumental variables. A second application uses synthetic control and placebo diagnostics to examine California’s 2011–2015 drought and crime.",
+    "finding": "The job-training exercise illustrates why treatment selection matters: a naive observational comparison can reverse the direction of the randomized comparison. Matching is assessed against the experimental benchmark; the drought analysis makes the counterfactual and placebo evidence explicit.",
+    "limit": "These are course analyses, not new randomized experiments. Causal interpretations depend on balance, identification assumptions and the credibility of the comparison group.",
+    "links": [
+      [
+        "View notebook",
+        "https://github.com/undralg/Data-Science-Projects/blob/main/Causal%20Inference.ipynb"
+      ]
+    ],
+    "metric": "",
+    "label": "",
+    "role": "Individual course project",
+    "chart": null
+  },
+  {
+    "slug": "bayesian-housing",
+    "title": "Pricing homes when outliers matter",
+    "category": [
+      "Statistics & ML"
+    ],
+    "tags": [
+      "Bayesian inference",
+      "Regression",
+      "Model comparison"
+    ],
+    "question": "How sensitive is a housing model to unusual properties and heavy-tailed errors?",
+    "method": "Compared Normal, Student-t and outlier-aware Bayesian regression specifications for Buenos Aires property pricing.",
+    "finding": "Treating the likelihood as a modeling decision makes the influence of unusual observations visible. The report compares specifications rather than relying on a single error model.",
+    "limit": "Results describe the project dataset and modeling assumptions; they are not a deployed appraisal system.",
+    "links": [
+      [
+        "Read report",
+        "https://github.com/undralg/Data-Science-Projects/blob/main/BA%20Real%20Estate/Bayesian%20Regression%20for%20Real%20Estate%20Pricing%20in%20Buenos%20Aires%20(1).pdf"
+      ],
+      [
+        "View notebook",
+        "https://github.com/undralg/Data-Science-Projects/blob/main/BA%20Real%20Estate/bayesian_regression_real_estate_BA_code.ipynb"
+      ]
+    ],
+    "metric": "",
+    "label": "",
+    "role": "Individual course project",
+    "chart": null
+  },
+  {
+    "slug": "social-networks",
+    "title": "Modeling social isolation",
+    "category": [
+      "Statistics & ML"
+    ],
+    "tags": [
+      "Simulation",
+      "Networks",
+      "Monte Carlo"
+    ],
+    "question": "What happens when social isolation and algorithmic exposure reinforce each other?",
+    "method": "Built an agent-based Monte Carlo simulation on weighted friendship networks. Isolation, exposure, ideological drift and friendship decay interact; intervention scenarios change amplification and social support.",
+    "finding": "The model provides a way to explore feedback loops and compare interventions under a common set of assumptions. Network dynamics reveal behavior that a static average would hide.",
+    "limit": "These are simulated outcomes. The model does not establish empirical causal effects of recommendation systems or real interventions.",
+    "links": [
+      [
+        "Read report",
+        "https://github.com/undralg/Data-Science-Projects/blob/main/male-loneliness-epidemic-simulation/CS166_final_report_with_figures.pdf"
+      ],
+      [
+        "View notebook",
+        "https://github.com/undralg/Data-Science-Projects/blob/main/male-loneliness-epidemic-simulation/CS166_final_codebook.ipynb"
+      ]
+    ],
+    "metric": "",
+    "label": "",
+    "role": "Course simulation project",
+    "chart": null
+  },
+  {
+    "slug": "multilevel-scores",
+    "title": "Recovering distributions from histograms",
+    "category": [
+      "Statistics & ML"
+    ],
+    "tags": [
+      "Hierarchical modeling",
+      "Partial pooling",
+      "Bayesian inference"
+    ],
+    "question": "Can we compare student cohorts when their score histograms use different bins?",
+    "method": "Modeled latent test-score distributions from grouped observations, comparing pooling choices across years while retaining the information represented by each histogram bin.",
+    "finding": "The analysis tackles a common practical problem: the raw records are unavailable, yet a comparison is still needed. Probabilistic modeling expresses uncertainty instead of pretending the bin midpoints are individual observations.",
+    "limit": "The conclusions depend on distributional assumptions and the information retained in the published histograms.",
+    "links": [
+      [
+        "View notebook",
+        "https://github.com/undralg/Data-Science-Projects/blob/main/Discrete%20and%20multi-level%20models.ipynb"
+      ]
+    ],
+    "metric": "",
+    "label": "",
+    "role": "Course modeling project",
+    "chart": null
+  },
+  {
+    "slug": "movie-preferences",
+    "title": "Do more modalities mean better predictions?",
+    "category": [
+      "Statistics & ML"
+    ],
+    "tags": [
+      "Machine learning",
+      "Python",
+      "PCA",
+      "Multimodal modeling"
+    ],
+    "question": "Do movie posters and text add useful signal beyond structured metadata?",
+    "method": "Aligned 568 titles from 615 collected IMDb ratings. Compared 36 metadata features with ResNet-50 poster embeddings and TF-IDF/SVD text representations using dimensionality reduction, classification and modality ablations.",
+    "finding": "The exploratory run suggested that adding high-dimensional poster and text features did not automatically improve on metadata. The public notebook replaces the primary comparison with fold-local preprocessing pipelines.",
+    "limit": "The original evaluation fitted preprocessing before the train/test split. A leakage-free rerun is still needed; historical performance estimates are not presented as validated generalization results.",
+    "links": [
+      [
+        "Read project and notebook",
+        "https://github.com/undralg/Data-Science-Projects/tree/main/multimodal-movie-preference-modeling"
+      ]
+    ],
+    "metric": "568",
+    "label": "aligned movie titles",
+    "role": "Exploratory course project",
+    "chart": null
+  },
+  {
+    "slug": "wrigley",
+    "title": "Wrigley: the price of leverage",
+    "category": [
+      "Finance"
+    ],
+    "tags": [
+      "Capital structure",
+      "APV",
+      "WACC",
+      "Sensitivity analysis"
+    ],
+    "question": "Does a $3 billion debt-funded payout create value once financial distress enters the picture?",
+    "method": "Compared tax-shield value, post-recapitalization borrowing costs, interest coverage and expected distress costs. Examined dividends versus repurchases and the difference between EPS mechanics and shareholder value.",
+    "finding": "The report’s no-distress tax shield is $1.2 billion. Its B-rated base scenario reduces net value creation to $732 million; a higher conditional distress loss reduces it to $576 million. The recommendation is sensitive to the debt capacity and distress assumptions.",
+    "limit": "The linked report is labeled a working draft. Values are case-model estimates, not realized outcomes; the distress scenarios depend on assumed conditional losses.",
+    "links": [
+      [
+        "Read analysis",
+        "https://docs.google.com/document/d/1o45fxR6u_kb88QOHL_Nd2UMO8tJp0a1O3mV7T3b9_Hg/edit?usp=drivesdk"
+      ],
+      [
+        "Open financial model",
+        "https://docs.google.com/spreadsheets/d/1DfkT7k7KloBaj6GIneatrRCUg8786Q-v/edit?usp=sharing&ouid=117499987878690017460&rtpof=true&sd=true"
+      ]
+    ],
+    "metric": "",
+    "label": "",
+    "role": "Historical course case study",
+    "chart": [
+      [
+        "Tax shield before distress",
+        1200
+      ],
+      [
+        "Net value: base scenario",
+        732
+      ],
+      [
+        "Net value: higher loss",
+        576
+      ]
+    ]
+  },
+  {
+    "slug": "coreweave",
+    "title": "CoreWeave: valuing capital-intensive AI",
+    "category": [
+      "Finance"
+    ],
+    "tags": [
+      "DCF",
+      "Valuation",
+      "Comparables",
+      "Sensitivity analysis"
+    ],
+    "question": "How much of a fast-growing infrastructure company’s valuation depends on distant cash flows?",
+    "method": "The team combined a DCF, public comparables and precedent transactions, with sensitivity analysis around financing costs, terminal growth, investment and working capital.",
+    "finding": "The April 2025 report presents a $10-per-share base DCF estimate and a $22 synthesis across methods. The important analytical issue is the spread between methods and the sensitivity to long-run assumptions.",
+    "limit": "This is a dated team case analysis, not a current price target. Segment-based comparables and terminal-value assumptions require particular care.",
+    "links": [
+      [
+        "Read analysis",
+        "https://docs.google.com/document/d/1A_41LZo-o5pWjtwj6B9CrfZRjHkUZhaTdeRPOHswtP4/edit?usp=drivesdk"
+      ],
+      [
+        "Open financial model",
+        "https://docs.google.com/spreadsheets/d/1HSKPQUa_DvPNs5hjyJVz1CBUIav84-QIU41mC_DRx7I/edit?usp=sharing"
+      ]
+    ],
+    "metric": "",
+    "label": "",
+    "role": "Team course project · Undral Ganbaatar, Shazil Farukh & Anne Behme",
+    "chart": null
+  },
+  {
+    "slug": "toyota",
+    "title": "Toyota: financial policy across borders",
+    "category": [
+      "Finance"
+    ],
+    "tags": [
+      "Global finance",
+      "Ratio analysis",
+      "Currency exposure"
+    ],
+    "question": "How do production location, liquidity and currency exposure shape financial policy?",
+    "method": "Compared Toyota’s financial ratios with automaker peers, then examined domestic production, international competitiveness and financial policy in the case’s 2010–2011 setting.",
+    "finding": "The case connects balance-sheet decisions to operating geography. A consolidated ratio alone can obscure the different funding needs of manufacturing and financial services.",
+    "limit": "Historical peer comparisons depend on consistent segment definitions. The case is not a statement about Toyota’s current financial position.",
+    "links": [
+      [
+        "Read analysis",
+        "https://docs.google.com/document/d/1hLdDBCUZWf1OoPpPjzpogmGfgDVYswWAnEiRUXIcE14/edit?usp=drivesdk"
+      ],
+      [
+        "Open financial model",
+        "https://docs.google.com/spreadsheets/d/1OD-xqskQCVhE0E85-HWrDXdg2MFnichPKCc5tMVDGjE/edit?usp=sharing"
+      ]
+    ],
+    "metric": "",
+    "label": "",
+    "role": "Historical course case study",
+    "chart": null
+  },
+  {
+    "slug": "aditya-birla",
+    "title": "Aditya Birla: allocating capital internationally",
+    "category": [
+      "Finance"
+    ],
+    "tags": [
+      "DCF",
+      "Capital allocation",
+      "Global finance"
+    ],
+    "question": "Which international investments fit a diversified group’s existing capabilities?",
+    "method": "Developed an India–UAE SME payments and working-capital proposal and an UltraTech investment proposal. Built parent-level cash-flow forecasts, ownership adjustments and valuation scenarios.",
+    "finding": "The base models produce positive parent NPVs for both proposals. Their attractiveness depends on execution, volume, terminal value and the group’s ability to apply existing capabilities.",
+    "limit": "These are proposed investments and assumption-based forecasts, not projects implemented by the company.",
+    "links": [
+      [
+        "Read analysis",
+        "https://docs.google.com/document/d/1otzo2J4eQucIjvo8b_UkZvzoDLcP7QaA6_x7A6PoCJo/edit?usp=drivesdk"
+      ],
+      [
+        "Open financial model",
+        "https://docs.google.com/spreadsheets/d/1fmV_3I21kLhdkUNtOz21bGsCGLD9MansAeYTd_qqBJE/edit?usp=sharing"
+      ]
+    ],
+    "metric": "",
+    "label": "",
+    "role": "Historical course case study",
+    "chart": null
+  },
+  {
+    "slug": "astral",
+    "title": "Astral Records: growth needs financing",
+    "category": [
+      "Finance"
+    ],
+    "tags": [
+      "Financial forecasting",
+      "Working capital",
+      "Capital budgeting"
+    ],
+    "question": "Can a growing company fund expansion while margins weaken?",
+    "method": "Reviewed historical profitability and leverage, then forecast 1994–1995 financial statements with and without capital expenditure. Connected operating performance to financing requirements.",
+    "finding": "Revenue growth alone does not answer the funding question. The case brings margin pressure, debt servicing and capital spending into the same forecast.",
+    "limit": "Historical classroom case; projections depend on the case inputs and operating assumptions.",
+    "links": [
+      [
+        "Read analysis",
+        "https://docs.google.com/document/d/1eb0Sm-1zw7dZrcaTyJVOHnJQJPcdaCWbE4c12N1t9dU/edit?usp=drivesdk"
+      ],
+      [
+        "Open financial model",
+        "https://docs.google.com/spreadsheets/d/1QnDPzKz_CJ-gTgy2EJAnxIbIi7ZDLHTqnYfVKmXpGOw/edit?usp=sharing"
+      ]
+    ],
+    "metric": "",
+    "label": "",
+    "role": "Historical course case study",
+    "chart": null
+  },
+  {
+    "slug": "science-technology",
+    "title": "Science Technology: growth versus cash",
+    "category": [
+      "Finance"
+    ],
+    "tags": [
+      "Financial forecasting",
+      "Working capital",
+      "Scenario analysis"
+    ],
+    "question": "What must improve for a 30% growth plan to be financeable?",
+    "method": "Examined a plan that accelerates sales growth beyond the historical rate. Reconstructed the cash conversion cycle, working-capital needs and reliance on short-term borrowing.",
+    "finding": "The forecast illustrates how rising accounting income can coexist with cash pressure. Inventory and receivables become central to the credibility of the growth plan.",
+    "limit": "Forecast improvements in inventory management are assumptions, not observed achievements.",
+    "links": [
+      [
+        "Read analysis",
+        "https://docs.google.com/document/d/1js20cFiamS1ibbWLSvHKOIWLlFDXwpiMYJz-RUz40gk/edit?usp=drivesdk"
+      ],
+      [
+        "Open financial model",
+        "https://docs.google.com/spreadsheets/d/1OY-SPYS6CvnUkxL-A3UqeycOgxi-OAw2gtZaZN59-CU/edit?usp=sharing"
+      ]
+    ],
+    "metric": "",
+    "label": "",
+    "role": "Historical course case study",
+    "chart": null
+  },
+  {
+    "slug": "rvd-ai",
+    "title": "RVD.AI: financing an early-stage venture",
+    "category": [
+      "Finance"
+    ],
+    "tags": [
+      "Venture valuation",
+      "TAM",
+      "Dilution",
+      "Scenario analysis"
+    ],
+    "question": "How does the size of an initial investment change the ownership bargain?",
+    "method": "Built a market-sizing and revenue scenario, applied a venture-capital valuation method and compared $2.5 million and $3.5 million funding cases. Examined sensitivity to market share and required returns.",
+    "finding": "In the report’s fixed post-money valuation scenario, larger funding sharply increases the investor’s ownership requirement. The case makes the growth-versus-dilution tradeoff explicit.",
+    "limit": "Market share, exit multiples and future margins are scenario assumptions. This is a historical academic analysis, not a completed financing.",
+    "links": [
+      [
+        "Read analysis",
+        "https://docs.google.com/document/d/1QwXy1juQRpNvIb-r23uCIdMsEog9Y8GQySJagD6S6J4/edit?usp=drivesdk"
+      ],
+      [
+        "Open financial model",
+        "https://docs.google.com/spreadsheets/d/1q0yrHzLaJMUFz3_XL3ABelNJVJh6Fh024B-k34lIyuM/edit?usp=sharing"
+      ]
+    ],
+    "metric": "",
+    "label": "",
+    "role": "Historical course case study",
+    "chart": null
+  },
+  {
+    "slug": "optiguard",
+    "title": "Optiguard: what a term sheet changes",
+    "category": [
+      "Finance"
+    ],
+    "tags": [
+      "Venture finance",
+      "Cap tables",
+      "Liquidation preferences"
+    ],
+    "question": "Why can two financing offers with similar headline valuations produce different outcomes?",
+    "method": "Modeled ownership and option reserves, a hypothetical Series B, antidilution adjustments and conventional versus participating liquidation preferences.",
+    "finding": "Valuation is only one part of the bargain. Exit payouts, dilution and control provisions change the economics for founders and investors.",
+    "limit": "Hypothetical case scenarios; the analysis does not describe an executed investment.",
+    "links": [
+      [
+        "Read analysis",
+        "https://docs.google.com/document/d/1rcJwxu4XQnHtKasLkDIJWz97Q108FzS3HGmq-13qq0E/edit?usp=drivesdk"
+      ],
+      [
+        "Open financial model",
+        "https://docs.google.com/spreadsheets/d/1bXRE0UKPMuV6LxrUMjqWfBiWhlsmUSTxCy7rF_dlWaM/edit?usp=sharing"
+      ]
+    ],
+    "metric": "",
+    "label": "",
+    "role": "Historical course case study",
+    "chart": null
+  },
+  {
+    "slug": "freddo",
+    "title": "Freddo: growth under inflation",
+    "category": [
+      "Finance"
+    ],
+    "tags": [
+      "Working capital",
+      "Expansion strategy",
+      "Scenario analysis"
+    ],
+    "question": "How can an expanding business manage cash when inflation and shipping complicate the cycle?",
+    "method": "Examined receivables, inventory and payables, then developed operational and expansion scenarios including local production and changes in payment terms.",
+    "finding": "The proposal connects expansion with cash discipline: faster collections and shorter inventory cycles can matter as much as new locations.",
+    "limit": "Shipping costs, target cash-cycle days and expansion benefits are estimates. They are not verified cost savings or realized outcomes.",
+    "links": [
+      [
+        "Read analysis",
+        "https://docs.google.com/document/d/1210dfofwSIjmbe8tg3ODMq2bK-M4x_9puqPlGuHSuJQ/edit?usp=drivesdk"
+      ],
+      [
+        "Open financial model",
+        "https://docs.google.com/spreadsheets/d/1IDYwB4ESPCPfUZMGgFLyfnNjOqbYcGTWaDC5b3YcjMA/edit?usp=sharing"
+      ]
+    ],
+    "metric": "",
+    "label": "",
+    "role": "Historical course case study",
+    "chart": null
+  }
+]
